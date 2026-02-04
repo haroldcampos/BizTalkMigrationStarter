@@ -1257,7 +1257,7 @@ For issues, questions, or feature requests:
 **Related Projects**:
 - **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to Liquid template conversion
 - **[BTPtoLA](../BTPtoLA/README.md)** - BizTalk pipeline to Logic Apps conversion
-- **[BizTalkToLogicApps.MCP](../BizTalkToLogicApps.MCP/README.md)** - MCP server for AI-assisted migration
+- **[BizTalkToLogicApps.MCP](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.MCP/README.md)** - MCP server for AI-assisted migration
 - [Azure Logic Apps Documentation](https://learn.microsoft.com/azure/logic-apps/)
 - [BizTalk Server Documentation](https://learn.microsoft.com/biztalk/)
 
