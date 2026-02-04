@@ -325,3 +325,10 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# Documentation and presentation files
+*.pdf
+*.pptx
+*.ppt
+*.docx
+*.doc

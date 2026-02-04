@@ -26,8 +26,8 @@ ODXtoWFMigrator.exe package MyOrchestration.odx bindings.xml
 # ORCHESTRATIONS: Batch convert all orchestrations in a directory
 ODXtoWFMigrator.exe batch convert --directory C:\BizTalk --bindings bindings.xml
 
-# MAPS: Convert BizTalk map to Liquid template
-BTMtoLMLMigrator.exe OrderToInvoice.btm Order.xsd Invoice.xsd
+# MAPS: Convert BizTalk map to Liquid template (LML)
+BTMtoLMLMigrator.exe OrderToInvoice.btm Order.xsd Invoice.xsd. LMLs are required today to open maps in the data mapper.
 
 # PIPELINES: Convert BizTalk pipeline to Logic Apps workflow
 BTPtoLA.exe XMLReceive.btp C:\Output
