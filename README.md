@@ -3,7 +3,7 @@
 [![.NET Framework](https://img.shields.io/badge/.NET%20Framework-4.7.2-blue)](https://dotnet.microsoft.com/download/dotnet-framework)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A migration toolkit to start your Microsoft BizTalk Server artifacts (orchestrations, maps, and pipelines) migration to Azure Logic Apps Standard. Includes specialized CLI tools for each artifact type plus a Model Context Protocol (MCP) server for intelligent, assisted migration.
+A migration toolkit to start your Microsoft BizTalk Server artifacts (orchestrations, maps, and pipelines) migration to Azure Logic Apps Standard (and Hybrid deployment model). Includes specialized CLI tools for each artifact type plus a Model Context Protocol (MCP) server for intelligent, assisted migration. I built this tool and has undergone basic testing. If you run into issues, you can use GHCP to troubleshoot/customize this solution with your own artifacts.
 
 ## Quick Start
 
