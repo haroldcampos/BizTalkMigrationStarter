@@ -496,11 +496,11 @@ BizTalkMigrator/
 
 ```powershell
 # Clone the repository
-git clone https://github.com/hcampos_microsoft/BizTalkMigrator.git
-cd BizTalkMigrator
+git clone https://github.com/haroldcampos/BizTalkMigrationStarter.git
+cd BizTalkMigrationStarter
 
 # Build all projects
-msbuild BizTalkMigrator.sln /t:Rebuild /p:Configuration=Release
+msbuild BizTalkMigrationStarter.sln /t:Rebuild /p:Configuration=Release
 
 # Executables will be in:
 # - ODXtoWFMigrator\bin\Release\ODXtoWFMigrator.exe
@@ -924,7 +924,7 @@ See [BizTalkToLogicApps.Tests/README.md](BizTalkToLogicApps.Tests/README.md) for
 
 ```powershell
 # Fork and clone the repository
-git clone https://github.com/your-username/BizTalkToLogicApps.git
+git clone https://github.com/haroldcampos/BizTalkMigrationStarter.git
 
 # Create a feature branch
 git checkout -b feature/your-feature-name
@@ -959,7 +959,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For issues, questions, or feature requests:
 
-- **GitHub Issues**: https://github.com/haroldcampos/BizTalkMigrator/issues
+- **GitHub Issues**: https://github.com/haroldcampos/BizTalkMigrationStarter/issues
 
 ## Author
 

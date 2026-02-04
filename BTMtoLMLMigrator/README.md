@@ -556,7 +556,7 @@ MIT License - See LICENSE file in repository root.
 
 For issues, questions, or feature requests:
 
-- **GitHub Issues**: https://github.com/haroldcampos/BizTalkMigratorStarter/issues
+- **GitHub Issues**: https://github.com/haroldcampos/BizTalkMigrationStarter/issues
 
 ## ** Author
 
