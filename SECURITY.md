@@ -1,4 +1,4 @@
-# Security Policy
+﻿# Security Policy
 
 ## Supported Versions
 
@@ -12,7 +12,7 @@ We release patches for security vulnerabilities for the following versions:
 
 If you discover a security vulnerability in the BizTalk Migration Starter toolkit, please report it responsibly:
 
-### ?? Private Disclosure
+### Private Disclosure
 
 **DO NOT** open a public GitHub issue for security vulnerabilities.
 
@@ -24,7 +24,7 @@ Or use GitHub's private vulnerability reporting:
 2. Click "Report a vulnerability"
 3. Provide detailed information about the issue
 
-### ?? What to Include
+### What to Include
 
 When reporting a vulnerability, please include:
 - Description of the vulnerability
@@ -33,29 +33,29 @@ When reporting a vulnerability, please include:
 - Suggested fix (if available)
 - Your contact information
 
-### ?? Response Timeline
+### Response Timeline
 
 - **Initial Response**: Within 48 hours of report submission
 - **Status Update**: Within 7 days with assessment and timeline
 - **Fix Timeline**: Critical issues within 30 days, others within 90 days
 
-### ?? Security Best Practices for Users
+### Security Best Practices for Users
 
 When using the BizTalk Migration Starter toolkit:
 
 #### 1. **Protect BizTalk Binding Files**
 
-**?? NEVER commit BizTalk binding files with real credentials to version control**
+**⚠️ NEVER commit BizTalk binding files with real credentials to version control**
 
 ```xml
-<!-- ? BAD: Real credentials in binding file -->
+<!-- BAD: Real credentials in binding file -->
 <UserName>sa</UserName>
 <Password>MyRealPassword123!</Password>
 <ConnectionString>Server=prod-sql;Database=BizTalk;User Id=admin;Password=RealPass;</ConnectionString>
 ```
 
 ```xml
-<!-- ? GOOD: Use placeholders -->
+<!-- GOOD: Use placeholders -->
 <UserName>__USERNAME_PLACEHOLDER__</UserName>
 <Password>__PASSWORD_PLACEHOLDER__</Password>
 <ConnectionString>__CONNECTION_STRING_PLACEHOLDER__</ConnectionString>
@@ -106,28 +106,28 @@ Always use the latest version of the toolkit to benefit from security patches:
 git pull origin main
 ```
 
-## ?? Security Features
+## Security Features
 
 This toolkit implements the following security measures:
 
 ### Code Security
-- ? No hardcoded secrets or credentials
-- ? No unsafe code blocks
-- ? No dynamic code execution (eval, reflection abuse)
-- ? All XML parsing uses safe, built-in .NET libraries
-- ? No SQL injection vectors (no database operations)
+- ✅ No hardcoded secrets or credentials
+- ✅ No unsafe code blocks
+- ✅ No dynamic code execution (eval, reflection abuse)
+- ✅ All XML parsing uses safe, built-in .NET libraries
+- ✅ No SQL injection vectors (no database operations)
 
 ### Dependency Security
-- ? Uses well-maintained, trusted NuGet packages
-- ? Minimal external dependencies
-- ? Regular dependency updates via Dependabot
+- ✅ Uses well-maintained, trusted NuGet packages
+- ✅ Minimal external dependencies
+- ✅ Regular dependency updates via Dependabot
 
 ### Data Protection
-- ? Credentials abstracted as properties (never hardcoded)
-- ? All sensitive data passed via parameters
-- ? No logging of sensitive information
+- ✅ Credentials abstracted as properties (never hardcoded)
+- ✅ All sensitive data passed via parameters
+- ✅ No logging of sensitive information
 
-## ??? Known Security Considerations
+## Known Security Considerations
 
 ### 1. **BizTalk Binding Files**
 - Binding XML files may contain sensitive information (usernames, passwords, connection strings)
@@ -144,14 +144,14 @@ This toolkit implements the following security measures:
 - **Your responsibility**: Use sanitized test data
 - **Recommendation**: Create dedicated test fixtures with dummy credentials
 
-## ?? Additional Resources
+## 📚 Additional Resources
 
 - [OWASP Secure Coding Practices](https://owasp.org/www-project-secure-coding-practices-quick-reference-guide/)
 - [Azure Key Vault Documentation](https://learn.microsoft.com/azure/key-vault/)
 - [GitHub Security Best Practices](https://docs.github.com/en/code-security)
 - [BizTalk Security Best Practices](https://learn.microsoft.com/biztalk/core/security-recommendations)
 
-## ?? Contact
+## Contact
 
 For security-related questions or concerns:
 - **GitHub Security Advisory**: Use the Security tab in this repository
@@ -159,5 +159,5 @@ For security-related questions or concerns:
 
 ---
 
-**Last Updated**: January 2025  
+**Last Updated**: January 2026  
 **Version**: 1.0.0
