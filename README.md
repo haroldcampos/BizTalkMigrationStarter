@@ -1,14 +1,14 @@
-# BizTalk to Logic Apps Migration Toolkit
+# BizTalk Migration Starter
 
 [![.NET Framework](https://img.shields.io/badge/.NET%20Framework-4.7.2-blue)](https://dotnet.microsoft.com/download/dotnet-framework)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A comprehensive, migration toolkit for transforming Microsoft BizTalk Server artifacts (orchestrations, maps, and pipelines) to Azure Logic Apps Standard. Includes specialized CLI tools for each artifact type plus an AI-powered Model Context Protocol (MCP) server for intelligent, assisted migration.
+A migration toolkit to start your Microsoft BizTalk Server artifacts (orchestrations, maps, and pipelines) migration to Azure Logic Apps Standard. Includes specialized CLI tools for each artifact type plus a Model Context Protocol (MCP) server for intelligent, assisted migration.
 
 ## Quick Start
 
 ```powershell
-# ORCHESTRATIONS: Convert a BizTalk orchestration to Logic Apps
+# ORCHESTRATIONS: Convert a BizTalk orchestration to Logic Apps workflow
 ODXtoWFMigrator.exe migrate MyOrchestration.odx bindings.xml
 
 # ORCHESTRATIONS: Refactored conversion with pattern optimizations (Cloud)
@@ -51,7 +51,7 @@ BizTalkToLogicApps.MCP.exe
 
 ## Overview
 
-This toolkit automates the complex process of migrating BizTalk Server artifacts to Azure Logic Apps Standard. It consists of three specialized migration tools plus an AI-powered MCP server:
+This toolkit automates the assists in the process of migrating BizTalk Server artifacts to Azure Logic Apps Standard. It consists of three specialized migration tools plus a MCP server:
 
 ### **ODXtoWFMigrator** - Orchestration Migration
 - **Orchestration Parsing**: Extracts shapes, ports, messages, and logic from ODX files
@@ -90,7 +90,7 @@ This toolkit automates the complex process of migrating BizTalk Server artifacts
 
 ### Core Migration Capabilities
 
-- **Orchestration Conversion**: Convert BizTalk ODX files to Logic Apps workflows
+- **Orchestration Conversion**: Convert BizTalk ODX files to Logic Apps workflows (JSON workflow definitions)
 - **Refactored Conversion**: Pattern-based optimization with Cloud/OnPremises deployment targets
 - **Binding Integration**: Extract transport configurations and adapter settings
 - **Bindings-Only Mode**: Generate workflows from bindings without orchestration files
@@ -945,7 +945,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Resources
 
+- **How to use this toolkit**: https://www.youtube.com/@hcamposu
 - **Azure Logic Apps Documentation**: https://learn.microsoft.com/azure/logic-apps/
+- **Need BizTalk features in Logic Apps?** https://aka.ms/logicappsneeds
+- **Need Logic Apps on air-gapped environments?** https://aka.ms/ladisconnected
 - **BizTalk Migration Documentation**: https://learn.microsoft.com/azure/logic-apps/biztalk-server-migration-overview
 - **BizTalk Server Documentation**: https://learn.microsoft.com/biztalk/
 - **Logic Apps Connectors**: https://learn.microsoft.com/connectors/connector-reference/
@@ -956,17 +959,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For issues, questions, or feature requests:
 
-- **GitHub Issues**: https://github.com/hcampos_microsoft/BizTalkMigrator/issues
-- **Email**: harold_campos@hotmail.com
+- **GitHub Issues**: https://github.com/haroldcampos/BizTalkMigrator/issues
 
 ## Author
 
-**Harold Campos** - harold_campos@hotmail.com
+**Harold Campos**
 
 ---
 
 **Version**: 1.0.0  
 **Last Updated**: January 2026  
-**Maintained By**: Harold Campos (harold_campos@hotmail.com)
+
 
 This is an independent project and is not affiliated with or endorsed by Microsoft Corporation.

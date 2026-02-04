@@ -136,7 +136,7 @@ MIT License - See LICENSE file in repository root.
 
 ## Author
 
-**Harold Campos** - harold_campos@hotmail.com
+**Harold Campos**
 
 ---
 

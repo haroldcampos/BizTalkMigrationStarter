@@ -526,12 +526,12 @@ MIT License - See LICENSE file in repository root.
 
 For issues, questions, or feature requests:
 
-- **GitHub Issues**: https://github.com/hcampos_microsoft/BizTalkMigrator/issues
-- **Email**: harold_campos@hotmail.com
+- **GitHub Issues**: https://github.com/haroldcampos/BizTalkMigratorStarter/issues
+
 
 ## ** Author
 
-**Harold Campos** - harold_campos@hotmail.com
+**Harold Campos**
 
 ---
 
