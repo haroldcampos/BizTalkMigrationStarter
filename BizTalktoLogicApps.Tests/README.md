@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Comprehensive Test Suite** for the BizTalk to Logic Apps Migration Tool. Provides unit and integration tests for all migration components including orchestration conversion, map translation, pipeline migration, and refactoring capabilities.
+**Comprehensive Test Suite** for the BizTalk Migration starter. Provides unit and integration tests for all migration components including orchestration conversion, map translation, pipeline migration, and refactoring capabilities.
 
 ## Purpose
 
@@ -128,7 +128,7 @@ catch (Exception ex) when (!ex.IsFatal())
 - **[ODXtoWFMigrator](../ODXtoWFMigrator/README.md)** - Orchestration to workflow migration
 - **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - Map to Liquid template conversion
 - **[BTPtoLA](../BTPtoLA/README.md)** - Pipeline to Logic Apps conversion
-- **[BizTalkToLogicApps.MCP](../BizTalkToLogicApps.MCP/README.md)** - MCP server wrapper
+- **[BizTalkToLogicApps.MCP](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.MCP/README.md)** - MCP server wrapper
 
 ## License
 

@@ -1,6 +1,6 @@
 # BizTalk to Logic Apps Migration MCP Server
 
-A **Model Context Protocol (MCP)** server that exposes the BizTalk to Logic Apps migration toolkit as AI-accessible tools. This enables AI assistants to help with migration planning, analysis, conversion, and deployment of BizTalk orchestrations to Azure Logic Apps.
+A **Model Context Protocol (MCP)** server that exposes the BizTalk migration starter as AI-accessible tools. This enables AI assistants to help with migration planning, analysis, conversion, and deployment of BizTalk orchestrations to Azure Logic Apps.
 
 ## Overview
 
@@ -986,11 +986,11 @@ When adding new tools:
 4. Update this README with tool documentation
 5. Add integration tests
 
-## ?? License
+## License
 
 MIT License - See LICENSE file in repository root.
 
-## ?? Support
+## Support
 
 For issues, questions, or feature requests:
 

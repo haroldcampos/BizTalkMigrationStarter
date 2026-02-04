@@ -1,6 +1,6 @@
 # BizTalk Pipeline to Logic Apps Converter (BTPtoLA)
 
-A .NET Framework 4.7.2 console application that parses BizTalk Pipeline (.btp) files and converts them to Azure Logic Apps workflow definitions.
+A .NET Framework 4.7.2 console application that parses BizTalk Pipeline (.btp) files and converts them to Azure Logic Apps workflow definitions. It supports both Receive and Send pipelines (mid-low complexity), extracting stages, components, and properties, and generates Logic Apps Standard workflow JSON file.
 
 ## *** Architecture
 
@@ -541,7 +541,7 @@ For issues, questions, or feature requests:
 **Related Projects**:
 - **[ODXtoWFMigrator](../ODXtoWFMigrator/README.md)** - BizTalk orchestration to Logic Apps workflow conversion
 - **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to Liquid template conversion
-- **[BizTalkToLogicApps.MCP](../BizTalkToLogicApps.MCP/README.md)** - MCP server for AI-assisted migration
+- **[BizTalkToLogicApps.MCP](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.MCP/README.md)** - MCP server for AI-assisted migration
 - [BizTalk Pipeline Components Documentation](https://learn.microsoft.com/biztalk/core/about-pipelines-stages-and-components)
 - [Azure Logic Apps Workflow Definition](https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-definition-language)
 - [BizTalk Server Documentation](https://learn.microsoft.com/biztalk/)
