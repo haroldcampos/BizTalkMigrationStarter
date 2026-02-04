@@ -581,7 +581,7 @@ BTPtoLA /batch <pipeline-file.btp> <output-directory>
 BizTalkToLogicApps.MCP.exe
 ```
 
-Starts the MCP server for AI-assisted migration. See [BizTalkToLogicApps.MCP/README.md](BizTalkToLogicApps.MCP/README.md) for tool documentation.
+Starts the MCP server for AI-assisted migration. See [BizTalkToLogicApps.MCP/README.md](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.MCP/README.md) for tool documentation.
 
 ### Common Workflows
 
@@ -941,7 +941,7 @@ git push origin feature/your-feature-name
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## Resources
 
