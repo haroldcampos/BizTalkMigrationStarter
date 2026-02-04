@@ -1,0 +1,419 @@
+﻿#if __DESIGNER_DATA
+#error Do not define __DESIGNER_DATA.
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<om:MetaModel MajorVersion="1" MinorVersion="3" Core="2b131234-7959-458d-834f-2dc0769ce683" ScheduleModel="66366196-361d-448d-976f-cab5e87496d2" xmlns:om="http://schemas.microsoft.com/BizTalk/2003/DesignerData">
+    <om:Element Type="Module" OID="a798a7b6-6a19-420c-a94c-009e3b10a6ed" LowerBound="1.1" HigherBound="101.1">
+        <om:Property Name="ReportToAnalyst" Value="True" />
+        <om:Property Name="Name" Value="Aggregator.Aggregate" />
+        <om:Property Name="Signal" Value="False" />
+        <om:Element Type="PortType" OID="b9ebd2a1-cef2-4944-a73f-1492dcbfd1fd" ParentLink="Module_PortType" LowerBound="4.1" HigherBound="11.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="InvoicePortType" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="OperationDeclaration" OID="8a62936e-b318-4fe3-85ad-e9987a131748" ParentLink="PortType_OperationDeclaration" LowerBound="6.1" HigherBound="10.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="InvoiceOperation" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="078d99c1-b632-4095-8287-84e255679e77" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="8.13" HigherBound="8.51">
+                    <om:Property Name="Ref" Value="Aggregator.PipelinesAndSchemas.Invoice" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="239eb1c2-fdf7-4aa6-bfc3-1c969ebcc6fa" ParentLink="Module_PortType" LowerBound="11.1" HigherBound="18.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="TypeAgnosticMessagePortType" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="OperationDeclaration" OID="26100243-e604-46c8-aa54-10d5f2928e31" ParentLink="PortType_OperationDeclaration" LowerBound="13.1" HigherBound="17.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="TypeAgnosticMessageOperation" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="c325b629-8ffc-4d21-9674-dbeaf02484e7" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="15.13" HigherBound="15.35">
+                    <om:Property Name="Ref" Value="System.Xml.XmlDocument" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="CorrelationType" OID="ba1d3e72-dbe4-451e-807e-f353984d414e" ParentLink="Module_CorrelationType" LowerBound="18.1" HigherBound="22.1">
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="CorrelationType_ByPartnerURI" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="PropertyRef" OID="14a6894f-270d-4dd2-97a0-db68fc09e045" ParentLink="CorrelationType_PropertyRef" LowerBound="20.9" HigherBound="20.76">
+                <om:Property Name="Ref" Value="Aggregator.PipelinesAndSchemas.PropertySchema.DestinationPartnerURI" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="PropertyRef_1" />
+                <om:Property Name="Signal" Value="False" />
+            </om:Element>
+        </om:Element>
+        <om:Element Type="ServiceDeclaration" OID="26a1dc6e-122c-4886-affe-5471f02e13ab" ParentLink="Module_ServiceDeclaration" LowerBound="22.1" HigherBound="100.1">
+            <om:Property Name="InitializedTransactionType" Value="False" />
+            <om:Property Name="IsInvokable" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="AggregatorOrchestration" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="VariableDeclaration" OID="490d6f8e-adeb-4f85-88a4-1f887b6d46d6" ParentLink="ServiceDeclaration_VariableDeclaration" LowerBound="35.1" HigherBound="36.1">
+                <om:Property Name="UseDefaultConstructor" Value="True" />
+                <om:Property Name="Type" Value="Microsoft.XLANGs.Pipeline.SendPipelineInputMessages" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="MessagesToAggregate" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="VariableDeclaration" OID="f0921b8c-daa9-4bc9-a413-4551a65b4d4f" ParentLink="ServiceDeclaration_VariableDeclaration" LowerBound="36.1" HigherBound="37.1">
+                <om:Property Name="InitialValue" Value="1" />
+                <om:Property Name="UseDefaultConstructor" Value="False" />
+                <om:Property Name="Type" Value="System.UInt32" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="TotalNumberOfMessages" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="CorrelationDeclaration" OID="bd437293-7588-458c-8bdc-b7e9b84e5913" ParentLink="ServiceDeclaration_CorrelationDeclaration" LowerBound="31.1" HigherBound="32.1">
+                <om:Property Name="Type" Value="Aggregator.Aggregate.CorrelationType_ByPartnerURI" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Correlation_ConvoyByPartnerURI" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="StatementRef" OID="f90dfa17-8379-470a-9b74-7a14aa36765d" ParentLink="CorrelationDeclaration_StatementRef" LowerBound="40.87" HigherBound="40.128">
+                    <om:Property Name="Initializes" Value="True" />
+                    <om:Property Name="Ref" Value="42d025fc-6001-4afc-a00d-2cbf5293cbd1" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="StatementRef_1" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+                <om:Element Type="StatementRef" OID="8c534d27-d96d-454c-ae3f-1ba7090183f6" ParentLink="CorrelationDeclaration_StatementRef" LowerBound="49.78" HigherBound="49.108">
+                    <om:Property Name="Initializes" Value="False" />
+                    <om:Property Name="Ref" Value="bf4a0c9e-315a-41cb-88ba-f5a07aa4f22d" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="StatementRef_2" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="af32a5f8-d42f-46fd-b59f-544b42503473" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="32.1" HigherBound="33.1">
+                <om:Property Name="Type" Value="Aggregator.PipelinesAndSchemas.Invoice" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="ActivationMessage" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="6afec1a9-21e9-4309-9de8-f67ccb3329fb" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="33.1" HigherBound="34.1">
+                <om:Property Name="Type" Value="Aggregator.PipelinesAndSchemas.Invoice" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="ConvoyMessage" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="7563d20e-9cc4-44a6-bcfb-615a8ff3d0cd" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="34.1" HigherBound="35.1">
+                <om:Property Name="Type" Value="System.Xml.XmlDocument" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="AggregatedMessage" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="ServiceBody" OID="210ce245-668b-451d-b40e-51ae94735553" ParentLink="ServiceDeclaration_ServiceBody">
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="Receive" OID="42d025fc-6001-4afc-a00d-2cbf5293cbd1" ParentLink="ServiceBody_Statement" LowerBound="39.1" HigherBound="43.1">
+                    <om:Property Name="Activate" Value="True" />
+                    <om:Property Name="PortName" Value="Port_ConvoyRecieve" />
+                    <om:Property Name="MessageName" Value="ActivationMessage" />
+                    <om:Property Name="OperationName" Value="InvoiceOperation" />
+                    <om:Property Name="OperationMessageName" Value="Request" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Receive_ActivationMessage" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+                <om:Element Type="VariableAssignment" OID="629ebfd1-1ba3-4ee5-9ed5-65adfb1f84ca" ParentLink="ServiceBody_Statement" LowerBound="43.1" HigherBound="45.1">
+                    <om:Property Name="Expression" Value="MessagesToAggregate.Add(ActivationMessage);" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="AddMessageToAggregatorList" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+                <om:Element Type="While" OID="e31e6cc4-b111-4c52-960f-d211eadeb4c4" ParentLink="ServiceBody_Statement" LowerBound="45.1" HigherBound="54.1">
+                    <om:Property Name="Expression" Value="(TotalNumberOfMessages &lt; 2)" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Loop_Until2MessagesCollected" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="Receive" OID="bf4a0c9e-315a-41cb-88ba-f5a07aa4f22d" ParentLink="ComplexStatement_Statement" LowerBound="48.1" HigherBound="50.1">
+                        <om:Property Name="Activate" Value="False" />
+                        <om:Property Name="PortName" Value="Port_ConvoyRecieve" />
+                        <om:Property Name="MessageName" Value="ConvoyMessage" />
+                        <om:Property Name="OperationName" Value="InvoiceOperation" />
+                        <om:Property Name="OperationMessageName" Value="Request" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="Receive_ConvoyMessage" />
+                        <om:Property Name="Signal" Value="True" />
+                    </om:Element>
+                    <om:Element Type="VariableAssignment" OID="1e8936da-2466-4f6a-855a-dfd5af341e2e" ParentLink="ComplexStatement_Statement" LowerBound="50.1" HigherBound="53.1">
+                        <om:Property Name="Expression" Value="MessagesToAggregate.Add(ConvoyMessage);&#xD;&#xA;TotalNumberOfMessages = TotalNumberOfMessages + 1;" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="AddMessageToAggregatorList" />
+                        <om:Property Name="Signal" Value="False" />
+                    </om:Element>
+                </om:Element>
+                <om:Element Type="Scope" OID="05fa6427-050e-4355-bbb5-0439400fce4d" ParentLink="ServiceBody_Statement" LowerBound="54.1" HigherBound="96.1">
+                    <om:Property Name="InitializedTransactionType" Value="True" />
+                    <om:Property Name="IsSynchronized" Value="False" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Scope_ExecuteSendPipeline" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="Construct" OID="35ad29e8-278d-414f-8997-7df157ae4abf" ParentLink="ComplexStatement_Statement" LowerBound="61.1" HigherBound="68.1">
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="ConstructAggregatedMessage" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="MessageAssignment" OID="c89bb47f-50b5-4e96-9eac-b6811b50ff69" ParentLink="ComplexStatement_Statement" LowerBound="64.1" HigherBound="67.1">
+                            <om:Property Name="Expression" Value="AggregatedMessage = null;&#xD;&#xA;Microsoft.XLANGs.Pipeline.XLANGPipelineManager.ExecuteSendPipeline(typeof(Aggregator.PipelinesAndSchemas.XMLAggregatingPipeline),MessagesToAggregate,AggregatedMessage);" />
+                            <om:Property Name="ReportToAnalyst" Value="False" />
+                            <om:Property Name="Name" Value="ExecuteSendPipeline" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                        <om:Element Type="MessageRef" OID="ae4beaa1-2d88-4d77-9060-b984ecd22dc5" ParentLink="Construct_MessageRef" LowerBound="62.31" HigherBound="62.48">
+                            <om:Property Name="Ref" Value="AggregatedMessage" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="Catch" OID="51edd796-1091-4ac3-9f0b-c3ab44e19774" ParentLink="Scope_Catch" LowerBound="71.1" HigherBound="94.1">
+                        <om:Property Name="ExceptionName" Value="pEx" />
+                        <om:Property Name="ExceptionType" Value="Microsoft.XLANGs.Pipeline.XLANGPipelineManagerException" />
+                        <om:Property Name="IsFaultMessage" Value="False" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="CatchPipelineException" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="VariableAssignment" OID="283bccc2-7f06-4f05-b557-5bd026729ddc" ParentLink="Catch_Statement" LowerBound="74.1" HigherBound="76.1">
+                            <om:Property Name="Expression" Value="MessageEnumerator = MessagesToAggregate.GetEnumerator();" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="GetMessageEnumerator" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                        <om:Element Type="While" OID="ff5ef79a-6603-41d4-8946-9420712aef46" ParentLink="Catch_Statement" LowerBound="76.1" HigherBound="91.1">
+                            <om:Property Name="Expression" Value="MessageEnumerator.MoveNext()" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Loop_WhileThereAreMessages" />
+                            <om:Property Name="Signal" Value="False" />
+                            <om:Element Type="Construct" OID="69306948-ca58-4b2d-aedd-2c9da8565e7f" ParentLink="ComplexStatement_Statement" LowerBound="79.1" HigherBound="88.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="ConstructMessageToSuspend" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="MessageAssignment" OID="d5e781ff-5e33-4ed8-8ac7-3d465084d621" ParentLink="ComplexStatement_Statement" LowerBound="82.1" HigherBound="87.1">
+                                    <om:Property Name="Expression" Value="MessageToSuspend = MessageEnumerator.Current;&#xD;&#xA;MessageToSuspend(Aggregator.PipelinesAndSchemas.PropertySchema.ErrorDescription) = &quot;Send pipeline execution failed &quot; +&#xD;&#xA;                                            &quot;while assembling outbound batch that included this message.\r\n&quot; +&#xD;&#xA;                                            &quot;Error details: &quot; + pEx.Message;" />
+                                    <om:Property Name="ReportToAnalyst" Value="False" />
+                                    <om:Property Name="Name" Value="SetErrorDetails" />
+                                    <om:Property Name="Signal" Value="True" />
+                                </om:Element>
+                                <om:Element Type="MessageRef" OID="233e8e78-04ad-4e05-8364-84249fc66d10" ParentLink="Construct_MessageRef" LowerBound="80.39" HigherBound="80.55">
+                                    <om:Property Name="Ref" Value="MessageToSuspend" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="Send" OID="7e54b945-3fee-46b2-ad38-3a5f680b90e5" ParentLink="ComplexStatement_Statement" LowerBound="88.1" HigherBound="90.1">
+                                <om:Property Name="PortName" Value="Port_SendMessageToSuspendQ" />
+                                <om:Property Name="MessageName" Value="MessageToSuspend" />
+                                <om:Property Name="OperationName" Value="TypeAgnosticMessageOperation" />
+                                <om:Property Name="OperationMessageName" Value="Request" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Send_MessageToSuspend" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                        </om:Element>
+                        <om:Element Type="Terminate" OID="fb4714d3-ccec-4df4-a66c-1917c59e0092" ParentLink="Catch_Statement" LowerBound="91.1" HigherBound="93.1">
+                            <om:Property Name="ErrorMessage" Value="&quot;Aggregator instance has terminated due to send pipeline failure. Error details: &quot; + pEx.Message;" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="TerminateOrchestration" />
+                            <om:Property Name="Signal" Value="True" />
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="VariableDeclaration" OID="1716804f-8228-42bb-a0c9-661ab62e5106" ParentLink="Scope_VariableDeclaration" LowerBound="58.1" HigherBound="59.1">
+                        <om:Property Name="UseDefaultConstructor" Value="False" />
+                        <om:Property Name="Type" Value="Microsoft.XLANGs.Pipeline.SendPipelineInputEnumerator" />
+                        <om:Property Name="ParamDirection" Value="In" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="MessageEnumerator" />
+                        <om:Property Name="Signal" Value="True" />
+                    </om:Element>
+                    <om:Element Type="MessageDeclaration" OID="568ed76f-8286-4288-afe4-c239057e16f7" ParentLink="Scope_MessageDeclaration" LowerBound="57.1" HigherBound="58.1">
+                        <om:Property Name="Type" Value="System.Xml.XmlDocument" />
+                        <om:Property Name="ParamDirection" Value="In" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="MessageToSuspend" />
+                        <om:Property Name="Signal" Value="True" />
+                    </om:Element>
+                </om:Element>
+                <om:Element Type="Send" OID="e4482059-7e53-4336-a106-6733627d6a1d" ParentLink="ServiceBody_Statement" LowerBound="96.1" HigherBound="98.1">
+                    <om:Property Name="PortName" Value="Port_SendAggregatedMessage" />
+                    <om:Property Name="MessageName" Value="AggregatedMessage" />
+                    <om:Property Name="OperationName" Value="TypeAgnosticMessageOperation" />
+                    <om:Property Name="OperationMessageName" Value="Request" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Send_AggregatedMessage" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="492f0b14-3af9-4d0f-9497-572f2cb4e926" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="25.1" HigherBound="27.1">
+                <om:Property Name="PortModifier" Value="Implements" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="4" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Aggregator.Aggregate.InvoicePortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Port_ConvoyRecieve" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="LogicalBindingAttribute" OID="3e089773-43cf-473a-9436-9773491f2f70" ParentLink="PortDeclaration_CLRAttribute" LowerBound="25.1" HigherBound="26.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="fdad9aa0-e97f-4e50-a9a7-116ef15afa3f" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="27.1" HigherBound="29.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Right" />
+                <om:Property Name="PortIndex" Value="59" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Aggregator.Aggregate.TypeAgnosticMessagePortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Port_SendMessageToSuspendQ" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="DirectBindingAttribute" OID="597541ee-cb4f-4eed-a833-43d70ebf457b" ParentLink="PortDeclaration_CLRAttribute" LowerBound="27.1" HigherBound="28.1">
+                    <om:Property Name="PartnerPort" Value="ReceiveFailedMessage" />
+                    <om:Property Name="PartnerService" Value="Aggregator.Aggregate.SuspendMessage" />
+                    <om:Property Name="DirectBindingType" Value="PartnerPort" />
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="c1773a3b-1564-4fa7-8c8e-ad47ab50a1cf" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="29.1" HigherBound="31.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Right" />
+                <om:Property Name="PortIndex" Value="79" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Aggregator.Aggregate.TypeAgnosticMessagePortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Port_SendAggregatedMessage" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="LogicalBindingAttribute" OID="63e2c822-e620-4a83-8792-3a2144f2ff6d" ParentLink="PortDeclaration_CLRAttribute" LowerBound="29.1" HigherBound="30.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+    </om:Element>
+</om:MetaModel>
+#endif // __DESIGNER_DATA
+[Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+module Aggregator.Aggregate
+{
+    internal porttype InvoicePortType
+    {
+        oneway InvoiceOperation
+        {
+            Aggregator.PipelinesAndSchemas.Invoice
+        };
+    };
+    internal porttype TypeAgnosticMessagePortType
+    {
+        oneway TypeAgnosticMessageOperation
+        {
+            System.Xml.XmlDocument
+        };
+    };
+    internal correlationtype CorrelationType_ByPartnerURI
+    {
+        Aggregator.PipelinesAndSchemas.PropertySchema.DestinationPartnerURI
+    };
+    [Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+    internal service AggregatorOrchestration
+    {
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port implements InvoicePortType Port_ConvoyRecieve;
+        [Microsoft.XLANGs.BaseTypes.DirectBinding(typeof(Aggregator.Aggregate.SuspendMessage), "ReceiveFailedMessage")]
+        port uses TypeAgnosticMessagePortType Port_SendMessageToSuspendQ;
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port uses TypeAgnosticMessagePortType Port_SendAggregatedMessage;
+        correlation CorrelationType_ByPartnerURI Correlation_ConvoyByPartnerURI;
+        message Aggregator.PipelinesAndSchemas.Invoice ActivationMessage;
+        message Aggregator.PipelinesAndSchemas.Invoice ConvoyMessage;
+        message System.Xml.XmlDocument AggregatedMessage;
+        Microsoft.XLANGs.Pipeline.SendPipelineInputMessages MessagesToAggregate;
+        System.UInt32 TotalNumberOfMessages;
+        body ()
+        {
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("42d025fc-6001-4afc-a00d-2cbf5293cbd1")]
+            activate receive (Port_ConvoyRecieve.InvoiceOperation, ActivationMessage, initialize Correlation_ConvoyByPartnerURI);
+            MessagesToAggregate = new Microsoft.XLANGs.Pipeline.SendPipelineInputMessages();
+            TotalNumberOfMessages = 1;
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("629ebfd1-1ba3-4ee5-9ed5-65adfb1f84ca")]
+            MessagesToAggregate.Add(ActivationMessage);
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("e31e6cc4-b111-4c52-960f-d211eadeb4c4")]
+            while ((TotalNumberOfMessages < 2))
+            {
+                [Microsoft.XLANGs.BaseTypes.DesignerPosition("bf4a0c9e-315a-41cb-88ba-f5a07aa4f22d")]
+                receive (Port_ConvoyRecieve.InvoiceOperation, ConvoyMessage, Correlation_ConvoyByPartnerURI);
+                [Microsoft.XLANGs.BaseTypes.DesignerPosition("1e8936da-2466-4f6a-855a-dfd5af341e2e")]
+                MessagesToAggregate.Add(ConvoyMessage);
+                TotalNumberOfMessages = TotalNumberOfMessages + 1;
+            }
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("05fa6427-050e-4355-bbb5-0439400fce4d")]
+            scope
+            {
+                message System.Xml.XmlDocument MessageToSuspend;
+                Microsoft.XLANGs.Pipeline.SendPipelineInputEnumerator MessageEnumerator;
+                body
+                {
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("35ad29e8-278d-414f-8997-7df157ae4abf")]
+                    construct AggregatedMessage
+                    {
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("c89bb47f-50b5-4e96-9eac-b6811b50ff69")]
+                        AggregatedMessage = null;
+                        Microsoft.XLANGs.Pipeline.XLANGPipelineManager.ExecuteSendPipeline(typeof(Aggregator.PipelinesAndSchemas.XMLAggregatingPipeline),MessagesToAggregate,AggregatedMessage);
+                    }
+                }
+                exceptions
+                {
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("51edd796-1091-4ac3-9f0b-c3ab44e19774")]
+                    catch (Microsoft.XLANGs.Pipeline.XLANGPipelineManagerException pEx)
+                    {
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("283bccc2-7f06-4f05-b557-5bd026729ddc")]
+                        MessageEnumerator = MessagesToAggregate.GetEnumerator();
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("ff5ef79a-6603-41d4-8946-9420712aef46")]
+                        while (MessageEnumerator.MoveNext())
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("69306948-ca58-4b2d-aedd-2c9da8565e7f")]
+                            construct MessageToSuspend
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("d5e781ff-5e33-4ed8-8ac7-3d465084d621")]
+                                MessageToSuspend = MessageEnumerator.Current;
+                                MessageToSuspend(Aggregator.PipelinesAndSchemas.PropertySchema.ErrorDescription) = "Send pipeline execution failed " +
+                                                                            "while assembling outbound batch that included this message.\r\n" +
+                                                                            "Error details: " + pEx.Message;
+                            }
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("7e54b945-3fee-46b2-ad38-3a5f680b90e5")]
+                            send (Port_SendMessageToSuspendQ.TypeAgnosticMessageOperation, MessageToSuspend);
+                        }
+                        [Microsoft.XLANGs.BaseTypes.DesignerPosition("fb4714d3-ccec-4df4-a66c-1917c59e0092")]
+                        terminate "Aggregator instance has terminated due to send pipeline failure. Error details: " + pEx.Message;;
+                    }
+                }
+            }
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("e4482059-7e53-4336-a106-6733627d6a1d")]
+            send (Port_SendAggregatedMessage.TypeAgnosticMessageOperation, AggregatedMessage);
+        }
+    }
+}
+

@@ -1,0 +1,293 @@
+﻿#if __DESIGNER_DATA
+#error Do not define __DESIGNER_DATA.
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<om:MetaModel MajorVersion="1" MinorVersion="3" Core="2b131234-7959-458d-834f-2dc0769ce683" ScheduleModel="66366196-361d-448d-976f-cab5e87496d2" xmlns:om="http://schemas.microsoft.com/BizTalk/2003/DesignerData">
+    <om:Element Type="Module" OID="73fa89c7-19eb-446e-ba62-15288eae30f5" LowerBound="1.1" HigherBound="56.1">
+        <om:Property Name="ReportToAnalyst" Value="True" />
+        <om:Property Name="Name" Value="Microsoft.Samples.BizTalk.ConsumeWebService" />
+        <om:Property Name="Signal" Value="False" />
+        <om:Element Type="PortType" OID="eb23f309-9e1a-4b33-9fd3-2ac85ae90ebd" ParentLink="Module_PortType" LowerBound="4.1" HigherBound="11.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Private" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="ReceivePOPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="7068516d-3e15-4ca1-b31f-441bc2717ac7" ParentLink="PortType_OperationDeclaration" LowerBound="6.1" HigherBound="10.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Operation_1" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="MessageRef" OID="6caa93e2-456c-4932-b037-223f090321a2" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="8.13" HigherBound="8.22">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.ConsumeWebService.InboundPO" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="a4fdbd15-46a2-431c-a51d-caad007f94c1" ParentLink="Module_PortType" LowerBound="11.1" HigherBound="18.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Private" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="SendInvoicePortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="302001cf-aae5-4719-94f0-e015d9d3a001" ParentLink="PortType_OperationDeclaration" LowerBound="13.1" HigherBound="17.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Operation_1" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="MessageRef" OID="0f2cb46e-1aad-4715-9a29-bfddeceff978" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="15.13" HigherBound="15.20">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.ConsumeWebService.Invoice" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="ServiceDeclaration" OID="7f93989b-6c36-4816-80d7-b66767d6b4e6" ParentLink="Module_ServiceDeclaration" LowerBound="18.1" HigherBound="55.1">
+            <om:Property Name="InitializedTransactionType" Value="True" />
+            <om:Property Name="IsInvokable" Value="False" />
+            <om:Property Name="TypeModifier" Value="Private" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="ReceivePOandSubmitToWS" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="LongRunningTransaction" OID="00187853-2ffc-414f-980b-2be8af5e5a84" ParentLink="ServiceDeclaration_Transaction" LowerBound="19.20" HigherBound="19.67">
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Transaction_2" />
+                <om:Property Name="Signal" Value="False" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="a55727ac-1413-4fdf-9936-e633c38f8f2e" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="27.1" HigherBound="28.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.ConsumeWebService.InboundPO" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="InboundPOMessage" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="f5e32129-ab22-4c21-b9d2-42929549dbde" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="28.1" HigherBound="29.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.ConsumeWebService.Invoice" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="InvoiceMessage" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="d6216ca6-ab82-4004-8c95-cab578d84c38" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="29.1" HigherBound="30.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.ConsumeWebService.localhost.POWebService_.submitPO_response" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="WebServiceInvoiceMessage" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="6354325e-9450-4695-a2e3-2fea543249c3" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="30.1" HigherBound="31.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.ConsumeWebService.localhost.POWebService_.submitPO_request" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="WebServicePOMessage" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="ServiceBody" OID="ceb6e69b-f803-4c30-bb97-bdb6b1b77b5d" ParentLink="ServiceDeclaration_ServiceBody">
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="Receive" OID="f492f929-a5e1-4b8a-a58b-ca044be48ccb" ParentLink="ServiceBody_Statement" LowerBound="33.1" HigherBound="35.1">
+                    <om:Property Name="Activate" Value="True" />
+                    <om:Property Name="PortName" Value="ReceivePO" />
+                    <om:Property Name="MessageName" Value="InboundPOMessage" />
+                    <om:Property Name="OperationName" Value="Operation_1" />
+                    <om:Property Name="OperationMessageName" Value="Request" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="FilePOReceive" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+                <om:Element Type="Construct" OID="87cb81f3-26ac-4233-b9b2-68ee0889ea40" ParentLink="ServiceBody_Statement" LowerBound="35.1" HigherBound="41.1">
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="ConstructPOMessage" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="MessageRef" OID="b1f8c8ea-aebe-4e63-97cc-641726840325" ParentLink="Construct_MessageRef" LowerBound="36.23" HigherBound="36.42">
+                        <om:Property Name="Ref" Value="WebServicePOMessage" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Signal" Value="False" />
+                    </om:Element>
+                    <om:Element Type="Transform" OID="500a7718-748f-443f-8cae-764cb7810a9e" ParentLink="ComplexStatement_Statement" LowerBound="38.1" HigherBound="40.1">
+                        <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.ConsumeWebService.FilePOToWebPO" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="TransformFilePOToWebPO" />
+                        <om:Property Name="Signal" Value="False" />
+                        <om:Element Type="MessagePartRef" OID="2406a3b7-048d-48e7-94d3-26e4b84845e7" ParentLink="Transform_InputMessagePartRef" LowerBound="39.121" HigherBound="39.137">
+                            <om:Property Name="MessageRef" Value="InboundPOMessage" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="MessagePartReference_1" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                        <om:Element Type="MessagePartRef" OID="51333e50-a5db-4efb-b1c9-b2a6bcde5d52" ParentLink="Transform_OutputMessagePartRef" LowerBound="39.28" HigherBound="39.58">
+                            <om:Property Name="MessageRef" Value="WebServicePOMessage" />
+                            <om:Property Name="PartRef" Value="PODocument" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="MessagePartReference_2" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                    </om:Element>
+                </om:Element>
+                <om:Element Type="Send" OID="e4c9d858-6530-4567-8949-921a20c54b20" ParentLink="ServiceBody_Statement" LowerBound="41.1" HigherBound="43.1">
+                    <om:Property Name="PortName" Value="POWebServicePort" />
+                    <om:Property Name="MessageName" Value="WebServicePOMessage" />
+                    <om:Property Name="OperationName" Value="submitPO" />
+                    <om:Property Name="OperationMessageName" Value="Request" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="WebServicePOSend" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+                <om:Element Type="Receive" OID="89318999-1706-4897-8b7a-186abdcc3b04" ParentLink="ServiceBody_Statement" LowerBound="43.1" HigherBound="45.1">
+                    <om:Property Name="Activate" Value="False" />
+                    <om:Property Name="PortName" Value="POWebServicePort" />
+                    <om:Property Name="MessageName" Value="WebServiceInvoiceMessage" />
+                    <om:Property Name="OperationName" Value="submitPO" />
+                    <om:Property Name="OperationMessageName" Value="Response" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="WebServiceInvoiceReceive" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+                <om:Element Type="Construct" OID="42970e5b-9beb-4d63-ac64-35a30dc486df" ParentLink="ServiceBody_Statement" LowerBound="45.1" HigherBound="51.1">
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="ConstructInvoiceMessage" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="Transform" OID="ff92747f-f9f2-4e33-916b-adbad0d18307" ParentLink="ComplexStatement_Statement" LowerBound="48.1" HigherBound="50.1">
+                        <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.ConsumeWebService.WebInvoiceToFileInvoice" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="TransformWebInvoiceToFileInvoice" />
+                        <om:Property Name="Signal" Value="True" />
+                        <om:Element Type="MessagePartRef" OID="922fbbb5-ef76-43b3-a42d-2a6409fe80b5" ParentLink="Transform_InputMessagePartRef" LowerBound="49.115" HigherBound="49.154">
+                            <om:Property Name="MessageRef" Value="WebServiceInvoiceMessage" />
+                            <om:Property Name="PartRef" Value="submitPOResult" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="MessagePartReference_3" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                        <om:Element Type="MessagePartRef" OID="a6e9c416-072e-4baf-b538-8b36a18c57df" ParentLink="Transform_OutputMessagePartRef" LowerBound="49.28" HigherBound="49.42">
+                            <om:Property Name="MessageRef" Value="InvoiceMessage" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="MessagePartReference_4" />
+                            <om:Property Name="Signal" Value="False" />
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="MessageRef" OID="976233eb-8918-4a33-8689-9dc6798698b1" ParentLink="Construct_MessageRef" LowerBound="46.23" HigherBound="46.37">
+                        <om:Property Name="Ref" Value="InvoiceMessage" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Signal" Value="False" />
+                    </om:Element>
+                </om:Element>
+                <om:Element Type="Send" OID="cd494f52-66dd-428d-b970-c986af2872f9" ParentLink="ServiceBody_Statement" LowerBound="51.1" HigherBound="53.1">
+                    <om:Property Name="PortName" Value="SendInvoicePort" />
+                    <om:Property Name="MessageName" Value="InvoiceMessage" />
+                    <om:Property Name="OperationName" Value="Operation_1" />
+                    <om:Property Name="OperationMessageName" Value="Request" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="FileInvoiceSend" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="623aa4f8-2f3c-4f01-add5-824946a3ecd5" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="21.1" HigherBound="23.1">
+                <om:Property Name="PortModifier" Value="Implements" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="0" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.ConsumeWebService.ReceivePOPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="ReceivePO" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="LogicalBindingAttribute" OID="179eff12-f4f3-47bd-b802-1ce5ef643aa2" ParentLink="PortDeclaration_CLRAttribute" LowerBound="21.1" HigherBound="22.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="9f7641cc-2367-4305-9e75-0ed7061b4e32" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="23.1" HigherBound="25.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="14" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.ConsumeWebService.SendInvoicePortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="SendInvoicePort" />
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="LogicalBindingAttribute" OID="ed6ecb56-b50b-4263-8a85-eb2fb84cf319" ParentLink="PortDeclaration_CLRAttribute" LowerBound="23.1" HigherBound="24.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="d705b83d-b288-4ad8-837f-78cdebc4db90" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="25.1" HigherBound="27.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="5" />
+                <om:Property Name="IsWebPort" Value="True" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.ConsumeWebService.localhost.POWebService_.POWebService" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="POWebServicePort" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="LogicalBindingAttribute" OID="a830b151-3452-4987-ae16-7abdcdc5c45e" ParentLink="PortDeclaration_CLRAttribute" LowerBound="25.1" HigherBound="26.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+    </om:Element>
+</om:MetaModel>
+#endif // __DESIGNER_DATA
+[Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+module Microsoft.Samples.BizTalk.ConsumeWebService
+{
+    private porttype ReceivePOPortType
+    {
+        oneway Operation_1
+        {
+            InboundPO
+        };
+    };
+    private porttype SendInvoicePortType
+    {
+        oneway Operation_1
+        {
+            Invoice
+        };
+    };
+    [Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+    private service longrunning transaction ReceivePOandSubmitToWS
+    {
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port implements ReceivePOPortType ReceivePO;
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port uses SendInvoicePortType SendInvoicePort;
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port uses localhost.POWebService_.POWebService POWebServicePort;
+        message InboundPO InboundPOMessage;
+        message Invoice InvoiceMessage;
+        message localhost.POWebService_.submitPO_response WebServiceInvoiceMessage;
+        message localhost.POWebService_.submitPO_request WebServicePOMessage;
+        body ()
+        {
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("f492f929-a5e1-4b8a-a58b-ca044be48ccb")]
+            activate receive (ReceivePO.Operation_1, InboundPOMessage);
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("87cb81f3-26ac-4233-b9b2-68ee0889ea40")]
+            construct WebServicePOMessage
+            {
+                [Microsoft.XLANGs.BaseTypes.DesignerPosition("500a7718-748f-443f-8cae-764cb7810a9e")]
+                transform (WebServicePOMessage.PODocument) = Microsoft.Samples.BizTalk.ConsumeWebService.FilePOToWebPO (InboundPOMessage);
+            }
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("e4c9d858-6530-4567-8949-921a20c54b20")]
+            send (POWebServicePort.submitPO, WebServicePOMessage);
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("89318999-1706-4897-8b7a-186abdcc3b04")]
+            receive (POWebServicePort.submitPO, WebServiceInvoiceMessage);
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("42970e5b-9beb-4d63-ac64-35a30dc486df")]
+            construct InvoiceMessage
+            {
+                [Microsoft.XLANGs.BaseTypes.DesignerPosition("ff92747f-f9f2-4e33-916b-adbad0d18307")]
+                transform (InvoiceMessage) = Microsoft.Samples.BizTalk.ConsumeWebService.WebInvoiceToFileInvoice (WebServiceInvoiceMessage.submitPOResult);
+            }
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("cd494f52-66dd-428d-b970-c986af2872f9")]
+            send (SendInvoicePort.Operation_1, InvoiceMessage);
+        }
+    }
+}
+

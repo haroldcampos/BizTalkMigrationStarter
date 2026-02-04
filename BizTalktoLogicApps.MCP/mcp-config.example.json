@@ -1,0 +1,47 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schema/config.json",
+  "mcpServers": {
+    "biztalk-migration": {
+      "command": "C:\\Path\\To\\BizTalkToLogicApps.MCP\\bin\\Release\\BizTalkToLogicApps.MCP.exe",
+      "args": [],
+      "env": {
+        "BIZTALK_PARSER_VERBOSE": "false"
+      },
+      "description": "BizTalk to Logic Apps migration toolkit with analysis, conversion, and deployment capabilities"
+    }
+  },
+  "resources": {
+    "biztalk-orchestrations": {
+      "path": "C:\\BizTalk\\Orchestrations",
+      "description": "BizTalk orchestration files directory"
+    },
+    "bindings": {
+      "path": "C:\\BizTalk\\Bindings\\bindings.xml",
+      "description": "BizTalk binding configuration"
+    },
+    "output": {
+      "path": "C:\\Output\\LogicApps",
+      "description": "Logic Apps output directory"
+    }
+  },
+  "usage": {
+    "examples": [
+      {
+        "name": "Analyze orchestration",
+        "prompt": "Analyze the BizTalk orchestration at {{biztalk-orchestrations}}/OrderProcessing.odx and assess migration complexity"
+      },
+      {
+        "name": "Convert to Logic Apps",
+        "prompt": "Convert {{biztalk-orchestrations}}/OrderProcessing.odx to Logic Apps using bindings from {{bindings}}, output to {{output}}"
+      },
+      {
+        "name": "Batch migration",
+        "prompt": "Analyze all orchestrations in {{biztalk-orchestrations}} and generate migration reports"
+      },
+      {
+        "name": "Connector mapping",
+        "prompt": "What Logic Apps connector should I use for BizTalk FILE adapter?"
+      }
+    ]
+  }
+}

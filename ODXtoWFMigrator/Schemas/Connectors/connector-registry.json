@@ -1,0 +1,1879 @@
+{
+  "Connectors": {
+    "FileSystem": {
+      "Name": "FileSystem",
+      "ServiceProviderId": "/serviceProviders/fileSystem",
+      "DisplayName": "File System",
+      "Triggers": {
+        "whenFilesAreAddedOrModified": {
+          "OperationId": "whenFilesAreAddedOrModified",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "folderPath", "maxFileCount", "oldFileCutOffTimestamp" ],
+          "Recurrence": [ "interval", "frequency", "timeZone" ]
+        },
+        "whenFilesAreAdded": {
+          "OperationId": "whenFilesAreAdded",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "folderPath", "maxFileCount" ],
+          "Recurrence": [ "interval", "frequency", "timeZone" ]
+        }
+      },
+      "Actions": {
+        "getFileContent": {
+          "OperationId": "getFileContent",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "inferContentType" ]
+        },
+        "getFileContentV2": {
+          "OperationId": "getFileContentV2",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "inferContentType" ]
+        },
+        "getFileMetadata": {
+          "OperationId": "getFileMetadata",
+          "IsTrigger": false,
+          "Parameters": [ "filePath" ]
+        },
+        "createFile": {
+          "OperationId": "createFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "body" ]
+        },
+        "updateFile": {
+          "OperationId": "updateFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "body" ]
+        },
+        "deleteFile": {
+          "OperationId": "deleteFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "skipIfFileNotPresent" ]
+        },
+        "listFolder": {
+          "OperationId": "listFolder",
+          "IsTrigger": false,
+          "Parameters": [ "folderPath", "enableRecursiveListing" ]
+        },
+        "copyFile": {
+          "OperationId": "copyFile",
+          "IsTrigger": false,
+          "Parameters": [ "source", "destination", "overwrite" ]
+        },
+        "renameFile": {
+          "OperationId": "renameFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "newName" ]
+        },
+        "appendFile": {
+          "OperationId": "appendFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "body", "createFileIfNotPresent" ]
+        },
+        "extractArchive": {
+          "OperationId": "extractArchive",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "folderPath", "overwrite", "body" ]
+        }
+      },
+      "ConnectionParameters": {
+        "RootFolder": {
+          "Name": "RootFolder",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Username": {
+          "Name": "Username",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        },
+        "MountPath": {
+          "Name": "MountPath",
+          "Type": "StringType",
+          "Required": false
+        }
+      }
+    },
+    "ServiceBus": {
+      "Name": "ServiceBus",
+      "ServiceProviderId": "/serviceProviders/serviceBus",
+      "DisplayName": "Azure Service Bus",
+      "Triggers": {
+        "receiveQueueMessages": {
+          "OperationId": "receiveQueueMessages",
+          "IsTrigger": true,
+          "Kind": null,
+          "Parameters": [ "queueName", "isSessionsEnabled", "maxMessageBatchSize" ],
+          "SplitOn": "@triggerOutputs()?['body']"
+        },
+        "receiveQueueMessage": {
+          "OperationId": "receiveQueueMessage",
+          "IsTrigger": true,
+          "Kind": null,
+          "Parameters": [ "queueName", "isSessionsEnabled" ]
+        },
+        "receiveTopicMessages": {
+          "OperationId": "receiveTopicMessages",
+          "IsTrigger": true,
+          "Kind": null,
+          "Parameters": [ "topicName", "subscriptionName", "isSessionsEnabled", "maxMessageBatchSize" ],
+          "SplitOn": "@triggerOutputs()?['body']"
+        },
+        "receiveTopicMessage": {
+          "OperationId": "receiveTopicMessage",
+          "IsTrigger": true,
+          "Kind": null,
+          "Parameters": [ "topicName", "subscriptionName", "isSessionsEnabled" ]
+        },
+        "peekLockQueueMessagesV2": {
+          "OperationId": "peekLockQueueMessagesV2",
+          "IsTrigger": true,
+          "Kind": null,
+          "Parameters": [ "queueName", "isSessionsEnabled", "maxMessageCount" ],
+          "SplitOn": "@triggerOutputs()?['body']"
+        },
+        "peekLockTopicMessagesV2": {
+          "OperationId": "peekLockTopicMessagesV2",
+          "IsTrigger": true,
+          "Kind": null,
+          "Parameters": [ "topicName", "subscriptionName", "maxMessageBatchSize" ],
+          "SplitOn": "@triggerOutputs()?['body']"
+        },
+        "onSingleNewMessageFromQueueSession": {
+          "OperationId": "onSingleNewMessageFromQueueSession",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "queueName" ],
+          "Recurrence": [ "interval", "frequency", "timeZone" ]
+        }
+      },
+      "Actions": {
+        "sendMessage": {
+          "OperationId": "sendMessage",
+          "IsTrigger": false,
+          "Parameters": [ "entityName", "message", "sessionId", "contentType" ]
+        },
+        "sendMessages": {
+          "OperationId": "sendMessages",
+          "IsTrigger": false,
+          "Parameters": [ "entityName", "messages" ]
+        },
+        "getMessagesFromQueueV2": {
+          "OperationId": "getMessagesFromQueueV2",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "maxMessages" ]
+        },
+        "getMessagesFromTopicV2": {
+          "OperationId": "getMessagesFromTopicV2",
+          "IsTrigger": false,
+          "Parameters": [ "topicName", "subscriptionName", "maxMessages" ]
+        },
+        "getMessagesFromQueueSession": {
+          "OperationId": "getMessagesFromQueueSession",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "sessionId", "maxMessages" ]
+        },
+        "getMessagesFromTopicSession": {
+          "OperationId": "getMessagesFromTopicSession",
+          "IsTrigger": false,
+          "Parameters": [ "topicName", "subscriptionName", "sessionId", "maxMessages" ]
+        },
+        "completeMessage": {
+          "OperationId": "completeMessage",
+          "IsTrigger": false,
+          "Parameters": [ "lockToken" ]
+        },
+        "abandonMessage": {
+          "OperationId": "abandonMessage",
+          "IsTrigger": false,
+          "Parameters": [ "lockToken", "propertiesToModify" ]
+        },
+        "deadLetterMessage": {
+          "OperationId": "deadLetterMessage",
+          "IsTrigger": false,
+          "Parameters": [ "lockToken", "deadLetterReason", "deadLetterErrorDescription", "propertiesToModify" ]
+        },
+        "deferMessage": {
+          "OperationId": "deferMessage",
+          "IsTrigger": false,
+          "Parameters": [ "lockToken", "propertiesToModify" ]
+        },
+        "renewLockMessage": {
+          "OperationId": "renewLockMessage",
+          "IsTrigger": false,
+          "Parameters": [ "lockToken" ]
+        },
+        "completeMessageInSession": {
+          "OperationId": "completeMessageInSession",
+          "IsTrigger": false,
+          "Parameters": [ "messageId", "sessionId" ]
+        },
+        "abandonMessageInSession": {
+          "OperationId": "abandonMessageInSession",
+          "IsTrigger": false,
+          "Parameters": [ "messageId", "sessionId", "propertiesToModify" ]
+        },
+        "deadLetterMessageInSession": {
+          "OperationId": "deadLetterMessageInSession",
+          "IsTrigger": false,
+          "Parameters": [ "messageId", "sessionId", "deadLetterReason", "deadLetterErrorDescription", "propertiesToModify" ]
+        },
+        "deferMessageInSession": {
+          "OperationId": "deferMessageInSession",
+          "IsTrigger": false,
+          "Parameters": [ "messageId", "sessionId", "propertiesToModify" ]
+        },
+        "renewQueueSession": {
+          "OperationId": "renewQueueSession",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "sessionId" ]
+        },
+        "renewTopicSession": {
+          "OperationId": "renewTopicSession",
+          "IsTrigger": false,
+          "Parameters": [ "topicName", "subscriptionName", "sessionId" ]
+        },
+        "closeQueueSession": {
+          "OperationId": "closeQueueSession",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "sessionId" ]
+        },
+        "closeTopicSession": {
+          "OperationId": "closeTopicSession",
+          "IsTrigger": false,
+          "Parameters": [ "topicName", "subscriptionName", "sessionId" ]
+        },
+        "completeTopicMessageV2": {
+          "OperationId": "completeTopicMessageV2",
+          "IsTrigger": false,
+          "Parameters": [ "lockToken", "subscriptionName", "topicName" ]
+        },
+        "abandonTopicMessageV2": {
+          "OperationId": "abandonTopicMessageV2",
+          "IsTrigger": false,
+          "Parameters": [ "lockToken", "subscriptionName", "topicName", "propertiesToModify" ]
+        },
+        "renewLockTopicMessageV2": {
+          "OperationId": "renewLockTopicMessageV2",
+          "IsTrigger": false,
+          "Parameters": [ "lockToken", "subscriptionName", "topicName" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ConnectionString": {
+          "Name": "ConnectionString",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "Sql": {
+      "Name": "Sql",
+      "ServiceProviderId": "/serviceProviders/sql",
+      "DisplayName": "SQL Server",
+      "Triggers": {
+        "whenARowIsUpdated": {
+          "OperationId": "whenARowIsUpdated",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "tableName" ]
+        },
+        "whenARowIsModified": {
+          "OperationId": "whenARowIsModified",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "tableName" ]
+        },
+        "whenARowIsInserted": {
+          "OperationId": "whenARowIsInserted",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "tableName" ]
+        },
+        "whenARowIsDeleted": {
+          "OperationId": "whenARowIsDeleted",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "tableName" ]
+        }
+      },
+      "Actions": {
+        "executeQuery": {
+          "OperationId": "executeQuery",
+          "IsTrigger": false,
+          "Parameters": [ "query", "queryParameters" ]
+        },
+        "executeStoredProcedure": {
+          "OperationId": "executeStoredProcedure",
+          "IsTrigger": false,
+          "Parameters": [ "storedProcedureName", "storedProcedureParameters" ]
+        },
+        "getRows": {
+          "OperationId": "getRows",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "columnValuesForWhereCondition" ]
+        },
+        "getRowsV2": {
+          "OperationId": "getRowsV2",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "queries" ]
+        },
+        "insertRow": {
+          "OperationId": "insertRow",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "setColumns" ]
+        },
+        "updateRows": {
+          "OperationId": "updateRows",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "setColumns" ]
+        },
+        "deleteRows": {
+          "OperationId": "deleteRows",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "columnValuesForWhereCondition" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ConnectionString": {
+          "Name": "ConnectionString",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "AzureBlob": {
+      "Name": "AzureBlob",
+      "ServiceProviderId": "/serviceProviders/AzureBlob",
+      "DisplayName": "Azure Blob Storage",
+      "Triggers": {
+        "whenABlobIsAddedOrModified": {
+          "OperationId": "whenABlobIsAddedOrModified",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "path" ],
+          "Recurrence": [ "interval", "frequency", "timeZone" ]
+        }
+      },
+      "Actions": {
+        "uploadBlob": {
+          "OperationId": "uploadBlob",
+          "IsTrigger": false,
+          "Parameters": [ "containerName", "blobName", "content", "overrideIfExists" ]
+        },
+        "readBlob": {
+          "OperationId": "readBlob",
+          "IsTrigger": false,
+          "Parameters": [ "containerName", "blobName", "inferContentType" ]
+        },
+        "deleteBlob": {
+          "OperationId": "deleteBlob",
+          "IsTrigger": false,
+          "Parameters": [ "containerName", "blobName" ]
+        },
+        "blobExists": {
+          "OperationId": "blobExists",
+          "IsTrigger": false,
+          "Parameters": [ "containerName", "blobName" ]
+        },
+        "listBlobs": {
+          "OperationId": "listBlobs",
+          "IsTrigger": false,
+          "Parameters": [ "containerName", "blobNamePrefix", "pageMarker", "excludeSubFolderBlobs" ]
+        },
+        "readBlobFromUri": {
+          "OperationId": "readBlobFromUri",
+          "IsTrigger": false,
+          "Parameters": [ "blobUri", "inferContentType" ]
+        },
+        "getAccessPolicies": {
+          "OperationId": "getAccessPolicies",
+          "IsTrigger": false,
+          "Parameters": [ "containerName" ]
+        },
+        "listContainers": {
+          "OperationId": "listContainers",
+          "IsTrigger": false,
+          "Parameters": [ "pageMarker" ]
+        },
+        "uploadBlobFromUri": {
+          "OperationId": "uploadBlobFromUri",
+          "IsTrigger": false,
+          "Parameters": [ "blobUri", "content", "overrideIfExists" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ConnectionString": {
+          "Name": "ConnectionString",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "AzureTable": {
+      "Name": "AzureTable",
+      "ServiceProviderId": "/serviceProviders/azureTables",
+      "DisplayName": "Azure Table Storage",
+      "Triggers": {},
+      "Actions": {
+        "getEntity": {
+          "OperationId": "getEntity",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "partitionKey", "rowKey" ]
+        },
+        "insertEntity": {
+          "OperationId": "upsertEntity",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "entity" ]
+        },
+        "updateEntity": {
+          "OperationId": "updateEntity",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "entity" ]
+        },
+        "deleteEntity": {
+          "OperationId": "deleteEntity",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "partitionKey", "rowKey" ]
+        },
+        "queryEntities": {
+          "OperationId": "queryEntities",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "filter", "select" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ConnectionString": {
+          "Name": "ConnectionString",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "EventHub": {
+      "Name": "EventHub",
+      "ServiceProviderId": "/serviceProviders/eventHub",
+      "DisplayName": "Azure Event Hub",
+      "Triggers": {
+        "receiveEvents": {
+          "OperationId": "receiveEvents",
+          "IsTrigger": true,
+          "Kind": "Push",
+          "Parameters": [ "eventHubName", "consumerGroup" ]
+        }
+      },
+      "Actions": {
+        "sendEvent": {
+          "OperationId": "sendEvent",
+          "IsTrigger": false,
+          "Parameters": [ "eventHubName", "content", "partitionKey" ]
+        },
+        "sendEvents": {
+          "OperationId": "sendEvents",
+          "IsTrigger": false,
+          "Parameters": [ "eventHubName", "events" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ConnectionString": {
+          "Name": "ConnectionString",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "Ftp": {
+      "Name": "Ftp",
+      "ServiceProviderId": "/serviceProviders/ftp",
+      "DisplayName": "FTP",
+      "Triggers": {
+        "whenFtpFilesAreAddedOrModified": {
+          "OperationId": "whenFtpFilesAreAddedOrModified",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "folderPath", "maxFileCount", "oldFileCutOffTimestamp", "ignoreSubFolders" ],
+          "Recurrence": [ "interval", "frequency", "timeZone" ]
+        }
+      },
+      "Actions": {
+        "getFileContent": {
+          "OperationId": "getFileContent",
+          "IsTrigger": false,
+          "Parameters": [ "filePath" ]
+        },
+
+        "getFtpFileContentV2": {
+          "OperationId": "getFtpFileContentV2",
+          "IsTrigger": false,
+          "Parameters": [ "filePath" ]
+        },
+        "getFileMetadata": {
+          "OperationId": "getFileMetadata",
+          "IsTrigger": false,
+          "Parameters": [ "filePath" ]
+        },
+        "createFile": {
+          "OperationId": "createFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "fileContent", "getAllFileMetadata" ]
+        },
+        "updateFile": {
+          "OperationId": "updateFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "fileContent", "getAllFileMetadata" ]
+        },
+        "deleteFtpFile": {
+          "OperationId": "deleteFtpFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath" ]
+        },
+        "listFilesInFolder": {
+          "OperationId": "listFilesInFolder",
+          "IsTrigger": false,
+          "Parameters": [ "folderPath" ]
+        },
+        "extractArchive": {
+          "OperationId": "extractArchive",
+          "IsTrigger": false,
+          "Parameters": [ "folderPath", "filePath", "overwriteExistingFilesBehaviour", "fileContent" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ServerAddress": {
+          "Name": "ServerAddress",
+          "Type": "StringType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        },
+        "ServerPort": {
+          "Name": "ServerPort",
+          "Type": "IntType",
+          "Required": false
+        },
+        "IsSSL": {
+          "Name": "IsSSL",
+          "Type": "BoolType",
+          "Required": false
+        }
+      }
+    },
+    "Sftp": {
+      "Name": "Sftp",
+      "ServiceProviderId": "/serviceProviders/sftp",
+      "DisplayName": "SFTP",
+      "Triggers": {
+        "whenFileIsAdded": {
+          "OperationId": "whenFileIsAdded",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "folderPath", "includeFileContent" ],
+          "Recurrence": [ "interval", "frequency" ]
+        },
+        "whenFileIsAddedOrModified": {
+          "OperationId": "whenFileIsAddedOrModified",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "folderPath", "includeFileContent" ],
+          "Recurrence": [ "interval", "frequency" ]
+        }
+      },
+      "Actions": {
+        "getFileContent": {
+          "OperationId": "getFileContent",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "inferContentType" ]
+        },
+        "getFileContentV2": {
+          "OperationId": "getFileContentV2",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "inferContentType" ]
+        },
+        "getMetadata": {
+          "OperationId": "getMetadata",
+          "IsTrigger": false,
+          "Parameters": [ "fileOrFolderPath" ]
+        },
+        "uploadFileContent": {
+          "OperationId": "uploadFileContent",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "content", "overWriteFileIfExists" ]
+        },
+        "createFile": {
+          "OperationId": "createFile",
+          "IsTrigger": false,
+          "Parameters": [ "folderPath", "fileName", "content" ]
+        },
+        "updateFile": {
+          "OperationId": "updateFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "content" ]
+        },
+        "deleteFile": {
+          "OperationId": "deleteFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "skipDelete" ]
+        },
+        "copyFile": {
+          "OperationId": "copyFile",
+          "IsTrigger": false,
+          "Parameters": [ "sourceFilePath", "destinationFilePath", "overWriteFileIfExists" ]
+        },
+        "renameFile": {
+          "OperationId": "renameFile",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "newFileName", "fetchMetadata" ]
+        },
+        "listFolder": {
+          "OperationId": "listFolder",
+          "IsTrigger": false,
+          "Parameters": [ "folderPath", "filesOnly" ]
+        },
+        "createFolder": {
+          "OperationId": "createFolder",
+          "IsTrigger": false,
+          "Parameters": [ "folderPath" ]
+        },
+        "deleteFolder": {
+          "OperationId": "deleteFolder",
+          "IsTrigger": false,
+          "Parameters": [ "folderPath", "recursiveDelete" ]
+        },
+        "extractArchive": {
+          "OperationId": "extractArchive",
+          "IsTrigger": false,
+          "Parameters": [ "filePath", "folderPath", "overwriteExistingFilesBehaviour" ]
+        }
+      },
+      "ConnectionParameters": {
+        "HostName": {
+          "Name": "HostName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": false
+        },
+        "SshPrivateKey": {
+          "Name": "SshPrivateKey",
+          "Type": "SecureString",
+          "Required": false
+        },
+        "SshPrivateKeyPassphrase": {
+          "Name": "SshPrivateKeyPassphrase",
+          "Type": "SecureString",
+          "Required": false
+        },
+        "PortNumber": {
+          "Name": "PortNumber",
+          "Type": "IntType",
+          "Required": false
+        }
+      }
+    },
+    "CosmosDb": {
+      "Name": "CosmosDb",
+      "ServiceProviderId": "/serviceProviders/AzureCosmosDB",
+      "DisplayName": "Azure Cosmos DB",
+      "Triggers": {
+        "whenADocumentIsCreatedOrModified": {
+          "OperationId": "whenADocumentIsCreatedOrModified",
+          "IsTrigger": true,
+          "Kind": "Push",
+          "Parameters": [ "databaseName", "collectionName", "leaseCollectionName", "createLeaseCollectionIfNotExists" ]
+        }
+      },
+      "Actions": {
+        "CreateOrUpdateDocument": {
+          "OperationId": "CreateOrUpdateDocument",
+          "IsTrigger": false,
+          "Parameters": [ "databaseId", "containerId", "item", "isUpsert" ]
+        },
+        "ReadDocument": {
+          "OperationId": "ReadDocument",
+          "IsTrigger": false,
+          "Parameters": [ "databaseId", "containerId", "itemId", "partitionKey", "sessionToken" ]
+        },
+        "PatchItem": {
+          "OperationId": "PatchItem",
+          "IsTrigger": false,
+          "Parameters": [ "databaseId", "containerId", "itemId", "partitionKey", "patchOperations", "sessionToken" ]
+        },
+        "QueryDocuments": {
+          "OperationId": "QueryDocuments",
+          "IsTrigger": false,
+          "Parameters": [ "databaseId", "containerId", "queryText", "sessionToken" ]
+        },
+        "DeleteDocument": {
+          "OperationId": "DeleteDocument",
+          "IsTrigger": false,
+          "Parameters": [ "databaseId", "containerId", "itemId", "partitionKey", "sessionToken" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ConnectionString": {
+          "Name": "ConnectionString",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "Http": {
+      "Name": "Http",
+      "ServiceProviderId": "/serviceProviders/http",
+      "DisplayName": "HTTP",
+      "Triggers": {
+        "manual": {
+          "OperationId": "manual",
+          "IsTrigger": true,
+          "Kind": "Http",
+          "Parameters": [ "uri", "method", "headers", "queries", "body", "cookie", "authentication:[type,value]" ],
+          "Recurrence": [ "interval", "frequency" ]
+        }
+      },
+      "Actions": {
+        "invokeHttp": {
+          "OperationId": "invokeHttp",
+          "IsTrigger": false,
+          "Parameters": [ "uri", "method", "headers", "queries", "body", "cookie", "authentication:[type,value]", "runtimeConfiguration:[contentTransfer:[transferMode]]" ]
+        }
+      },
+      "ConnectionParameters": {}
+    },
+    "SMTP": {
+      "Name": "SMTP",
+      "ServiceProviderId": "/serviceProviders/Smtp",
+      "DisplayName": "SMTP",
+      "Triggers": {},
+      "Actions": {
+        "sendEmail": {
+          "OperationId": "sendEmail",
+          "IsTrigger": false,
+          "Parameters": [ "from", "to", "subject", "body", "cc", "bcc", "isHTML", "importance", "readReceipt" ]
+        }
+      },
+      "ConnectionParameters": {
+        "Server": {
+          "Name": "Server",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        },
+        "EnableSSL": {
+          "Name": "EnableSSL",
+          "Type": "BoolType",
+          "Required": false
+        }
+      }
+    },
+    "AS2": {
+      "Name": "AS2",
+      "DisplayName": "AS2",
+      "Triggers": {},
+      "Actions": {
+        "AS2Encode": {
+          "OperationId": "AS2Encode",
+          "IsTrigger": false,
+          "inputs": [ "messageToEncode", "as2From", "as2To", "contentType", "fileName", "b2bTrackingId" ]
+        },
+        "AS2Decode": {
+          "OperationId": "AS2Decode",
+          "IsTrigger": false,
+          "inputs": [ "messageToDecode", "messageHeaders", "b2bTrackingId" ]
+        }
+      },
+      "ConnectionParameters": {}
+    },
+    "X12": {
+      "Name": "X12",
+      "ServiceProviderId": "/serviceProviders/x12",
+      "DisplayName": "X12",
+      "Triggers": {},
+      "Actions": {
+        "X12Encode": {
+          "OperationId": "X12Encode",
+          "IsTrigger": false,
+          "inputs": [ "messageToEncode", "senderIdentity", "receiverIdentity", "agreementName", "b2bTrackingId" ]
+        },
+        "X12BatchEncode": {
+          "OperationId": "X12BatchEncode",
+          "IsTrigger": false,
+          "inputs": [ "batchMessage", "senderIdentity", "receiverIdentity", "agreementName", "b2bTrackingId" ]
+        },
+        "X12Decode": {
+          "OperationId": "X12Decode",
+          "IsTrigger": false,
+          "Parameters": [ "messageToDecode", "b2bTrackingId", "fallbackAgreementName" ]
+        }
+      }
+    },
+    "EDIFACT": {
+      "Name": "EDIFACT",
+      "ServiceProviderId": "/serviceProviders/edifact",
+      "DisplayName": "EDIFACT",
+      "Triggers": {},
+      "Actions": {
+        "EdifactDecode": {
+          "OperationId": "EdifactDecode",
+          "IsTrigger": false,
+          "Parameters": [ "messageToDecode", "componentSeparator", "dataElementSeparator", "escapeCharacter", "repetitionSeparator", "segmentTerminator", "segmentTerminatorSuffix", "decimalPointIndicator", "payloadCharacterSet" ]
+        },
+        "EdifactEncode": {
+          "OperationId": "EdifactEncode",
+          "IsTrigger": false,
+          "Parameters": [ "messageToEncode", "senderIdentity", "receiverIdentity", "agreementName", "b2bTrackingId" ]
+        },
+        "EdifactBatchEncode": {
+          "OperationId": "EdifactBatchEncode",
+          "IsTrigger": false,
+          "Parameters": [ "batchMessage", "senderIdentity", "receiverIdentity", "agreementName", "b2bTrackingId" ]
+        }
+      },
+      "ConnectionParameters": {
+        "IntegrationAccountName": {
+          "Name": "IntegrationAccountName",
+          "Type": "StringType",
+          "Required": true
+        }
+      }
+    },
+    "MLLP": {
+      "Name": "MLLP",
+      "ServiceProviderId": "/serviceProviders/mllp",
+      "DisplayName": "MLLP (HL7)",
+      "Triggers": {
+        "receiveMessage": {
+          "OperationId": "receiveMessage",
+          "IsTrigger": true,
+          "Kind": "Push",
+          "Parameters": []
+        }
+      },
+      "Actions": {
+        "sendMessage": {
+          "OperationId": "sendMessage",
+          "IsTrigger": false,
+          "Parameters": [ "message" ]
+        }
+      },
+      "ConnectionParameters": {
+        "Endpoint": {
+          "Name": "Endpoint",
+          "Type": "StringType",
+          "Required": true
+        }
+      }
+    },
+    "HL7": {
+      "Name": "HL7",
+      "DisplayName": "HL7",
+      "Triggers": {},
+      "Actions": {
+        "HL7Decode": {
+          "OperationId": "HL7Decode",
+          "IsTrigger": false,
+          "Inputs": [ "messageToDecode" ]
+        },
+        "HL7Encode": {
+          "OperationId": "HL7Encode",
+          "IsTrigger": false,
+          "Inputs": [ "messageToEncode", "headerToEncode" ]
+        }
+      }
+    },
+    "Rules": {
+      "Name": "Rules",
+      "DisplayName": "Rules Engine",
+      "Triggers": {},
+      "Actions": {
+        "RuleExecute": {
+          "OperationId": "RuleExecute",
+          "IsTrigger": false,
+          "Inputs": [ "ruleSet", "ruleStore", "factTypes" ]
+        }
+      }
+    },
+    "XmlOperations": {
+      "Name": "XmlOperations",
+      "DisplayName": "XML Operations",
+      "Triggers": {},
+      "Actions": {
+        "XmlParse": {
+          "OperationId": "XmlParse",
+          "IsTrigger": false,
+          "Inputs": {
+            "content": "",
+            "schema": {
+              "source": "LogicApp",
+              "name": "{{SCHEMA_NAME}}"
+            },
+            "xmlReaderSettings": {
+              "dtdProcessing": "Prohibit",
+              "xmlNormalization": true,
+              "ignoreWhitespace": true,
+              "ignoreProcessingInstructions": true
+            },
+            "jsonWriterSettings": {
+              "ignoreAttributes": false,
+              "useFullyQualifiedNames": false
+            }
+          }
+        },
+        "XmlCompose": {
+          "OperationId": "XmlCompose",
+          "IsTrigger": false,
+          "Inputs": {
+            "schema": {
+              "source": "LogicApp",
+              "name": "{{SCHEMA_NAME}}"
+            },
+            "content": {}
+          }
+        },
+        "XmlValidation": {
+          "OperationId": "XmlValidation",
+          "IsTrigger": false,
+          "Inputs": {
+            "content": "",
+            "schema": {
+              "source": "LogicApp",
+              "name": "{{SCHEMA_NAME}}"
+            }
+          }
+        },
+        "Xslt": {
+          "OperationId": "Xslt",
+          "IsTrigger": false,
+          "Inputs": {
+            "content": "",
+            "map": {
+              "source": "LogicApp",
+              "name": "{{XSLT_MAP_NAME}}"
+            }
+          }
+        }
+      }
+    },
+    "FlatFileOperations": {
+      "Name": "FlatFileOperations",
+      "DisplayName": "Flat File Operations",
+      "Triggers": {},
+      "Actions": {
+        "FlatFileDecoding": {
+          "OperationId": "FlatFileDecoding",
+          "IsTrigger": false,
+          "Inputs": {
+            "content": "",
+            "schema": {
+              "source": "LogicApp",
+              "name": "{{FLAT_FILE_SCHEMA_NAME}}"
+            }
+          }
+        },
+        "FlatFileEncoding": {
+          "OperationId": "FlatFileEncoding",
+          "IsTrigger": false,
+          "Inputs": {
+            "content": "",
+            "schema": {
+              "source": "LogicApp",
+              "name": "{{FLAT_FILE_SCHEMA_NAME}}"
+            }
+          }
+        }
+      }
+    },
+    "SWIFT": {
+      "Name": "SWIFT",
+      "DisplayName": "SWIFT",
+      "Triggers": {},
+      "Actions": {
+        "SwiftMTDecode": {
+          "OperationId": "SwiftMTDecode",
+          "IsTrigger": false,
+          "Inputs": {
+            "messageToDecode": "",
+            "messageValidation": "Enable"
+          }
+        },
+        "SwiftMTEncode": {
+          "OperationId": "SwiftMTEncode",
+          "IsTrigger": false,
+          "Inputs": {
+            "messageToEncode": "",
+            "messageValidation": "Enable"
+          }
+        }
+      }
+    },
+    "SAP": {
+      "Name": "SAP",
+      "ServiceProviderId": "/serviceProviders/sap",
+      "DisplayName": "SAP",
+      "Triggers": {
+        "SapTrigger": {
+          "OperationId": "SapTrigger",
+          "IsTrigger": true,
+          "Kind": "Push",
+          "Parameters": [ "idocFormat", "DegreeOfParallelism", "GatewayHost", "GatewayService", "ProgramId", "SncPartnerNames", "ReceiveIDocsWithUnreleasedSegmentsV2", "GatewayWithoutWorkProcess" ]
+        }
+      },
+      "Actions": {
+        "callRfc": {
+          "OperationId": "callRfc",
+          "IsTrigger": false,
+          "Parameters": [ "inputBodyType", "outputBodyType", "body", "rfcName", "sessionId", "tId", "queueName", "autoCommit", "safeType" ]
+        },
+        "bapiCallMethod": {
+          "OperationId": "bapiCallMethod",
+          "IsTrigger": false,
+          "Parameters": [ "businessObject", "method", "autocommit", "body", "sessionId", "safeType" ]
+        },
+        "respondToSapServer": {
+          "OperationId": "respondToSapServer",
+          "IsTrigger": false,
+          "Parameters": [ "body", "safeType" ]
+        },
+        "bapiRollback": {
+          "OperationId": "bapiRollback",
+          "IsTrigger": false,
+          "Parameters": [ "sessionId", "closeSession" ]
+        },
+        "commitRfcTransaction": {
+          "OperationId": "commitRfcTransaction",
+          "IsTrigger": false,
+          "Parameters": [ "tId", "queueName" ]
+        },
+        "addRfcToTransaction": {
+          "OperationId": "addRfcToTransaction",
+          "IsTrigger": false,
+          "Parameters": [ "body", "tId", "queueName", "autoCommit" ]
+        },
+        "getRfcTransaction": {
+          "OperationId": "getRfcTransaction",
+          "IsTrigger": false,
+          "Parameters": [ "tId", "queueName" ]
+        },
+        "getIDocStatus": {
+          "OperationId": "getIDocStatus",
+          "IsTrigger": false,
+          "Parameters": [ "iDocNumber" ]
+        },
+        "createRfcTransaction": {
+          "OperationId": "createRfcTransaction",
+          "IsTrigger": false,
+          "Parameters": [ "tId", "queueName" ]
+        },
+        "getSchemaV2": {
+          "OperationId": "getSchemaV2",
+          "IsTrigger": false,
+          "Parameters": [ "operationType", "businessObject", "method", "safeType" ]
+        },
+        "readTable": {
+          "OperationId": "readTable",
+          "IsTrigger": false,
+          "Parameters": [ "tableName" ]
+        },
+        "sendIDoc": {
+          "OperationId": "sendIDoc",
+          "IsTrigger": false,
+          "Parameters": [ "idocFormat", "confirmTid", "tId", "allowUnreleasedSegmentV2", "flatFileIDoc" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ApplicationServerHost": {
+          "Name": "ApplicationServerHost",
+          "Type": "StringType",
+          "Required": true
+        },
+        "SystemNumber": {
+          "Name": "SystemNumber",
+          "Type": "StringType",
+          "Required": true
+        },
+        "ClientId": {
+          "Name": "ClientId",
+          "Type": "StringType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "SapOData": {
+      "Name": "SapOData",
+      "ServiceProviderId": "/connectionProviders/sapodata",
+      "DisplayName": "SAP OData",
+      "Triggers": {},
+      "Actions": {
+        "getEntityData": {
+          "OperationId": "getentitydata",
+          "IsTrigger": false,
+          "Parameters": [ "entity", "select", "filter", "top", "skip" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ApiKey": {
+          "Name": "ApiKey",
+          "Type": "SecureString",
+          "Required": true
+        },
+        "BaseUrl": {
+          "Name": "BaseUrl",
+          "Type": "StringType",
+          "Required": true
+        }
+      }
+    },
+    "SapErp": {
+      "Name": "SapErp",
+      "ServiceProviderId": "/serviceProviders/sap",
+      "DisplayName": "SAP ERP",
+      "Triggers": {},
+      "Actions": {
+        "createSession": {
+          "OperationId": "createSession",
+          "IsTrigger": false,
+          "Parameters": []
+        },
+        "callRfc": {
+          "OperationId": "callRfc",
+          "IsTrigger": false,
+          "Parameters": [ "rfcName", "body", "inputBodyType", "outputBodyType", "autoCommit", "sessionId" ]
+        },
+        "bapiCommit": {
+          "OperationId": "bapiCommit",
+          "IsTrigger": false,
+          "Parameters": [ "sessionId", "wait", "closeSession" ]
+        },
+        "bapiRollback": {
+          "OperationId": "bapiRollback",
+          "IsTrigger": false,
+          "Parameters": [ "sessionId", "closeSession" ]
+        }
+      },
+      "ConnectionParameters": {
+        "ApplicationServerHost": {
+          "Name": "ApplicationServerHost",
+          "Type": "StringType",
+          "Required": true
+        },
+        "SystemNumber": {
+          "Name": "SystemNumber",
+          "Type": "StringType",
+          "Required": true
+        },
+        "ClientId": {
+          "Name": "ClientId",
+          "Type": "StringType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "IbmMq": {
+      "Name": "IbmMq",
+      "ServiceProviderId": "/serviceProviders/mq",
+      "DisplayName": "IBM MQ",
+      "Triggers": {
+        "receiveMessage": {
+          "OperationId": "receiveMessage",
+          "IsTrigger": true,
+          "Kind": null,
+          "Parameters": [ "queueName" ]
+        },
+        "pollMessages": {
+          "OperationId": "pollMessages",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "queueName", "includeInfo" ],
+          "Recurrence": [ "interval", "frequency", "timeZone" ]
+        },
+        "pollBrowseMessages": {
+          "OperationId": "pollBrowseMessages",
+          "IsTrigger": true,
+          "Kind": null,
+          "Parameters": [ "queueName", "getMessageOptions:[format,maximumMessagesInBatch,maximumBatchSizeInMB,waitIntervalInSeconds,browseLockedTimeoutInSeconds,pollingIntervalInSeconds]", "includeInfo" ]
+        }
+      },
+      "Actions": {
+        "sendMessage": {
+          "OperationId": "sendMessage",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "message" ]
+        },
+        "browseMessage": {
+          "OperationId": "browseMessage",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "includeInfo", "getMessageOptions:[format,waitIntervalInSeconds,browseLockedTimeoutInSeconds,correlationId]" ]
+        },
+        "receiveMessage": {
+          "OperationId": "receiveMessage",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "includeInfo", "getMessageOptions:[format,waitIntervalInSeconds,messageId,correlationId]" ]
+        },
+        "completeMessage": {
+          "OperationId": "completeMessage",
+          "IsTrigger": false,
+          "Parameters": [ "completeAction", "connectionId", "messageId", "queueName", "uniqueId" ]
+        },
+        "receiveBatch": {
+          "OperationId": "receiveBatch",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "includeInfo", "getMessageOptions:[format,waitIntervalInSeconds,maximumMessagesInBatch,maximumBatchSizeInMB]" ]
+        },
+        "browseBatch": {
+          "OperationId": "browseBatch",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "includeInfo", "getMessageOptions:[format,waitIntervalInSeconds,maximumMessagesInBatch,maximumBatchSizeInMB,browseLockedTimeoutInSeconds]" ]
+        },
+        "moveMessageToDeadLetterQueue": {
+          "OperationId": "moveMessageToDeadLetterQueue",
+          "IsTrigger": false,
+          "Parameters": [ "message", "reasonCode", "deadLetterQueueName", "sendMessageOptions:[putApplicationName,putApplicationType]" ]
+        }
+      },
+      "ConnectionParameters": {
+        "QueueManager": {
+          "Name": "QueueManager",
+          "Type": "StringType",
+          "Required": true
+        },
+        "HostName": {
+          "Name": "HostName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": true
+        },
+        "Channel": {
+          "Name": "Channel",
+          "Type": "StringType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": false
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": false
+        }
+      }
+    },
+    "Db2": {
+      "Name": "Db2",
+      "ServiceProviderId": "/serviceProviders/db2",
+      "DisplayName": "IBM Db2",
+      "Triggers": {},
+      "Actions": {
+        "executeQuery": {
+          "OperationId": "executeQuery",
+          "IsTrigger": false,
+          "Parameters": [ "query" ]
+        },
+        "executeStoredProcedure": {
+          "OperationId": "executeStoredProcedure",
+          "IsTrigger": false,
+          "Parameters": [ "procedureName", "parameters" ]
+        },
+        "getRow": {
+          "OperationId": "getRow",
+          "IsTrigger": false,
+          "Parameters": [ "table", "schema", "rowId" ]
+        },
+        "insertRow": {
+          "OperationId": "insertRow",
+          "IsTrigger": false,
+          "Parameters": [ "table", "schema", "item" ]
+        },
+        "updateRow": {
+          "OperationId": "updateRow",
+          "IsTrigger": false,
+          "Parameters": [ "table", "schema", "rowId", "item" ]
+        },
+        "deleteRow": {
+          "OperationId": "deleteRow",
+          "IsTrigger": false,
+          "Parameters": [ "table", "schema", "rowId" ]
+        }
+      },
+      "ConnectionParameters": {
+        "Server": {
+          "Name": "Server",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Database": {
+          "Name": "Database",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": false
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "CICS": {
+      "Name": "CICS",
+      "ServiceProviderId": "/serviceProviders/cicsProgramCall",
+      "DisplayName": "IBM CICS",
+      "Triggers": {},
+      "Actions": {
+        "invokeProgram": {
+          "OperationId": "executeMethod",
+          "IsTrigger": false,
+          "Parameters": [ "hidx", "method", "inputParameters" ]
+        }
+      },
+      "ConnectionParameters": {
+        "HostName": {
+          "Name": "HostName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        },
+        "Region": {
+          "Name": "Region",
+          "Type": "StringType",
+          "Required": true
+        }
+      }
+    },
+    "IMS": {
+      "Name": "IMS",
+      "ServiceProviderId": "/serviceProviders/imsProgramCall",
+      "DisplayName": "IBM CICS",
+      "Triggers": {},
+      "Actions": {
+        "invokeProgram": {
+          "OperationId": "executeMethod",
+          "IsTrigger": false,
+          "Parameters": [ "hidx", "method", "inputParameters" ]
+        }
+      },
+      "ConnectionParameters": {
+        "HostName": {
+          "Name": "HostName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        },
+        "DataStore": {
+          "Name": "DataStore",
+          "Type": "StringType",
+          "Required": true
+        }
+      }
+    },
+    "Vsam": {
+      "Name": "Vsam",
+      "ServiceProviderId": "/serviceProviders/hostFile",
+      "DisplayName": "IBM Host File",
+      "Triggers": {},
+      "Actions": {
+        "readFile": {
+          "OperationId": "parseFileContents",
+          "IsTrigger": false,
+          "Parameters": [ "hidx", "schema", "contents" ]
+        },
+        "writeFile": {
+          "OperationId": "generateFileContents",
+          "IsTrigger": false,
+          "Parameters": [ "hidx", "schema", "rows" ]
+        }
+      },
+      "ConnectionParameters": {
+        "HostName": {
+          "Name": "HostName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "HostFile": {
+      "Name": "HostFile",
+      "ServiceProviderId": "/serviceProviders/hostFile",
+      "DisplayName": "IBM Host File",
+      "Triggers": {},
+      "Actions": {
+        "readFile": {
+          "OperationId": "parseFileContents",
+          "IsTrigger": false,
+          "Parameters": [ "hidx", "schema", "contents" ]
+        },
+        "writeFile": {
+          "OperationId": "generateFileContents",
+          "IsTrigger": false,
+          "Parameters": [ "hidx", "schema", "rows" ]
+        }
+      },
+      "ConnectionParameters": {
+        "HostName": {
+          "Name": "HostName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        },
+        "CodePage": {
+          "Name": "CodePage",
+          "Type": "StringType",
+          "Required": false
+        }
+      }
+    },
+    "Informix": {
+      "Name": "Informix",
+      "ServiceProviderId": null,
+      "DisplayName": "IBM Informix",
+      "IsApiConnection": true,
+      "Triggers": {
+        "GetOnUpdatedItems": {
+          "OperationId": "GetOnUpdatedItems",
+          "IsTrigger": true,
+          "Kind": "Polling",
+          "Parameters": [ "table" ]
+        }
+      },
+      "Actions": {
+        "GetRow": {
+          "OperationId": "GetItem",
+          "IsTrigger": false,
+          "Parameters": [ "table", "id" ]
+        },
+        "GetRows": {
+          "OperationId": "GetItems",
+          "IsTrigger": false,
+          "Parameters": [ "table", "$filter", "$orderby", "$skip", "$top" ]
+        },
+        "InsertRow": {
+          "OperationId": "PostItem",
+          "IsTrigger": false,
+          "Parameters": [ "table", "item" ]
+        },
+        "UpdateRow": {
+          "OperationId": "PatchItem",
+          "IsTrigger": false,
+          "Parameters": [ "table", "id", "item" ]
+        },
+        "DeleteRow": {
+          "OperationId": "DeleteItem",
+          "IsTrigger": false,
+          "Parameters": [ "table", "id" ]
+        }
+      },
+      "ConnectionParameters": {
+        "Server": {
+          "Name": "Server",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Database": {
+          "Name": "Database",
+          "Type": "StringType",
+          "Required": true
+        },
+        "AuthenticationType": {
+          "Name": "AuthenticationType",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Username": {
+          "Name": "Username",
+          "Type": "StringType",
+          "Required": false
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": false
+        }
+      }
+    },
+    "OracleDb": {
+      "Name": "OracleDb",
+      "ServiceProviderId": "/serviceProviders/oracledb",
+      "DisplayName": "Oracle Database",
+      "Triggers": {},
+      "Actions": {
+        "getTables": {
+          "OperationId": "getTables",
+          "IsTrigger": false,
+          "Parameters": [ "ownedTables" ]
+        },
+        "executeQuery": {
+          "OperationId": "executeQuery",
+          "IsTrigger": false,
+          "Parameters": [ "query", "queryParameters" ]
+        },
+        "getRows": {
+          "OperationId": "getRows",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "columnValuesForWhereCondition", "skipCount", "maxCount", "orderBy" ]
+        },
+        "executeStoredProcedure": {
+          "OperationId": "executeStoredProcedure",
+          "IsTrigger": false,
+          "Parameters": [ "storedProcedure", "storedProcedureParameters" ]
+        },
+        "insertRow": {
+          "OperationId": "insertRow",
+          "IsTrigger": false,
+          "Parameters": [ "tableName", "setColumns" ]
+        }
+      },
+      "ConnectionParameters": {
+        "Server": {
+          "Name": "Server",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": false
+        },
+        "ServiceName": {
+          "Name": "ServiceName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        }
+      }
+    },
+    "RabbitMQ": {
+      "Name": "RabbitMQ",
+      "ServiceProviderId": "/serviceProviders/rabbitmq",
+      "DisplayName": "RabbitMQ",
+      "Triggers": {
+        "receiveRabbitMQMessages": {
+          "OperationId": "receiveRabbitMQMessages",
+          "IsTrigger": true,
+          "Kind": "Push",
+          "Parameters": [ "queueName" ]
+        }
+      },
+      "Actions": {
+        "sendRabbitMQMessage": {
+          "OperationId": "sendRabbitMQMessage",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "message" ]
+        },
+        "createQueue": {
+          "OperationId": "createQueue",
+          "IsTrigger": false,
+          "Parameters": [ "queueName", "durable", "exchangeName", "exchangeType", "bindingKey" ]
+        },
+        "completeMessage": {
+          "OperationId": "completeMessage",
+          "IsTrigger": false,
+          "Parameters": [ "deliveryTag", "consumerTag", "acknowledgement" ]
+        }
+      },
+      "ConnectionParameters": {
+        "HostName": {
+          "Name": "HostName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Port": {
+          "Name": "Port",
+          "Type": "IntType",
+          "Required": false
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": true
+        },
+        "VirtualHost": {
+          "Name": "VirtualHost",
+          "Type": "StringType",
+          "Required": false
+        }
+      }
+    },
+    "ConfluentKafka": {
+      "Name": "ConfluentKafka",
+      "ServiceProviderId": "/serviceProviders/confluentKafka",
+      "DisplayName": "Confluent Kafka",
+      "Triggers": {
+        "ReceiveMessage": {
+          "OperationId": "ReceiveMessage",
+          "IsTrigger": true,
+          "Kind": "Push",
+          "Parameters": [ "Topic", "ConsumerGroup", "AuthenticationMode", "Protocol" ]
+        }
+      },
+      "Actions": {
+        "SendMessage": {
+          "OperationId": "SendMessage",
+          "IsTrigger": false,
+          "Parameters": [ "TopicName", "Message", "messageKey", "Headers", "SchemaSubjectName" ]
+        }
+      },
+      "ConnectionParameters": {
+        "BootstrapServers": {
+          "Name": "BootstrapServers",
+          "Type": "StringType",
+          "Required": true
+        },
+        "AuthenticationMode": {
+          "Name": "AuthenticationMode",
+          "Type": "StringType",
+          "Required": true
+        },
+        "Protocol": {
+          "Name": "Protocol",
+          "Type": "StringType",
+          "Required": true
+        },
+        "UserName": {
+          "Name": "UserName",
+          "Type": "StringType",
+          "Required": false
+        },
+        "Password": {
+          "Name": "Password",
+          "Type": "SecureString",
+          "Required": false
+        },
+        "SchemaRegistryUrl": {
+          "Name": "SchemaRegistryUrl",
+          "Type": "StringType",
+          "Required": false
+        },
+        "SchemaRegistryApiKey": {
+          "Name": "SchemaRegistryApiKey",
+          "Type": "StringType",
+          "Required": false
+        },
+        "SchemaRegistryApiSecret": {
+          "Name": "SchemaRegistryApiSecret",
+          "Type": "SecureString",
+          "Required": false
+        }
+      }
+    },
+    "KeyVault": {
+      "Name": "KeyVault",
+      "ServiceProviderId": "/serviceProviders/keyVault",
+      "DisplayName": "Azure Key Vault",
+      "Triggers": {},
+      "Actions": {
+        "getSecret": {
+          "OperationId": "getSecret",
+          "IsTrigger": false,
+          "Parameters": [ "secretName" ]
+        },
+        "getSecretMetadata": {
+          "OperationId": "getSecretMetadata",
+          "IsTrigger": false,
+          "Parameters": [ "secretName" ]
+        },
+        "listSecretMetadata": {
+          "OperationId": "listSecretMetadata",
+          "IsTrigger": false,
+          "Parameters": []
+        },
+        "listSecretVersionMetadata": {
+          "OperationId": "listSecretVersionMetadata",
+          "IsTrigger": false,
+          "Parameters": [ "secretName" ]
+        },
+        "listKeyMetadata": {
+          "OperationId": "listKeyMetadata",
+          "IsTrigger": false,
+          "Parameters": []
+        },
+        "listKeyVersionMetadata": {
+          "OperationId": "listKeyVersionMetadata",
+          "IsTrigger": false,
+          "Parameters": [ "keyName" ]
+        },
+        "getKeyMetadata": {
+          "OperationId": "getKeyMetadata",
+          "IsTrigger": false,
+          "Parameters": [ "keyName" ]
+        },
+        "getKeyVersionMetadata": {
+          "OperationId": "getKeyVersionMetadata",
+          "IsTrigger": false,
+          "Parameters": [ "keyName", "version" ]
+        },
+        "encryptDataWithKey": {
+          "OperationId": "encryptDataWithKey",
+          "IsTrigger": false,
+          "Parameters": [ "keyName", "algorithm", "rawData" ]
+        },
+        "encryptDataWithKeyVersion": {
+          "OperationId": "encryptDataWithKeyVersion",
+          "IsTrigger": false,
+          "Parameters": [ "keyName", "version", "algorithm", "rawData" ]
+        },
+        "decryptDataWithKey": {
+          "OperationId": "decryptDataWithKey",
+          "IsTrigger": false,
+          "Parameters": [ "keyName", "algorithm", "encryptedData" ]
+        },
+        "decryptDataWithKeyVersion": {
+          "OperationId": "decryptDataWithKeyVersion",
+          "IsTrigger": false,
+          "Parameters": [ "keyName", "version", "algorithm", "encryptedData" ]
+        }
+      },
+      "ConnectionParameters": {
+        "VaultName": {
+          "Name": "VaultName",
+          "Type": "StringType",
+          "Required": true
+        },
+        "AuthenticationType": {
+          "Name": "AuthenticationType",
+          "Type": "StringType",
+          "Required": true
+        }
+      }
+    }
+  }
+}

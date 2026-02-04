@@ -1,0 +1,558 @@
+﻿#if __DESIGNER_DATA
+#error Do not define __DESIGNER_DATA.
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<om:MetaModel MajorVersion="1" MinorVersion="3" Core="2b131234-7959-458d-834f-2dc0769ce683" ScheduleModel="66366196-361d-448d-976f-cab5e87496d2" xmlns:om="http://schemas.microsoft.com/BizTalk/2003/DesignerData">
+    <om:Element Type="Module" OID="8e2f518d-4847-48ed-b476-4d272c310da3" LowerBound="1.1" HigherBound="137.1">
+        <om:Property Name="ReportToAnalyst" Value="True" />
+        <om:Property Name="Name" Value="Microsoft.Samples.BizTalk.Compensation" />
+        <om:Property Name="Signal" Value="False" />
+        <om:Element Type="PortType" OID="a0e45438-800f-4dcd-aafb-5e6197f3f229" ParentLink="Module_PortType" LowerBound="4.1" HigherBound="11.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Public" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="FromCustomerPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="fc2ba8e1-9d40-499b-bf63-b15898cea970" ParentLink="PortType_OperationDeclaration" LowerBound="6.1" HigherBound="10.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Update" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="e2b99b9f-03f2-4903-8b28-6f874251acd7" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="8.13" HigherBound="8.24">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.Compensation.ContactInfo" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="PortType" OID="d0e61060-dea4-4d11-836b-8af9ca41b944" ParentLink="Module_PortType" LowerBound="11.1" HigherBound="18.1">
+            <om:Property Name="Synchronous" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="ToCustomerPortType" />
+            <om:Property Name="Signal" Value="False" />
+            <om:Element Type="OperationDeclaration" OID="2c925391-99dd-4cca-8930-822d91d3d97b" ParentLink="PortType_OperationDeclaration" LowerBound="13.1" HigherBound="17.1">
+                <om:Property Name="OperationType" Value="OneWay" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="Confirm" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="MessageRef" OID="a638896e-5109-4e32-a27f-34c80ada43c8" ParentLink="OperationDeclaration_RequestMessageRef" LowerBound="15.13" HigherBound="15.27">
+                    <om:Property Name="Ref" Value="Microsoft.Samples.BizTalk.Compensation.UpdateResponse" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Request" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+        <om:Element Type="ServiceDeclaration" OID="e8be2497-daaa-4c4e-a460-9d02b9643a2b" ParentLink="Module_ServiceDeclaration" LowerBound="18.1" HigherBound="136.1">
+            <om:Property Name="InitializedTransactionType" Value="True" />
+            <om:Property Name="IsInvokable" Value="False" />
+            <om:Property Name="TypeModifier" Value="Internal" />
+            <om:Property Name="ReportToAnalyst" Value="True" />
+            <om:Property Name="Name" Value="UpdateContact" />
+            <om:Property Name="Signal" Value="True" />
+            <om:Element Type="LongRunningTransaction" OID="28bb875b-1e50-4caf-9ff5-4dd257284eb1" ParentLink="ServiceDeclaration_Transaction" LowerBound="19.21" HigherBound="19.59">
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="MainTransaction" />
+                <om:Property Name="Signal" Value="False" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="42065488-d0ca-4c73-a318-ed000f91b334" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="25.1" HigherBound="26.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.ContactInfo" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="UpdateRequestMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="768f9fea-ff5d-4aa4-a96b-0453a52182f3" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="26.1" HigherBound="27.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.UpdateResponse" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="UpdateResponseMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="ddebb5ea-82ce-4cfb-b2c0-423de3d084e9" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="27.1" HigherBound="28.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.CRMSchema" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="CrmUpdateRequestMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="MessageDeclaration" OID="2f86ed8b-a7e4-438c-9e12-1dd344925647" ParentLink="ServiceDeclaration_MessageDeclaration" LowerBound="28.1" HigherBound="29.1">
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.MailingListSchema" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="MailingListUpdateRequestMsg" />
+                <om:Property Name="Signal" Value="True" />
+            </om:Element>
+            <om:Element Type="ServiceBody" OID="e30633a1-beed-4be7-808d-ae67e15a0c35" ParentLink="ServiceDeclaration_ServiceBody">
+                <om:Property Name="Signal" Value="False" />
+                <om:Element Type="Receive" OID="3cf6fce7-ac26-4544-aa54-dbbaebdf4f7e" ParentLink="ServiceBody_Statement" LowerBound="31.1" HigherBound="33.1">
+                    <om:Property Name="Activate" Value="True" />
+                    <om:Property Name="PortName" Value="FromCustomer" />
+                    <om:Property Name="MessageName" Value="UpdateRequestMsg" />
+                    <om:Property Name="OperationName" Value="Update" />
+                    <om:Property Name="OperationMessageName" Value="Request" />
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Record Update" />
+                    <om:Property Name="Signal" Value="True" />
+                </om:Element>
+                <om:Element Type="Parallel" OID="081899fb-385b-4377-9805-e8385cba0e96" ParentLink="ServiceBody_Statement" LowerBound="33.1" HigherBound="134.1">
+                    <om:Property Name="ReportToAnalyst" Value="True" />
+                    <om:Property Name="Name" Value="Parallel" />
+                    <om:Property Name="Signal" Value="True" />
+                    <om:Element Type="ParallelBranch" OID="e183ea47-456d-4b84-838e-d3f9c34440e8" ParentLink="ReallyComplexStatement_Branch" LowerBound="38.1" HigherBound="55.1">
+                        <om:Property Name="IsGhostBranch" Value="True" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="ParallelBranch_1" />
+                        <om:Property Name="Signal" Value="False" />
+                        <om:Element Type="Scope" OID="4b6c99cd-a2a8-4b9d-841b-812bde9ce2ef" ParentLink="ComplexStatement_Statement" LowerBound="38.1" HigherBound="55.1">
+                            <om:Property Name="InitializedTransactionType" Value="True" />
+                            <om:Property Name="IsSynchronized" Value="True" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Customer Confirmation" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="Construct" OID="358b5793-5963-4c38-818e-81c7c375ba9b" ParentLink="ComplexStatement_Statement" LowerBound="43.1" HigherBound="51.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Construct Confirmation" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="Transform" OID="d8c8e73a-dde9-4f00-a063-933e7bacaf14" ParentLink="ComplexStatement_Statement" LowerBound="46.1" HigherBound="48.1">
+                                    <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.Compensation.UpdateRequest2UpdateResponse" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Request -&gt; Response" />
+                                    <om:Property Name="Signal" Value="True" />
+                                    <om:Element Type="MessagePartRef" OID="633dad0d-c274-4349-99d6-c68e9315ca0d" ParentLink="Transform_InputMessagePartRef" LowerBound="47.134" HigherBound="47.150">
+                                        <om:Property Name="MessageRef" Value="UpdateRequestMsg" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="MessagePartReference_1" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                    <om:Element Type="MessagePartRef" OID="1cffbfae-2478-4c04-b953-86816b32afcc" ParentLink="Transform_OutputMessagePartRef" LowerBound="47.44" HigherBound="47.61">
+                                        <om:Property Name="MessageRef" Value="UpdateResponseMsg" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="MessagePartReference_2" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                </om:Element>
+                                <om:Element Type="MessageAssignment" OID="34d3719b-59c8-4f35-a037-2390c0e22dfd" ParentLink="ComplexStatement_Statement" LowerBound="48.1" HigherBound="50.1">
+                                    <om:Property Name="Expression" Value="UpdateResponseMsg.Status = &quot;Received&quot;;" />
+                                    <om:Property Name="ReportToAnalyst" Value="False" />
+                                    <om:Property Name="Name" Value="MessageAssignment_1" />
+                                    <om:Property Name="Signal" Value="True" />
+                                </om:Element>
+                                <om:Element Type="MessageRef" OID="1994bc36-e2c8-4853-8414-4e7115b2820b" ParentLink="Construct_MessageRef" LowerBound="44.39" HigherBound="44.56">
+                                    <om:Property Name="Ref" Value="UpdateResponseMsg" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Signal" Value="False" />
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="Send" OID="e408700b-130a-4b83-842b-136d9a8d4ad2" ParentLink="ComplexStatement_Statement" LowerBound="51.1" HigherBound="53.1">
+                                <om:Property Name="PortName" Value="ToCustomer" />
+                                <om:Property Name="MessageName" Value="UpdateResponseMsg" />
+                                <om:Property Name="OperationName" Value="Confirm" />
+                                <om:Property Name="OperationMessageName" Value="Request" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Send Confirmation" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                        </om:Element>
+                    </om:Element>
+                    <om:Element Type="ParallelBranch" OID="5adc92fb-31b4-4403-9c7d-65984fdbc137" ParentLink="ReallyComplexStatement_Branch" LowerBound="58.1" HigherBound="132.1">
+                        <om:Property Name="IsGhostBranch" Value="True" />
+                        <om:Property Name="ReportToAnalyst" Value="True" />
+                        <om:Property Name="Name" Value="ParallelBranch_2" />
+                        <om:Property Name="Signal" Value="False" />
+                        <om:Element Type="Scope" OID="6c5c1061-187d-44be-8c89-39ef4c8b543c" ParentLink="ComplexStatement_Statement" LowerBound="58.1" HigherBound="132.1">
+                            <om:Property Name="InitializedTransactionType" Value="True" />
+                            <om:Property Name="IsSynchronized" Value="False" />
+                            <om:Property Name="ReportToAnalyst" Value="True" />
+                            <om:Property Name="Name" Value="Update Backend Systems" />
+                            <om:Property Name="Signal" Value="True" />
+                            <om:Element Type="VariableDeclaration" OID="4f617a48-ebfd-4717-8151-5005a746e919" ParentLink="Scope_VariableDeclaration" LowerBound="61.1" HigherBound="62.1">
+                                <om:Property Name="UseDefaultConstructor" Value="True" />
+                                <om:Property Name="Type" Value="System.Xml.XmlDocument" />
+                                <om:Property Name="ParamDirection" Value="In" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="PreviousMailingData" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                            <om:Element Type="VariableDeclaration" OID="ba1b9f8f-0858-4b9b-86d1-efc52d9da338" ParentLink="Scope_VariableDeclaration" LowerBound="62.1" HigherBound="63.1">
+                                <om:Property Name="UseDefaultConstructor" Value="True" />
+                                <om:Property Name="Type" Value="System.Xml.XmlDocument" />
+                                <om:Property Name="ParamDirection" Value="In" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="PreviousCrmData" />
+                                <om:Property Name="Signal" Value="True" />
+                            </om:Element>
+                            <om:Element Type="LongRunningTransaction" OID="f920ee21-96e5-4138-9916-3f70ebf859e5" ParentLink="Scope_Transaction" LowerBound="59.26" HigherBound="59.62">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Upd_Backend" />
+                                <om:Property Name="Signal" Value="False" />
+                            </om:Element>
+                            <om:Element Type="Task" OID="034acc53-b9ee-4fa0-a98e-dcadc3dc191d" ParentLink="ComplexStatement_Statement" LowerBound="67.1" HigherBound="101.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Update CRM" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="Construct" OID="928f1586-d478-4785-b34f-f7b180972230" ParentLink="ComplexStatement_Statement" LowerBound="67.1" HigherBound="73.1">
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Construct CRM Update" />
+                                    <om:Property Name="Signal" Value="True" />
+                                    <om:Element Type="Transform" OID="7013769b-12e1-4abc-8dd4-eac718ba41a1" ParentLink="ComplexStatement_Statement" LowerBound="70.1" HigherBound="72.1">
+                                        <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.Compensation.Request2Crm" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="Request -&gt; CRM Format" />
+                                        <om:Property Name="Signal" Value="False" />
+                                        <om:Element Type="MessagePartRef" OID="b836866c-b9e0-42ff-8761-1e9cfaf8207d" ParentLink="Transform_OutputMessagePartRef" LowerBound="71.44" HigherBound="71.63">
+                                            <om:Property Name="MessageRef" Value="CrmUpdateRequestMsg" />
+                                            <om:Property Name="ReportToAnalyst" Value="True" />
+                                            <om:Property Name="Name" Value="MessagePartReference_4" />
+                                            <om:Property Name="Signal" Value="False" />
+                                        </om:Element>
+                                        <om:Element Type="MessagePartRef" OID="554771b8-3379-4c13-b3a7-4ec006bf7f92" ParentLink="Transform_InputMessagePartRef" LowerBound="71.119" HigherBound="71.135">
+                                            <om:Property Name="MessageRef" Value="UpdateRequestMsg" />
+                                            <om:Property Name="ReportToAnalyst" Value="True" />
+                                            <om:Property Name="Name" Value="MessagePartReference_3" />
+                                            <om:Property Name="Signal" Value="False" />
+                                        </om:Element>
+                                    </om:Element>
+                                    <om:Element Type="MessageRef" OID="70d96e6a-f954-4252-8788-dddbc430c0e7" ParentLink="Construct_MessageRef" LowerBound="68.39" HigherBound="68.58">
+                                        <om:Property Name="Ref" Value="CrmUpdateRequestMsg" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                </om:Element>
+                                <om:Element Type="Scope" OID="f09ecfc0-1515-4889-97ad-887515010b99" ParentLink="ComplexStatement_Statement" LowerBound="73.1" HigherBound="101.1">
+                                    <om:Property Name="InitializedTransactionType" Value="True" />
+                                    <om:Property Name="IsSynchronized" Value="False" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Update CRM" />
+                                    <om:Property Name="Signal" Value="True" />
+                                    <om:Element Type="VariableDeclaration" OID="2d9ba05f-529a-49d9-a6c3-5b62645c80de" ParentLink="Scope_VariableDeclaration" LowerBound="77.1" HigherBound="78.1">
+                                        <om:Property Name="UseDefaultConstructor" Value="True" />
+                                        <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.UpdateCrm" />
+                                        <om:Property Name="ParamDirection" Value="In" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="UpdateCrmAssembly" />
+                                        <om:Property Name="Signal" Value="True" />
+                                    </om:Element>
+                                    <om:Element Type="AtomicTransaction" OID="daf6079f-d42e-4fc3-8b6f-f9c67c7d60bb" ParentLink="Scope_Transaction" LowerBound="75.34" HigherBound="75.66">
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="UpdateCRMTxn" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                    <om:Element Type="VariableAssignment" OID="ccb3335b-c320-4073-bcbb-ab557c402f06" ParentLink="ComplexStatement_Statement" LowerBound="81.1" HigherBound="83.1">
+                                        <om:Property Name="Expression" Value="PreviousCrmData.LoadXml(UpdateCrmAssembly.Update(CrmUpdateRequestMsg));&#xD;&#xA;" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="Update CRM" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                    <om:Element Type="TransactionAttribute" OID="ce882293-6c51-43e8-a173-7d3e9343025d" ParentLink="Statement_CLRAttribute" LowerBound="74.1" HigherBound="75.1">
+                                        <om:Property Name="Batch" Value="True" />
+                                        <om:Property Name="Retry" Value="True" />
+                                        <om:Property Name="Timeout" Value="60" />
+                                        <om:Property Name="Isolation" Value="Serializable" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                    <om:Element Type="Compensation" OID="5391e525-cbfa-4bab-8b30-573e3ac1169f" ParentLink="Scope_Compensation" LowerBound="84.1" HigherBound="100.1">
+                                        <om:Property Name="IsCustom" Value="True" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="Undo CRM Update" />
+                                        <om:Property Name="Signal" Value="True" />
+                                        <om:Element Type="Scope" OID="312ea6c1-3e07-4c73-b0b0-d1b82067b86d" ParentLink="Compensation_Statement" LowerBound="87.1" HigherBound="99.1">
+                                            <om:Property Name="InitializedTransactionType" Value="True" />
+                                            <om:Property Name="IsSynchronized" Value="False" />
+                                            <om:Property Name="ReportToAnalyst" Value="True" />
+                                            <om:Property Name="Name" Value="Update with Previous Data" />
+                                            <om:Property Name="Signal" Value="True" />
+                                            <om:Element Type="AtomicTransaction" OID="23adba5b-475c-405a-a1b9-7c7772703276" ParentLink="Scope_Transaction" LowerBound="89.42" HigherBound="89.75">
+                                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                                <om:Property Name="Name" Value="Transaction_2" />
+                                                <om:Property Name="Signal" Value="False" />
+                                            </om:Element>
+                                            <om:Element Type="VariableAssignment" OID="04836de5-068f-4f91-9a5e-b9e7a26fb0c6" ParentLink="ComplexStatement_Statement" LowerBound="95.1" HigherBound="97.1">
+                                                <om:Property Name="Expression" Value="UpdateCrmCompensation.Update(PreviousCrmData);&#xD;&#xA;" />
+                                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                                <om:Property Name="Name" Value="Undo CRM" />
+                                                <om:Property Name="Signal" Value="True" />
+                                            </om:Element>
+                                            <om:Element Type="TransactionAttribute" OID="a7c60feb-c8e3-4d96-a408-4f5f7e2bd6fe" ParentLink="Statement_CLRAttribute" LowerBound="88.1" HigherBound="89.1">
+                                                <om:Property Name="Batch" Value="True" />
+                                                <om:Property Name="Retry" Value="True" />
+                                                <om:Property Name="Timeout" Value="60" />
+                                                <om:Property Name="Isolation" Value="Serializable" />
+                                                <om:Property Name="Signal" Value="False" />
+                                            </om:Element>
+                                            <om:Element Type="VariableDeclaration" OID="f8bd7c9d-950f-4042-966d-a62f9c4c87a8" ParentLink="Scope_VariableDeclaration" LowerBound="91.1" HigherBound="92.1">
+                                                <om:Property Name="UseDefaultConstructor" Value="True" />
+                                                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.UpdateCrm" />
+                                                <om:Property Name="ParamDirection" Value="In" />
+                                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                                <om:Property Name="Name" Value="UpdateCrmCompensation" />
+                                                <om:Property Name="Signal" Value="True" />
+                                            </om:Element>
+                                        </om:Element>
+                                    </om:Element>
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="Task" OID="f1ea4877-f5ea-44fc-a892-490d2bbb0994" ParentLink="ComplexStatement_Statement" LowerBound="101.1" HigherBound="119.1">
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Update Mailing List" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="Construct" OID="381a9bbd-4b85-4ba4-930d-d30fa25824bf" ParentLink="ComplexStatement_Statement" LowerBound="101.1" HigherBound="107.1">
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Construct Mailing List Update" />
+                                    <om:Property Name="Signal" Value="True" />
+                                    <om:Element Type="Transform" OID="c9e5b7e5-4e26-4901-b907-6e18d4bbe32e" ParentLink="ComplexStatement_Statement" LowerBound="104.1" HigherBound="106.1">
+                                        <om:Property Name="ClassName" Value="Microsoft.Samples.BizTalk.Compensation.Request2MailingList" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="Request -&gt; Mailing List Format" />
+                                        <om:Property Name="Signal" Value="False" />
+                                        <om:Element Type="MessagePartRef" OID="31e8d23d-4a88-4088-94b0-73f4b6a2991c" ParentLink="Transform_InputMessagePartRef" LowerBound="105.135" HigherBound="105.151">
+                                            <om:Property Name="MessageRef" Value="UpdateRequestMsg" />
+                                            <om:Property Name="ReportToAnalyst" Value="True" />
+                                            <om:Property Name="Name" Value="MessagePartReference_5" />
+                                            <om:Property Name="Signal" Value="False" />
+                                        </om:Element>
+                                        <om:Element Type="MessagePartRef" OID="1fedf956-163e-4e4f-8548-cffb0408e8a5" ParentLink="Transform_OutputMessagePartRef" LowerBound="105.44" HigherBound="105.71">
+                                            <om:Property Name="MessageRef" Value="MailingListUpdateRequestMsg" />
+                                            <om:Property Name="ReportToAnalyst" Value="True" />
+                                            <om:Property Name="Name" Value="MessagePartReference_6" />
+                                            <om:Property Name="Signal" Value="False" />
+                                        </om:Element>
+                                    </om:Element>
+                                    <om:Element Type="MessageRef" OID="799400ac-82f9-4d93-8296-32901ac15673" ParentLink="Construct_MessageRef" LowerBound="102.39" HigherBound="102.66">
+                                        <om:Property Name="Ref" Value="MailingListUpdateRequestMsg" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                </om:Element>
+                                <om:Element Type="Scope" OID="57453537-eb74-4a70-abc7-f4b413131c2f" ParentLink="ComplexStatement_Statement" LowerBound="107.1" HigherBound="119.1">
+                                    <om:Property Name="InitializedTransactionType" Value="True" />
+                                    <om:Property Name="IsSynchronized" Value="False" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="Name" Value="Update Mailing" />
+                                    <om:Property Name="Signal" Value="True" />
+                                    <om:Element Type="VariableDeclaration" OID="7e1316eb-6513-4917-b933-1cb93dbba0a9" ParentLink="Scope_VariableDeclaration" LowerBound="111.1" HigherBound="112.1">
+                                        <om:Property Name="UseDefaultConstructor" Value="True" />
+                                        <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.UpdateMailingList" />
+                                        <om:Property Name="ParamDirection" Value="In" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="UpdateMailingListAssembly" />
+                                        <om:Property Name="Signal" Value="True" />
+                                    </om:Element>
+                                    <om:Element Type="AtomicTransaction" OID="8784e00a-f9b0-4b6c-aaed-02453a2d731f" ParentLink="Scope_Transaction" LowerBound="109.34" HigherBound="109.70">
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="UpdateMailingTxn" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                    <om:Element Type="VariableAssignment" OID="25159f9e-6a76-49ba-88ad-72c551f57c7b" ParentLink="ComplexStatement_Statement" LowerBound="115.1" HigherBound="117.1">
+                                        <om:Property Name="Expression" Value="PreviousMailingData.LoadXml(UpdateMailingListAssembly.Update(MailingListUpdateRequestMsg));" />
+                                        <om:Property Name="ReportToAnalyst" Value="True" />
+                                        <om:Property Name="Name" Value="Update Mailing List" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                    <om:Element Type="TransactionAttribute" OID="cffc4301-08c2-4b96-965c-6341955ed617" ParentLink="Statement_CLRAttribute" LowerBound="108.1" HigherBound="109.1">
+                                        <om:Property Name="Batch" Value="True" />
+                                        <om:Property Name="Retry" Value="True" />
+                                        <om:Property Name="Timeout" Value="10" />
+                                        <om:Property Name="Isolation" Value="Serializable" />
+                                        <om:Property Name="Signal" Value="False" />
+                                    </om:Element>
+                                </om:Element>
+                            </om:Element>
+                            <om:Element Type="Catch" OID="023f80c3-e5f0-445f-89f4-0b2ea7854834" ParentLink="Scope_Catch" LowerBound="122.1" HigherBound="130.1">
+                                <om:Property Name="ExceptionType" Value="General Exception" />
+                                <om:Property Name="IsFaultMessage" Value="False" />
+                                <om:Property Name="ReportToAnalyst" Value="True" />
+                                <om:Property Name="Name" Value="Catch Exception" />
+                                <om:Property Name="Signal" Value="True" />
+                                <om:Element Type="Delay" OID="fdee2b24-1d87-4788-9557-5fef8cad5a56" ParentLink="Catch_Statement" LowerBound="125.1" HigherBound="127.1">
+                                    <om:Property Name="Timeout" Value="new System.TimeSpan(0,0,0,10);" />
+                                    <om:Property Name="ReportToAnalyst" Value="True" />
+                                    <om:Property Name="AnalystComments" Value="Delay for 10 seconds so that we can see what's going on." />
+                                    <om:Property Name="Name" Value="Delay" />
+                                    <om:Property Name="Signal" Value="True" />
+                                </om:Element>
+                                <om:Element Type="Compensate" OID="351e1392-f8d4-4244-ad28-1dd618de95e8" ParentLink="Catch_Statement" LowerBound="127.1" HigherBound="129.1">
+                                    <om:Property Name="Invokee" Value="Upd_Backend" />
+                                    <om:Property Name="ReportToAnalyst" Value="False" />
+                                    <om:Property Name="Name" Value="Default Compensate" />
+                                    <om:Property Name="Signal" Value="True" />
+                                </om:Element>
+                            </om:Element>
+                        </om:Element>
+                    </om:Element>
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="3c4d3715-de2d-4cae-8b55-0bf551c9cb00" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="21.1" HigherBound="23.1">
+                <om:Property Name="PortModifier" Value="Implements" />
+                <om:Property Name="Orientation" Value="Unbound" />
+                <om:Property Name="PortIndex" Value="-1" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.FromCustomerPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="FromCustomer" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="LogicalBindingAttribute" OID="0353c5e8-b06c-4c7a-92a0-9cf5f739fe94" ParentLink="PortDeclaration_CLRAttribute" LowerBound="21.1" HigherBound="22.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+            <om:Element Type="PortDeclaration" OID="c10cbfd8-cfdb-4d23-b974-661b5f1798e9" ParentLink="ServiceDeclaration_PortDeclaration" LowerBound="23.1" HigherBound="25.1">
+                <om:Property Name="PortModifier" Value="Uses" />
+                <om:Property Name="Orientation" Value="Left" />
+                <om:Property Name="PortIndex" Value="28" />
+                <om:Property Name="IsWebPort" Value="False" />
+                <om:Property Name="OrderedDelivery" Value="False" />
+                <om:Property Name="DeliveryNotification" Value="None" />
+                <om:Property Name="Type" Value="Microsoft.Samples.BizTalk.Compensation.ToCustomerPortType" />
+                <om:Property Name="ParamDirection" Value="In" />
+                <om:Property Name="ReportToAnalyst" Value="True" />
+                <om:Property Name="Name" Value="ToCustomer" />
+                <om:Property Name="Signal" Value="True" />
+                <om:Element Type="LogicalBindingAttribute" OID="3028f2c9-4428-4c28-b0c9-eb840502a15a" ParentLink="PortDeclaration_CLRAttribute" LowerBound="23.1" HigherBound="24.1">
+                    <om:Property Name="Signal" Value="False" />
+                </om:Element>
+            </om:Element>
+        </om:Element>
+    </om:Element>
+</om:MetaModel>
+#endif // __DESIGNER_DATA
+[Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+module Microsoft.Samples.BizTalk.Compensation
+{
+    public porttype FromCustomerPortType
+    {
+        oneway Update
+        {
+            ContactInfo
+        };
+    };
+    internal porttype ToCustomerPortType
+    {
+        oneway Confirm
+        {
+            UpdateResponse
+        };
+    };
+    [Microsoft.XLANGs.BaseTypes.BPELExportable(false)]
+    internal service longrunning transaction UpdateContact
+    {
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port implements FromCustomerPortType FromCustomer;
+        [Microsoft.XLANGs.BaseTypes.LogicalBinding()]
+        port uses ToCustomerPortType ToCustomer;
+        message ContactInfo UpdateRequestMsg;
+        message UpdateResponse UpdateResponseMsg;
+        message CRMSchema CrmUpdateRequestMsg;
+        message MailingListSchema MailingListUpdateRequestMsg;
+        body ()
+        {
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("3cf6fce7-ac26-4544-aa54-dbbaebdf4f7e")]
+            activate receive (FromCustomer.Update, UpdateRequestMsg);
+            [Microsoft.XLANGs.BaseTypes.DesignerPosition("081899fb-385b-4377-9805-e8385cba0e96")]
+            parallel
+            {
+                task
+                {
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("4b6c99cd-a2a8-4b9d-841b-812bde9ce2ef")]
+                    scope synchronized
+                    {
+                        body
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("358b5793-5963-4c38-818e-81c7c375ba9b")]
+                            construct UpdateResponseMsg
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("d8c8e73a-dde9-4f00-a063-933e7bacaf14")]
+                                transform (UpdateResponseMsg) = Microsoft.Samples.BizTalk.Compensation.UpdateRequest2UpdateResponse (UpdateRequestMsg);
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("34d3719b-59c8-4f35-a037-2390c0e22dfd")]
+                                UpdateResponseMsg.Status = "Received";
+                            }
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("e408700b-130a-4b83-842b-136d9a8d4ad2")]
+                            send (ToCustomer.Confirm, UpdateResponseMsg);
+                        }
+                    }
+                }
+                task
+                {
+                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("6c5c1061-187d-44be-8c89-39ef4c8b543c")]
+                    scope longrunning transaction Upd_Backend
+                    {
+                        System.Xml.XmlDocument PreviousMailingData;
+                        System.Xml.XmlDocument PreviousCrmData;
+                        body
+                        {
+                            PreviousMailingData = new System.Xml.XmlDocument();
+                            PreviousCrmData = new System.Xml.XmlDocument();
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("928f1586-d478-4785-b34f-f7b180972230")]
+                            construct CrmUpdateRequestMsg
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("7013769b-12e1-4abc-8dd4-eac718ba41a1")]
+                                transform (CrmUpdateRequestMsg) = Microsoft.Samples.BizTalk.Compensation.Request2Crm (UpdateRequestMsg);
+                            }
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("f09ecfc0-1515-4889-97ad-887515010b99")]
+                            [Microsoft.XLANGs.BaseTypes.Transaction(Retry=true,Batch=true,Timeout=60,TranIsolationLevel=System.Data.IsolationLevel.Serializable)]
+                            scope atomic transaction UpdateCRMTxn
+                            {
+                                UpdateCrm UpdateCrmAssembly;
+                                body
+                                {
+                                    UpdateCrmAssembly = new UpdateCrm();
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("ccb3335b-c320-4073-bcbb-ab557c402f06")]
+                                    PreviousCrmData.LoadXml(UpdateCrmAssembly.Update(CrmUpdateRequestMsg));
+                                }
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("5391e525-cbfa-4bab-8b30-573e3ac1169f")]
+                                compensation ()
+                                {
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("312ea6c1-3e07-4c73-b0b0-d1b82067b86d")]
+                                    [Microsoft.XLANGs.BaseTypes.Transaction(Retry=true,Batch=true,Timeout=60,TranIsolationLevel=System.Data.IsolationLevel.Serializable)]
+                                    scope atomic transaction Transaction_2
+                                    {
+                                        UpdateCrm UpdateCrmCompensation;
+                                        body
+                                        {
+                                            UpdateCrmCompensation = new UpdateCrm();
+                                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("04836de5-068f-4f91-9a5e-b9e7a26fb0c6")]
+                                            UpdateCrmCompensation.Update(PreviousCrmData);
+                                        }
+                                    }
+                                }
+                            }
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("381a9bbd-4b85-4ba4-930d-d30fa25824bf")]
+                            construct MailingListUpdateRequestMsg
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("c9e5b7e5-4e26-4901-b907-6e18d4bbe32e")]
+                                transform (MailingListUpdateRequestMsg) = Microsoft.Samples.BizTalk.Compensation.Request2MailingList (UpdateRequestMsg);
+                            }
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("57453537-eb74-4a70-abc7-f4b413131c2f")]
+                            [Microsoft.XLANGs.BaseTypes.Transaction(Retry=true,Batch=true,Timeout=10,TranIsolationLevel=System.Data.IsolationLevel.Serializable)]
+                            scope atomic transaction UpdateMailingTxn
+                            {
+                                UpdateMailingList UpdateMailingListAssembly;
+                                body
+                                {
+                                    UpdateMailingListAssembly = new UpdateMailingList();
+                                    [Microsoft.XLANGs.BaseTypes.DesignerPosition("25159f9e-6a76-49ba-88ad-72c551f57c7b")]
+                                    PreviousMailingData.LoadXml(UpdateMailingListAssembly.Update(MailingListUpdateRequestMsg));
+                                }
+                            }
+                        }
+                        exceptions
+                        {
+                            [Microsoft.XLANGs.BaseTypes.DesignerPosition("023f80c3-e5f0-445f-89f4-0b2ea7854834")]
+                            catch
+                            {
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("fdee2b24-1d87-4788-9557-5fef8cad5a56")]
+                                delay new System.TimeSpan(0,0,0,10);
+                                [Microsoft.XLANGs.BaseTypes.DesignerPosition("351e1392-f8d4-4244-ad28-1dd618de95e8")]
+                                compensate Upd_Backend ();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

@@ -1,0 +1,503 @@
+{
+  "requests": [
+    {
+      "name": "Initialize Server",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2024-11-05",
+          "capabilities": {},
+          "clientInfo": {
+            "name": "test-client",
+            "version": "1.0.0"
+          }
+        }
+      }
+    },
+    {
+      "name": "List All Tools",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/list"
+      }
+    },
+    {
+      "name": "List Resources",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "resources/list"
+      }
+    },
+    {
+      "name": "List Prompts",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "prompts/list"
+      }
+    },
+    {
+      "name": "Analyze BizTalk Orchestration",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+          "name": "analyze_biztalk_orchestration",
+          "arguments": {
+            "odxFilePath": "C:\\BizTalk\\Sample\\OrderProcessing.odx",
+            "bindingFilePath": "C:\\BizTalk\\Sample\\bindings.xml",
+            "outputFormat": "json",
+            "includeComplexity": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Analyze ODX Directory",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "tools/call",
+        "params": {
+          "name": "analyze_odx_directory",
+          "arguments": {
+            "directoryPath": "C:\\BizTalk\\Orchestrations",
+            "recursive": true,
+            "outputPath": "C:\\Output\\analysis-report.json"
+          }
+        }
+      }
+    },
+    {
+      "name": "Generate Migration Report",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "method": "tools/call",
+        "params": {
+          "name": "generate_migration_report",
+          "arguments": {
+            "odxFilePath": "C:\\BizTalk\\Sample\\OrderProcessing.odx",
+            "outputPath": "C:\\Output\\migration-report.html",
+            "format": "html"
+          }
+        }
+      }
+    },
+    {
+      "name": "Validate BizTalk Artifacts",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 8,
+        "method": "tools/call",
+        "params": {
+          "name": "validate_biztalk_artifacts",
+          "arguments": {
+            "odxFilePath": "C:\\BizTalk\\Sample\\OrderProcessing.odx",
+            "bindingFilePath": "C:\\BizTalk\\Sample\\bindings.xml"
+          }
+        }
+      }
+    },
+    {
+      "name": "Convert BizTalk to Logic App",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "method": "tools/call",
+        "params": {
+          "name": "convert_biztalk_to_logicapp",
+          "arguments": {
+            "odxFilePath": "C:\\BizTalk\\Sample\\OrderProcessing.odx",
+            "bindingFilePath": "C:\\BizTalk\\Sample\\bindings.xml",
+            "outputPath": "C:\\Output\\workflow.json",
+            "schemaVersion": "2016-06-01",
+            "workflowType": "Stateful",
+            "validateOutput": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Generate Deployment Package",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 10,
+        "method": "tools/call",
+        "params": {
+          "name": "generate_deployment_package",
+          "arguments": {
+            "odxFilePath": "C:\\BizTalk\\Sample\\OrderProcessing.odx",
+            "bindingFilePath": "C:\\BizTalk\\Sample\\bindings.xml",
+            "outputDirectory": "C:\\Output\\DeploymentPackage",
+            "schemaVersion": "2016-06-01",
+            "includeDevOps": true,
+            "includePowerShell": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Batch Convert Orchestrations",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 11,
+        "method": "tools/call",
+        "params": {
+          "name": "batch_convert_orchestrations",
+          "arguments": {
+            "directoryPath": "C:\\BizTalk\\Orchestrations",
+            "bindingFilePath": "C:\\BizTalk\\bindings.xml",
+            "outputDirectory": "C:\\Output\\Workflows",
+            "schemaVersion": "2016-06-01",
+            "recursive": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Convert Bindings Only",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 12,
+        "method": "tools/call",
+        "params": {
+          "name": "convert_bindings_only",
+          "arguments": {
+            "bindingFilePath": "C:\\BizTalk\\bindings.xml",
+            "outputDirectory": "C:\\Output\\BindingsWorkflows",
+            "schemaVersion": "2016-06-01"
+          }
+        }
+      }
+    },
+    {
+      "name": "Map BizTalk Expression",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 13,
+        "method": "tools/call",
+        "params": {
+          "name": "map_biztalk_expression",
+          "arguments": {
+            "expression": "orderCount > 10 && orderStatus == \"Active\"",
+            "context": "decision",
+            "targetVersion": "Standard"
+          }
+        }
+      }
+    },
+    {
+      "name": "Map Complex Expression",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 14,
+        "method": "tools/call",
+        "params": {
+          "name": "map_biztalk_expression",
+          "arguments": {
+            "expression": "Message.OrderHeader.TotalAmount > 1000 && Message.OrderHeader.Priority.ToUpper() == \"HIGH\"",
+            "context": "variable"
+          }
+        }
+      }
+    },
+    {
+      "name": "Resolve FILE Connector",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 15,
+        "method": "tools/call",
+        "params": {
+          "name": "resolve_connector_schema",
+          "arguments": {
+            "adapterType": "FILE",
+            "operationType": "both"
+          }
+        }
+      }
+    },
+    {
+      "name": "Resolve SQL Connector",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 16,
+        "method": "tools/call",
+        "params": {
+          "name": "resolve_connector_schema",
+          "arguments": {
+            "adapterType": "SQL",
+            "operationType": "trigger"
+          }
+        }
+      }
+    },
+    {
+      "name": "Resolve WCF Connector",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 17,
+        "method": "tools/call",
+        "params": {
+          "name": "resolve_connector_schema",
+          "arguments": {
+            "adapterType": "WCF-BasicHttp",
+            "operationType": "action"
+          }
+        }
+      }
+    },
+    {
+      "name": "Parse Binding File",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 18,
+        "method": "tools/call",
+        "params": {
+          "name": "parse_binding_file",
+          "arguments": {
+            "bindingFilePath": "C:\\BizTalk\\bindings.xml",
+            "extractFilters": true,
+            "extractTransportConfig": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Load Connector Registry",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 19,
+        "method": "tools/call",
+        "params": {
+          "name": "load_connector_registry",
+          "arguments": {
+            "registryPath": "C:\\BizTalk\\custom-connector-registry.json",
+            "validate": true
+          }
+        }
+      }
+    },
+    {
+      "name": "List Available Connectors",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 20,
+        "method": "tools/call",
+        "params": {
+          "name": "list_available_connectors",
+          "arguments": {}
+        }
+      }
+    },
+    {
+      "name": "Validate Workflow JSON",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 21,
+        "method": "tools/call",
+        "params": {
+          "name": "validate_workflow",
+          "arguments": {
+            "workflowPath": "C:\\Output\\workflow.json",
+            "schemaVersion": "2016-06-01",
+            "strictMode": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Convert BTM to LML - Simple",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 22,
+        "method": "tools/call",
+        "params": {
+          "name": "convert_btm_to_lml",
+          "arguments": {
+            "btmFilePath": "C:\\BizTalk\\Maps\\OrderToInvoice.btm"
+          }
+        }
+      }
+    },
+    {
+      "name": "Convert BTM to LML - With Schemas",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 23,
+        "method": "tools/call",
+        "params": {
+          "name": "convert_btm_to_lml",
+          "arguments": {
+            "btmFilePath": "C:\\BizTalk\\Maps\\CustomerServiceRequest_To_PendingTransactionsResponse.btm",
+            "outputLmlPath": "C:\\Output\\LiquidMaps\\CustomerServiceRequest_To_PendingTransactionsResponse.lml",
+            "sourceSchemaPath": "C:\\BizTalk\\Schemas\\CustomerServiceRequest.xsd",
+            "targetSchemaPath": "C:\\BizTalk\\Schemas\\PendingTransactionsResponse.xsd",
+            "preserveFormatting": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Convert BTM to LML - Custom Output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 24,
+        "method": "tools/call",
+        "params": {
+          "name": "convert_btm_to_lml",
+          "arguments": {
+            "btmFilePath": "C:\\BizTalk\\Maps\\ProductCatalog_To_PriceList.btm",
+            "outputLmlPath": "C:\\Azure\\DataMaps\\ProductCatalog_To_PriceList.liquid",
+            "preserveFormatting": false
+          }
+        }
+      }
+    },
+    {
+      "name": "Batch Convert BTM to LML - Current Directory",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 25,
+        "method": "tools/call",
+        "params": {
+          "name": "batch_convert_btm_to_lml",
+          "arguments": {
+            "directoryPath": "C:\\BizTalk\\Maps",
+            "recursive": false
+          }
+        }
+      }
+    },
+    {
+      "name": "Batch Convert BTM to LML - Recursive with Output",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 26,
+        "method": "tools/call",
+        "params": {
+          "name": "batch_convert_btm_to_lml",
+          "arguments": {
+            "directoryPath": "C:\\BizTalk\\AllMaps",
+            "outputDirectory": "C:\\Azure\\LiquidMaps",
+            "recursive": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Batch Convert BTM with Schema Directories",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 27,
+        "method": "tools/call",
+        "params": {
+          "name": "batch_convert_btm_to_lml",
+          "arguments": {
+            "directoryPath": "C:\\BizTalk\\Project\\Maps",
+            "outputDirectory": "C:\\Output\\LiquidMaps",
+            "recursive": true,
+            "sourceSchemaDirectory": "C:\\BizTalk\\Project\\Schemas\\Source",
+            "targetSchemaDirectory": "C:\\BizTalk\\Project\\Schemas\\Target"
+          }
+        }
+      }
+    },
+    {
+      "name": "Analyze BTM File - Basic",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 28,
+        "method": "tools/call",
+        "params": {
+          "name": "analyze_btm_file",
+          "arguments": {
+            "btmFilePath": "C:\\BizTalk\\Maps\\OrderProcessing.btm",
+            "includeDetails": false
+          }
+        }
+      }
+    },
+    {
+      "name": "Analyze BTM File - Detailed",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 29,
+        "method": "tools/call",
+        "params": {
+          "name": "analyze_btm_file",
+          "arguments": {
+            "btmFilePath": "C:\\BizTalk\\Maps\\ComplexTransformation.btm",
+            "includeDetails": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Analyze BTM File - Customer Service Request",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 30,
+        "method": "tools/call",
+        "params": {
+          "name": "analyze_btm_file",
+          "arguments": {
+            "btmFilePath": "C:\\TestMaps\\CustomerServiceRequest_To_PendingTransactionsResponse.btm",
+            "includeDetails": true
+          }
+        }
+      }
+    },
+    {
+      "name": "Validate BTM File - Simple",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 31,
+        "method": "tools/call",
+        "params": {
+          "name": "validate_btm_file",
+          "arguments": {
+            "btmFilePath": "C:\\BizTalk\\Maps\\SimpleMap.btm"
+          }
+        }
+      }
+    },
+    {
+      "name": "Validate BTM File - With Schemas",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 32,
+        "method": "tools/call",
+        "params": {
+          "name": "validate_btm_file",
+          "arguments": {
+            "btmFilePath": "C:\\BizTalk\\Maps\\CustomerServiceRequest_To_PendingTransactionsResponse.btm",
+            "sourceSchemaPath": "C:\\BizTalk\\Schemas\\CustomerServiceRequest.xsd",
+            "targetSchemaPath": "C:\\BizTalk\\Schemas\\PendingTransactionsResponse.xsd"
+          }
+        }
+      }
+    },
+    {
+      "name": "Validate BTM File - Pre-Migration Check",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 33,
+        "method": "tools/call",
+        "params": {
+          "name": "validate_btm_file",
+          "arguments": {
+            "btmFilePath": "C:\\BizTalk\\Production\\Maps\\CriticalBusinessProcess.btm",
+            "sourceSchemaPath": "C:\\BizTalk\\Production\\Schemas\\Input.xsd",
+            "targetSchemaPath": "C:\\BizTalk\\Production\\Schemas\\Output.xsd"
+          }
+        }
+      }
+    }
+  ]
+}

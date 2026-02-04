@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BindingInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Assembly="Microsoft.BizTalk.Deployment, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" Version="3.0.1.0" BindingStatus="FullyBound" BoundEndpoints="2" TotalEndpoints="2">
+  <ModuleRefCollection>
+    <ModuleRef Name="CompensationOrchestration" Version="1.0.0.0" Culture="neutral" PublicKeyToken="" FullName="">
+      <Services>
+        <Service Name="Microsoft.Samples.BizTalk.Compensation.UpdateContact">
+          <Ports>
+            <Port Name="FromCustomer" Modifier="2" BindingOption="1">
+              <SendPortRef xsi:nil="true" />
+              <DistributionListRef xsi:nil="true" />
+              <ReceivePortRef Name="WebPort_CompensationOrchestrationWebServiceProxy/Microsoft_Samples_BizTalk_Compensation_UpdateContact_FromCustomer" />
+            </Port>
+            <Port Name="ToCustomer" Modifier="1" BindingOption="1">
+              <SendPortRef Name="ToCustomerSendPort" />
+              <DistributionListRef xsi:nil="true" />
+              <ReceivePortRef xsi:nil="true" />
+            </Port>
+          </Ports>
+          <Roles />
+          <Host Name="BizTalkServerApplication" NTGroupName="BizTalk Application Users" Type="1" />
+        </Service>
+      </Services>
+    </ModuleRef>
+  </ModuleRefCollection>
+  <SendPortCollection>
+    <SendPort Name="ToCustomerSendPort" IsStatic="true" IsTwoWay="false">
+      <TransmitPipeline Name="Microsoft.BizTalk.DefaultPipelines.PassThruTransmit" FullyQualifiedName="Microsoft.BizTalk.DefaultPipelines.PassThruTransmit, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" Type="2" />
+      <PrimaryTransport>
+        <Address>C:\Program Files (x86)\Microsoft BizTalk Server 2016\SDK\Samples\Orchestrations\Compensation\Out\%MessageID%.xml</Address>
+        <TransportType Name="FILE" Capabilities="11" ConfigurationClsid="5e49e3a6-b4fc-4077-b44c-22f34a242fdb" />
+        <TransportTypeData>&lt;CustomProps&gt;&lt;CopyMode vt="19"&gt;1&lt;/CopyMode&gt;&lt;FileName vt="8"&gt;%MessageID%.xml&lt;/FileName&gt;&lt;AllowCacheOnWrite vt="11"&gt;0&lt;/AllowCacheOnWrite&gt;&lt;/CustomProps&gt;</TransportTypeData>
+        <RetryCount>3</RetryCount>
+        <RetryInterval>5</RetryInterval>
+        <ServiceWindowEnabled>false</ServiceWindowEnabled>
+        <FromTime>2006-01-27T00:00:00.0000000-08:00</FromTime>
+        <ToTime>2006-01-27T23:59:59.0000000-08:00</ToTime>
+        <Primary>true</Primary>
+        <OrderedDelivery>false</OrderedDelivery>
+      </PrimaryTransport>
+      <SecondaryTransport>
+        <Address />
+        <RetryCount>3</RetryCount>
+        <RetryInterval>5</RetryInterval>
+        <ServiceWindowEnabled>false</ServiceWindowEnabled>
+        <FromTime>2006-01-27T00:00:00.0000000-08:00</FromTime>
+        <ToTime>2006-01-27T23:59:59.0000000-08:00</ToTime>
+        <Primary>false</Primary>
+        <OrderedDelivery>false</OrderedDelivery>
+      </SecondaryTransport>
+      <ReceivePipelineData xsi:nil="true" />
+      <Tracking>0</Tracking>
+      <Filter />
+      <Transforms />
+    </SendPort>
+  </SendPortCollection>
+  <DistributionListCollection />
+  <ReceivePortCollection>
+    <ReceivePort Name="WebPort_CompensationOrchestrationWebServiceProxy/Microsoft_Samples_BizTalk_Compensation_UpdateContact_FromCustomer" IsTwoWay="false">
+      <ReceiveLocations>
+        <ReceiveLocation Name="WebService_CompensationOrchestrationWebServiceProxy/Microsoft_Samples_BizTalk_Compensation_UpdateContact_FromCustomer">
+          <Address>/CompensationOrchestrationWebServiceProxy/Microsoft_Samples_BizTalk_Compensation_UpdateContact_FromCustomer.asmx</Address>
+          <PublicAddress />
+          <Primary>true</Primary>
+          <ReceiveLocationTransportType Name="SOAP" Capabilities="899" ConfigurationClsid="7e104b2f-003c-4d9f-a6a5-168f727289f0" />
+          <ReceivePipeline Name="Microsoft.BizTalk.DefaultPipelines.PassThruReceive" FullyQualifiedName="Microsoft.BizTalk.DefaultPipelines.PassThruReceive, Microsoft.BizTalk.DefaultPipelines, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" Type="1" />
+          <ReceivePipelineData xsi:nil="true" />
+          <Enable>true</Enable>
+          <ReceiveHandler Name="BizTalkServerIsolatedHost">
+            <TransportType Name="SOAP" Capabilities="899" ConfigurationClsid="7e104b2f-003c-4d9f-a6a5-168f727289f0" />
+          </ReceiveHandler>
+        </ReceiveLocation>
+      </ReceiveLocations>
+      <SendPipelineData xsi:nil="true" />
+      <Authentication>0</Authentication>
+      <Tracking>0</Tracking>
+      <Transforms />
+    </ReceivePort>
+  </ReceivePortCollection>
+  <PartyCollection />
+</BindingInfo>

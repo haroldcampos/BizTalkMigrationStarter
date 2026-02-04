@@ -1,0 +1,645 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "BizTalk Pipeline Component to Logic Apps Connector Registry",
+  "version": "1.0.0",
+  "description": "Maps BizTalk pipeline components to Azure Logic Apps actions with configuration templates",
+  
+  "components": {
+    "Microsoft.BizTalk.Component.XmlDasmComp": {
+      "displayName": "XML Disassembler",
+      "category": "Disassembling",
+      "logicAppsAction": {
+        "type": "Foreach",
+        "description": "Disassembles XML messages and validates against schema",
+        "childActions": [
+          {
+            "name": "Parse_XML_with_Schema",
+            "type": "XmlParse",
+            "inputs": {
+              "content": "@items('Parse_XML_with_Schema')?['$content']",
+              "schema": {
+                "source": "LogicApp",
+                "name": "{{SCHEMA_NAME}}"
+              },
+              "xmlReaderSettings": {
+                "dtdProcessing": "Prohibit",
+                "xmlNormalization": true,
+                "ignoreWhitespace": true,
+                "ignoreProcessingInstructions": true
+              },
+              "jsonWriterSettings": {
+                "ignoreAttributes": false,
+                "useFullyQualifiedNames": false
+              }
+            },
+            "actionNotes": [
+              "Use 'Parse XML with schema' action",
+              "ACTION REQUIRED:",
+              "1. Export XSD schema from BizTalk",
+              "2. Upload schema to Logic App artifacts",
+              "3. Replace {{SCHEMA_NAME}} with actual schema name",
+              "4. Configure XPath expressions for property extraction",
+              "5. Map promoted properties from BizTalk schema annotations"
+            ]
+          }
+        ]
+      },
+      "migrationNotes": [
+        "? Excellent migration path using XmlParse action",
+        "Schema uploaded directly to Logic App (source: LogicApp)",
+        "Supports schema validation",
+        "Converts XML to JSON for property extraction",
+        "Debatching handled by Foreach loop"
+      ],
+      "requiredResources": [
+        "XSD schemas uploaded to Logic App artifacts"
+      ],
+      "complexity": "Medium"
+    },
+    
+    "Microsoft.BizTalk.Component.XmlAsmComp": {
+      "displayName": "XML Assembler",
+      "category": "Assembling",
+      "logicAppsAction": {
+        "type": "XmlCompose",
+        "description": "Assembles XML messages with schema validation",
+        "inputs": {
+          "schema": {
+            "source": "LogicApp",
+            "name": "{{SCHEMA_NAME}}"
+          },
+          "content": "@triggerBody()"
+        },
+        "actionNotes": [
+          "Use 'Compose XML with schema' action",
+          "ACTION REQUIRED:",
+          "1. Export XSD schema (including envelope) from BizTalk",
+          "2. Upload schema to Logic App artifacts",
+          "3. Replace {{SCHEMA_NAME}} with actual schema name",
+          "4. Map input data to schema structure",
+          "5. Configure envelope wrapping if needed"
+        ]
+      },
+      "migrationNotes": [
+        "? Excellent migration path using XmlCompose action",
+        "Schema uploaded directly to Logic App (source: LogicApp)",
+        "Supports envelope wrapping",
+        "Schema-driven composition",
+        "Content should be JSON object matching schema structure"
+      ],
+      "requiredResources": [
+        "XSD schemas (document and envelope) uploaded to Logic App artifacts"
+      ],
+      "complexity": "Medium"
+    },
+    
+    "Microsoft.BizTalk.Component.FFDasmComp": {
+      "displayName": "Flat File Disassembler",
+      "category": "Disassembling",
+      "logicAppsAction": {
+        "type": "Foreach",
+        "description": "Disassembles flat file messages using schema",
+        "childActions": [
+          {
+            "name": "Flat_File_Decoding",
+            "type": "FlatFileDecoding",
+            "inputs": {
+              "content": "@items('Flat_File_Decoding')?['$content']",
+              "schema": {
+                "source": "LogicApp",
+                "name": "{{FLAT_FILE_SCHEMA_NAME}}"
+              }
+            },
+            "actionNotes": [
+              "Use 'Flat file decoding' action",
+              "ACTION REQUIRED:",
+              "1. Export flat file schema from BizTalk",
+              "2. Upload schema to Logic App artifacts",
+              "3. Replace {{FLAT_FILE_SCHEMA_NAME}} with schema name",
+              "4. Test with sample flat file data"
+            ]
+          }
+        ]
+      },
+      "migrationNotes": [
+        "? Native Logic Apps support",
+        "Schema uploaded directly to Logic App (source: LogicApp)",
+        "Supports positional and delimited formats",
+        "Handles header/trailer/repeating records"
+      ],
+      "requiredResources": [
+        "Flat file schema (.xsd with annotations) uploaded to Logic App"
+      ],
+      "complexity": "Medium"
+    },
+    
+    "Microsoft.BizTalk.Component.FFAsmComp": {
+      "displayName": "Flat File Assembler",
+      "category": "Assembling",
+      "logicAppsAction": {
+        "type": "FlatFileEncoding",
+        "description": "Assembles flat file from XML using schema",
+        "inputs": {
+          "content": "@body('Parse_XML_Result')",
+          "schema": {
+            "source": "LogicApp",
+            "name": "{{FLAT_FILE_SCHEMA_NAME}}"
+          }
+        },
+        "actionNotes": [
+          "Use 'Flat file encoding' action",
+          "ACTION REQUIRED:",
+          "1. Upload flat file schema to Logic App artifacts",
+          "2. Replace {{FLAT_FILE_SCHEMA_NAME}} with schema name",
+          "3. Ensure input is XML matching schema structure"
+        ]
+      },
+      "migrationNotes": [
+        "? Native Logic Apps support",
+        "Converts XML to flat file format",
+        "Schema-driven formatting",
+        "Schema uploaded directly to Logic App (source: LogicApp)"
+      ],
+      "requiredResources": [
+        "Flat file schema uploaded to Logic App"
+      ],
+      "complexity": "Low"
+    },
+    
+    "Microsoft.BizTalk.Component.MIME_SMIME_Decoder": {
+      "displayName": "MIME/SMIME Decoder",
+      "category": "Decoding",
+      "logicAppsAction": {
+        "type": "InvokeFunction",
+        "description": "MIME/SMIME decoding using Azure Functions",
+        "inputs": {
+          "functionName": "DecodeMimeSmimeMessage",
+          "parameters": {
+            "messageContent": "@triggerBody()?['$content']",
+            "certificateThumbprint": "@triggerBody()?['CertificateThumbprint']",
+            "validateSignature": "true",
+            "decryptMessage": "true"
+          }
+        },
+        "actionNotes": [
+          "Use Azure Functions to handle MIME/SMIME decoding",
+          "IMPLEMENTATION REQUIRED:",
+          "1. Create Azure Function App",
+          "2. Implement DecodeMimeSmimeMessage function using MimeKit library",
+          "3. Configure Key Vault access for certificates",
+          "4. Function should return: { parts: [], headers: {}, decrypted: bool, signatureValid: bool }",
+          "5. Handle multipart message extraction",
+          "6. Validate digital signatures",
+          "7. Decrypt using partner certificates"
+        ]
+      },
+      "migrationNotes": [
+        "?? Requires Azure Functions implementation",
+        "Use MimeKit NuGet package for MIME processing",
+        "Store certificates in Azure Key Vault",
+        "Function should handle: decoding, decryption, signature validation, multipart parsing"
+      ],
+      "requiredResources": [
+        "Azure Function App",
+        "Azure Key Vault (certificates)",
+        "MimeKit library",
+        "Connection to Key Vault in Logic App"
+      ],
+      "complexity": "High",
+      "customCodeRequired": true,
+      "functionTemplate": {
+        "name": "DecodeMimeSmimeMessage",
+        "runtime": ".NET 6 or .NET 8",
+        "libraries": ["MimeKit", "Azure.Security.KeyVault.Certificates"],
+        "inputs": [
+          "messageContent (base64 string)",
+          "certificateThumbprint (string, optional)",
+          "validateSignature (bool)",
+          "decryptMessage (bool)"
+        ],
+        "outputs": {
+          "parts": "array of message parts with content and headers",
+          "headers": "object containing MIME headers",
+          "decrypted": "bool indicating if message was decrypted",
+          "signatureValid": "bool indicating signature validation result",
+          "errors": "array of error messages if any"
+        }
+      }
+    },
+    
+    "Microsoft.BizTalk.Component.MIME_SMIME_Encoder": {
+      "displayName": "MIME/SMIME Encoder",
+      "category": "Encoding",
+      "logicAppsAction": {
+        "type": "InvokeFunction",
+        "description": "MIME/SMIME encoding using Azure Functions",
+        "inputs": {
+          "functionName": "EncodeMimeSmimeMessage",
+          "parameters": {
+            "messageContent": "@body('Compose_Message')",
+            "recipientCertificateThumbprint": "@variables('RecipientCertThumbprint')",
+            "senderCertificateThumbprint": "@variables('SenderCertThumbprint')",
+            "encryptMessage": "true",
+            "signMessage": "true",
+            "contentType": "application/xml"
+          }
+        },
+        "actionNotes": [
+          "Use Azure Functions to handle MIME/SMIME encoding",
+          "IMPLEMENTATION REQUIRED:",
+          "1. Create Azure Function App (can use same as decoder)",
+          "2. Implement EncodeMimeSmimeMessage function using MimeKit",
+          "3. Configure Key Vault access for certificates",
+          "4. Function should return: { encodedMessage: string, contentType: string }",
+          "5. Handle multipart message creation",
+          "6. Sign using sender certificate",
+          "7. Encrypt using recipient certificate"
+        ]
+      },
+      "migrationNotes": [
+        "?? Requires Azure Functions implementation",
+        "Mirror implementation of MIME Decoder",
+        "Use MimeKit for MIME creation, signing, encryption",
+        "Retrieve certificates from Key Vault"
+      ],
+      "requiredResources": [
+        "Azure Function App",
+        "Azure Key Vault (certificates)",
+        "MimeKit library",
+        "Connection to Key Vault in Logic App"
+      ],
+      "complexity": "High",
+      "customCodeRequired": true,
+      "functionTemplate": {
+        "name": "EncodeMimeSmimeMessage",
+        "runtime": ".NET 6 or .NET 8",
+        "libraries": ["MimeKit", "Azure.Security.KeyVault.Certificates"],
+        "inputs": [
+          "messageContent (string or object)",
+          "recipientCertificateThumbprint (string)",
+          "senderCertificateThumbprint (string, for signing)",
+          "encryptMessage (bool)",
+          "signMessage (bool)",
+          "contentType (string)"
+        ],
+        "outputs": {
+          "encodedMessage": "base64 encoded MIME message",
+          "contentType": "MIME content type header",
+          "messageId": "generated message ID",
+          "errors": "array of error messages if any"
+        }
+      }
+    },
+    
+    "Microsoft.BizTalk.Component.PartyRes": {
+      "displayName": "Party Resolution",
+      "category": "General",
+      "logicAppsAction": {
+        "type": "InvokeFunction",
+        "description": "Resolves trading partner using Azure Functions with data store lookup",
+        "inputs": {
+          "functionName": "ResolvePartner",
+          "parameters": {
+            "certificateThumbprint": "@triggerBody()?['CertificateThumbprint']",
+            "windowsSID": "@triggerBody()?['WindowsSID']",
+            "resolutionMode": "CertificateThenSID"
+          }
+        },
+        "actionNotes": [
+          "Use Azure Functions for flexible partner resolution",
+          "IMPLEMENTATION REQUIRED:",
+          "1. Create Azure Function App (can share with MIME functions)",
+          "2. Implement ResolvePartner function",
+          "3. Configure connection to data store (Azure Table/SQL)",
+          "4. Function should return: { partyId: string, partyName: string, properties: {} }",
+          "5. Implement resolution logic:",
+          "   - Try certificate lookup first (if enabled)",
+          "   - Fall back to SID lookup (if enabled)",
+          "   - Return anonymous party if not found",
+          "6. Cache frequently accessed partners for performance"
+        ],
+        "alternativeApproach": {
+          "description": "For simpler scenarios, use direct Azure Table Storage connector",
+          "actionType": "ApiConnection",
+          "connector": "azuretables",
+          "note": "Function approach provides more flexibility for complex resolution logic"
+        }
+      },
+      "migrationNotes": [
+        "?? Requires partner data migration from BizTalk",
+        "Function approach recommended for:",
+        "  - Complex resolution logic",
+        "  - Multiple data sources",
+        "  - Caching requirements",
+        "  - Custom matching rules",
+        "Direct connector approach suitable for:",
+        "  - Simple key-based lookups",
+        "  - Single data source",
+        "  - No custom logic needed"
+      ],
+      "requiredResources": [
+        "Azure Function App",
+        "Azure Table Storage OR SQL Database",
+        "Partner master data migrated from BizTalk",
+        "Optional: Redis Cache for performance"
+      ],
+      "complexity": "Medium",
+      "customCodeRequired": true,
+      "functionTemplate": {
+        "name": "ResolvePartner",
+        "runtime": ".NET 6 or .NET 8",
+        "libraries": ["Azure.Data.Tables OR Azure.Data.SqlClient"],
+        "inputs": [
+          "certificateThumbprint (string, optional)",
+          "windowsSID (string, optional)",
+          "resolutionMode (string: Certificate, SID, CertificateThenSID)"
+        ],
+        "outputs": {
+          "partyId": "unique party identifier",
+          "partyName": "trading partner name",
+          "properties": "object containing additional party properties",
+          "resolved": "bool indicating if party was found",
+          "resolutionMethod": "string: Certificate, SID, or Anonymous"
+        }
+      },
+      "dataStoreSchema": {
+        "azureTable": {
+          "tableName": "TradingPartners",
+          "partitionKey": "LookupType (e.g., 'Certificate' or 'SID')",
+          "rowKey": "Lookup value (thumbprint or SID)",
+          "properties": ["PartyID", "PartyName", "IsActive", "AdditionalProperties (JSON)"]
+        },
+        "sqlDatabase": {
+          "tableName": "Partners",
+          "columns": [
+            "PartyID (uniqueidentifier, PK)",
+            "PartyName (nvarchar(255))",
+            "CertificateThumbprint (nvarchar(100), indexed)",
+            "WindowsSID (nvarchar(200), indexed)",
+            "IsActive (bit)",
+            "Properties (nvarchar(max), JSON)"
+          ]
+        }
+      }
+    },
+    
+    "Microsoft.BizTalk.Component.JsonDecoder": {
+      "displayName": "JSON Decoder",
+      "category": "Decoding",
+      "logicAppsAction": {
+        "type": "ParseJson",
+        "description": "Parses JSON with schema validation",
+        "inputs": {
+          "content": "@triggerBody()",
+          "schema": "{{JSON_SCHEMA}}"
+        },
+        "actionNotes": [
+          "Use 'Parse JSON' action",
+          "ACTION REQUIRED:",
+          "1. Generate JSON schema from sample",
+          "2. Replace {{JSON_SCHEMA}} with actual schema",
+          "3. Enable schema validation"
+        ]
+      },
+      "migrationNotes": [
+        "? Native Logic Apps support",
+        "Simple migration",
+        "Provides strongly-typed outputs"
+      ],
+      "requiredResources": [
+        "JSON schema"
+      ],
+      "complexity": "Low"
+    },
+    
+    "Microsoft.BizTalk.Component.JsonEncoder": {
+      "displayName": "JSON Encoder",
+      "category": "Encoding",
+      "logicAppsAction": {
+        "type": "Compose",
+        "description": "Converts data to JSON",
+        "inputs": "@json(body('XML_to_Object'))",
+        "actionNotes": [
+          "Use Compose with json() function",
+          "For XML to JSON: Use liquid transform or xml() function",
+          "Simple conversion: @json(variables('dataObject'))"
+        ]
+      },
+      "migrationNotes": [
+        "? Native Logic Apps support",
+        "Very simple migration",
+        "Use json() expression function"
+      ],
+      "requiredResources": [],
+      "complexity": "Low"
+    },
+    
+    "Microsoft.BizTalk.Component.XmlValidator": {
+      "displayName": "XML Validator",
+      "category": "Validating",
+      "logicAppsAction": {
+        "type": "XmlValidation",
+        "description": "Validates XML against XSD schema",
+        "inputs": {
+          "content": "@triggerBody()?['$content']",
+          "schema": {
+            "source": "LogicApp",
+            "name": "{{SCHEMA_NAME}}"
+          }
+        },
+        "actionNotes": [
+          "Use 'XML Validation' action",
+          "ACTION REQUIRED:",
+          "1. Export XSD schema from BizTalk",
+          "2. Upload schema to Logic App artifacts",
+          "3. Replace {{SCHEMA_NAME}} with schema name",
+          "4. Configure error handling for validation failures"
+        ]
+      },
+      "migrationNotes": [
+        "? Native Logic Apps support",
+        "Schema uploaded directly to Logic App (source: LogicApp)",
+        "Direct mapping from BizTalk",
+        "Same validation behavior"
+      ],
+      "requiredResources": [
+        "XSD schema uploaded to Logic App artifacts"
+      ],
+      "complexity": "Low"
+    },
+    
+    "Microsoft.BizTalk.SDKSamples.Pipelines.XslTransformComponent.XslTransformer": {
+      "displayName": "XSL Transform Component",
+      "category": "General",
+      "logicAppsAction": {
+        "type": "Xslt",
+        "description": "Transforms XML using XSLT map",
+        "inputs": {
+          "content": "@triggerBody()?['$content']",
+          "map": {
+            "source": "LogicApp",
+            "name": "{{XSLT_MAP_NAME}}"
+          }
+        },
+        "actionNotes": [
+          "Use 'Transform XML' action with XSLT",
+          "ACTION REQUIRED:",
+          "1. Export XSLT file from BizTalk pipeline component",
+          "2. Upload XSLT to Logic App artifacts/Maps folder",
+          "3. Replace {{XSLT_MAP_NAME}} with actual XSLT filename",
+          "4. Test transformation with sample XML"
+        ]
+      },
+      "migrationNotes": [
+        "? Native Logic Apps XSLT support",
+        "Map uploaded directly to Logic App (source: LogicApp)",
+        "Supports XSLT 1.0 and 2.0",
+        "Same transformation behavior as BizTalk"
+      ],
+      "requiredResources": [
+        "XSLT map file uploaded to Logic App artifacts/Maps"
+      ],
+      "complexity": "Low"
+    }
+  },
+  
+  "edifactComponents": {
+    "Microsoft.BizTalk.Edi.DefaultPipelines.EdiReceive": {
+      "displayName": "EDI Receive Pipeline",
+      "logicAppsAction": {
+        "type": "EdifactDecode",
+        "description": "Decodes EDIFACT messages",
+        "inputs": {
+          "content": "@triggerBody()",
+          "integrationAccount": {
+            "agreement": {
+              "name": "{{AGREEMENT_NAME}}"
+            }
+          }
+        },
+        "actionNotes": [
+          "Use 'Decode EDIFACT message' action",
+          "ACTION REQUIRED:",
+          "1. Create Integration Account",
+          "2. Upload EDIFACT schemas",
+          "3. Configure trading partner agreements",
+          "4. Replace {{AGREEMENT_NAME}} with agreement name"
+        ]
+      },
+      "migrationNotes": [
+        "? Native B2B support in Logic Apps",
+        "Requires Integration Account with agreements",
+        "Full EDI capability"
+      ],
+      "requiredResources": [
+        "Integration Account",
+        "EDIFACT schemas",
+        "Trading partner agreements"
+      ],
+      "complexity": "Medium"
+    },
+    
+    "Microsoft.BizTalk.Edi.DefaultPipelines.EdiSend": {
+      "displayName": "EDI Send Pipeline",
+      "logicAppsAction": {
+        "type": "EdifactEncode",
+        "description": "Encodes EDIFACT messages",
+        "inputs": {
+          "content": "@body('Transform_to_EDI')",
+          "integrationAccount": {
+            "agreement": {
+              "name": "{{AGREEMENT_NAME}}"
+            }
+          }
+        },
+        "actionNotes": [
+          "Use 'Encode to EDIFACT message by agreement name' action",
+          "Configure agreement in Integration Account"
+        ]
+      },
+      "migrationNotes": [
+        "? Native B2B support",
+        "Mirror of EDI receive"
+      ],
+      "requiredResources": [
+        "Integration Account",
+        "Trading partner agreements"
+      ],
+      "complexity": "Medium"
+    }
+  },
+  
+  "as2Components": {
+    "Microsoft.BizTalk.DefaultPipelines.AS2Receive": {
+      "displayName": "AS2 Receive",
+      "logicAppsAction": {
+        "type": "AS2Decode",
+        "description": "Decodes AS2 messages with MDN handling",
+        "inputs": {
+          "content": "@triggerBody()",
+          "integrationAccount": {
+            "agreement": {
+              "name": "{{AS2_AGREEMENT_NAME}}"
+            }
+          }
+        },
+        "actionNotes": [
+          "Use 'Decode AS2 message' action",
+          "Handles MDN generation automatically",
+          "Configure certificates in Integration Account"
+        ]
+      },
+      "migrationNotes": [
+        "? Full AS2 support in Logic Apps",
+        "MDN handled by connector",
+        "Certificate management via Integration Account"
+      ],
+      "requiredResources": [
+        "Integration Account",
+        "AS2 agreements",
+        "Certificates uploaded"
+      ],
+      "complexity": "Medium"
+    }
+  },
+  
+  "customComponents": {
+    "pattern": {
+      "displayName": "Custom Pipeline Component",
+      "logicAppsAction": {
+        "type": "Compose",
+        "description": "Custom component - requires analysis",
+        "inputs": "// Custom Component: {{COMPONENT_NAME}}\n// ?? Requires manual migration assessment\n// Properties: {{PROPERTIES}}",
+        "actionNotes": [
+          "?? Custom component detected",
+          "Review component source code",
+          "Determine Logic Apps equivalent:",
+          "  - Azure Functions for complex logic",
+          "  - Compose for simple transformations",
+          "  - Custom Connector for reusable APIs"
+        ]
+      },
+      "migrationNotes": [
+        "Manual assessment required",
+        "Review component behavior",
+        "Consider Azure Functions or Custom Connector"
+      ],
+      "complexity": "Variable"
+    }
+  },
+  
+  "metadata": {
+    "complexityLevels": {
+      "Low": "Direct mapping available, minimal configuration",
+      "Medium": "Native connector exists, requires setup (Integration Account, schemas)",
+      "High": "Custom development required, no direct equivalent"
+    },
+    "requiredServices": {
+      "IntegrationAccount": "Required for B2B, schemas, maps, agreements",
+      "AzureFunctions": "Custom logic, MIME processing, complex transformations",
+      "KeyVault": "Certificate management, encryption keys",
+      "StorageAccount": "Trading partner data, caching",
+      "SqlDatabase": "Partner management, complex queries"
+    }
+  }
+}

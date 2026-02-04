@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{8F7E3A2B-1D4C-4F5E-9A3B-2C1D4E5F6A7B}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>BizTalktoLogicApps.MCP</RootNamespace>
+    <AssemblyName>BizTalktoLogicApps.MCP</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Server\McpServer.cs" />
+    <Compile Include="Server\ToolHandlers\MapConversionToolHandler.cs" />
+    <Compile Include="Server\ToolHandlers\PipelineToolHandler.cs" />
+    <Compile Include="Server\ToolRegistry.cs" />
+    <Compile Include="Server\ToolHandlers\AnalysisToolHandler.cs" />
+    <Compile Include="Server\ToolHandlers\ConversionToolHandler.cs" />
+    <Compile Include="Server\ToolHandlers\MappingToolHandler.cs" />
+    <Compile Include="Server\ToolHandlers\ConfigurationToolHandler.cs" />
+    <Compile Include="Models\McpProtocol.cs" />
+    <Compile Include="Models\ToolSchemas.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+    <None Include="README.md" />
+    <None Include="test-requests.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BTMtoLMLMigrator\BTMtoLMLMigrator.csproj">
+      <Project>{5ea7b063-c6f4-4ba3-b276-2c0c1ad8b205}</Project>
+      <Name>BTMtoLMLMigrator</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ODXtoWFMigrator\ODXtoWFMigrator.csproj">
+      <Project>{0bb40457-10bd-4263-9817-2525094294b1}</Project>
+      <Name>ODXtoWFMigrator</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\BTPtoLA\BTPtoLA.csproj">
+      <Project>{7fb69d31-0df1-4f41-a416-4b4bd8782541}</Project>
+      <Name>BTPtoLA</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

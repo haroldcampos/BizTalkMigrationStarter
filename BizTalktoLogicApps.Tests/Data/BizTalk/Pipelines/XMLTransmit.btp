@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-16"?>
+<Document xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" PolicyFilePath="BTSTransmitPolicy.xml" MajorVersion="1" MinorVersion="0">
+  <Description />
+  <Stages>
+    <Stage CategoryId="9d0e4101-4cce-4536-83fa-4a5040674ad6">
+      <Components />
+    </Stage>
+    <Stage CategoryId="9d0e4107-4cce-4536-83fa-4a5040674ad6">
+      <Components>
+        <Component>
+          <Name>Microsoft.BizTalk.Component.XmlAsmComp</Name>
+          <ComponentName>XML assembler</ComponentName>
+          <Description>XML assembler component.</Description>
+          <Version>1.0</Version>
+          <Properties>
+            <Property Name="AddXmlDeclaration">
+              <Value xsi:type="xsd:boolean">true</Value>
+            </Property>
+          </Properties>
+          <CachedDisplayName>XML assembler</CachedDisplayName>
+          <CachedIsManaged>true</CachedIsManaged>
+        </Component>
+      </Components>
+    </Stage>
+    <Stage CategoryId="9d0e4108-4cce-4536-83fa-4a5040674ad6">
+      <Components>
+        <Component>
+          <Name>Microsoft.BizTalk.Component.MIME_SMIME_Encoder</Name>
+          <ComponentName>MIME/SMIME encoder</ComponentName>
+          <Description>MIME/SMIME encoder component.</Description>
+          <Version>1.0</Version>
+          <Properties>
+            <Property Name="EnableEncryption">
+              <Value xsi:type="xsd:boolean">false</Value>
+            </Property>
+          </Properties>
+          <CachedDisplayName>MIME/SMIME encoder</CachedDisplayName>
+          <CachedIsManaged>true</CachedIsManaged>
+        </Component>
+      </Components>
+    </Stage>
+  </Stages>
+</Document>
