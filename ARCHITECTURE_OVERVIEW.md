@@ -1,10 +1,10 @@
-# BizTalk to Logic Apps Migration Toolkit - Architecture Overview
+# BizTalk Migration Starter - Architecture Overview
 
-This document provides a comprehensive overview of all architecture diagrams for the BizTalk to Logic Apps migration tools.
+This document provides a comprehensive overview of all architecture diagrams for the BizTalk Migration Starter.
 
 ## System Overview
 
-The BizTalk to Logic Apps Migration Toolkit consists of four main components:
+The BizTalk Migration Starter consists of four main components:
 
 1. **ODXtoWFMigrator** - Orchestration to Workflow converter
 2. **BTMtoLMLMigrator** - Map to Liquid template converter
@@ -472,4 +472,4 @@ Final JSON-level optimizations:
 
 **Version**: 1.1.0  
 **Last Updated**: January 2026  
-**Author**: Harold Campos - harold_campos@hotmail.com
+**Author**: Harold Campos
