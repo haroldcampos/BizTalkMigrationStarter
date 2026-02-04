@@ -872,7 +872,7 @@ vstest.console.exe BizTalkToLogicApps.Tests\bin\Debug\BizTalkToLogicApps.Tests.d
 - **Regression Tests**: Self-recursion detection, workflow action format
 - **Error Handling**: Invalid inputs, missing files, parse failures
 
-See [BizTalkToLogicApps.Tests/README.md](https://github.com/haroldcampos/BizTalkMigrationStarter/BizTalkToLogicApps.Tests/README.md) for detailed test documentation.
+See [BizTalkToLogicApps.Tests/README.md](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.Tests/README.md) for detailed test documentation.
 
 ## Project Status
 
