@@ -12,7 +12,7 @@ using System.Linq;
 namespace BizTalktoLogicApps.MCP.Server.ToolHandlers
 {
     /// <summary>
-    /// Tool handler for BizTalk Map (BTM) to Logic Apps Liquid Map (LML) conversion
+    /// Tool handler for BizTalk Map (BTM) to Logic Apps Map (LML) conversion
     /// </summary>
     public class MapConversionToolHandler
     {
@@ -29,7 +29,7 @@ namespace BizTalktoLogicApps.MCP.Server.ToolHandlers
             var tool = new Tool
             {
                 Name = "convert_btm_to_lml",
-                Description = "Converts BizTalk Map (BTM) file to Azure Logic Apps Liquid Mapping Language (LML) format",
+                Description = "Converts BizTalk Map (BTM) file to Azure Logic Apps Mapping Language (LML) format",
                 InputSchema = ToolSchemas.CreateObjectSchema(
                     new Dictionary<string, object>
                     {
@@ -124,7 +124,7 @@ namespace BizTalktoLogicApps.MCP.Server.ToolHandlers
             var tool = new Tool
             {
                 Name = "batch_convert_btm_to_lml",
-                Description = "Batch converts multiple BizTalk Map files to Logic Apps Liquid Mapping Language format",
+                Description = "Batch converts multiple BizTalk Map files to Logic Apps Mapping Language format",
                 InputSchema = ToolSchemas.CreateObjectSchema(
                     new Dictionary<string, object>
                     {

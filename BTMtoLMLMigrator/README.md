@@ -2,13 +2,13 @@
 
 ## Overview
 
-**BizTalk Map (BTM) to Liquid Mapping Language (LML) Converter** - Migrates BizTalk Server XSLT-based maps to Azure Logic Apps Data Mapper's Liquid format. You will need to have available the source and destination schemas, along with the BizTalk map.
+**BizTalk Map (BTM) to Logic Apps Mapping Language (LML) Converter** - Migrates BizTalk Server XSLT-based maps to Azure Logic Apps Data Mapper's Language format. You will need to have available the source and destination schemas, along with the BizTalk map.
 
 ## ** Purpose
 
-Converts BizTalk transformation maps to Logic Apps Liquid templates, enabling:
+Converts BizTalk transformation maps to Logic Apps LA templates, enabling:
 - **Automated map migration** from BizTalk to Azure
-- **Functoid translation** to Liquid filters and functions
+- **Functoid translation** to lml filters and functions
 - **XPath preservation** with namespace handling
 - **Schema-aware conversion** for accurate data mapping
 
@@ -17,11 +17,11 @@ Converts BizTalk transformation maps to Logic Apps Liquid templates, enabling:
 ### Core Capabilities
 
 - * **BTM Parsing** - Extracts functoids, links, and schemas from .btm files
-- * **Functoid Translation** - Converts 50+ functoid types to Liquid equivalents
-- * **XPath Generation** - Creates Liquid accessor paths from BizTalk XPath
-- * **Namespace Handling** - Preserves XML namespaces in Liquid templates
+- * **Functoid Translation** - Converts 50+ functoid types to LA equivalents
+- * **XPath Generation** - Creates LML accessor paths from BizTalk XPath
+- * **Namespace Handling** - Preserves XML namespaces in LA templates
 - * **Schema Integration** - Uses XSD schemas for accurate type mapping
-- * **Liquid Generation** - Produces standards-compliant Liquid map files
+- * **LML Generation** - Produces standards-compliant LA map files
 
 ### Supported Functoid Types
 
@@ -76,7 +76,7 @@ BTMtoLMLMigrator.exe ComplexTransform.btm SourceSchema.xsd TargetSchema.xsd Outp
 |   BtmParser   |  -->  | FunctoidTranslator|  -->  | LmlGenerator |
 +---------------+       +-------------------+       +--------------+
     Phase 1                   Phase 2                   Phase 3
-  Parse BTM             Translate Logic            Generate Liquid
+  Parse BTM             Translate Logic            Generate LML
 ```
 
 ### Component Details
@@ -93,27 +93,27 @@ BTMtoLMLMigrator.exe ComplexTransform.btm SourceSchema.xsd TargetSchema.xsd Outp
 **Output**: `BtmMapData` model
 
 #### 2. FunctoidTranslator
-**Responsibility**: Convert BizTalk functoids to Liquid equivalents
+**Responsibility**: Convert BizTalk functoids to LA equivalents
 
 **Translates**:
-- String operations -> Liquid filters (`upcase`, `downcase`, `append`)
-- Math operations -> Liquid arithmetic
-- Logical operations -> Liquid conditionals (`if`, `unless`)
-- Scripting functoids -> Liquid custom filters (manual review required)
+- String operations -> LA filters (`upcase`, `downcase`, `append`)
+- Math operations -> LA arithmetic
+- Logical operations -> LA conditionals (`if`, `unless`)
+- Scripting functoids -> LA custom filters (manual review required)
 
 **Output**: `BtmMapData` with translated functoids
 
 #### 3. LmlGenerator
-**Responsibility**: Generate Liquid template from translated map
+**Responsibility**: Generate LA template from translated map
 
 **Generates**:
-- Liquid template structure
+- LA template structure
 - Assign blocks for field mappings
 - Filter chains for transformations
 - Conditional logic for branching
 - Loops for repeating elements
 
-**Output**: `.lml` Liquid template file
+**Output**: `.lml` Logic Apps Mapping Language template file
 
 ## ** Project Structure
 
@@ -121,8 +121,8 @@ BTMtoLMLMigrator.exe ComplexTransform.btm SourceSchema.xsd TargetSchema.xsd Outp
 BTMtoLMLMigrator/
 *** BtmMigrator.cs           # Main orchestration class
 *** BtmParser.cs             # BTM XML parsing
-*** FunctoidTranslator.cs    # Functoid -> Liquid translation
-*** LmlGenerator.cs          # Liquid template generation
+*** FunctoidTranslator.cs    # Functoid -> Logic Apps Mapping Language translation
+*** LmlGenerator.cs          # Logic Apps Mapping Language template generation
 *** Models.cs                # Data models (BtmMapData, Functoid, Link)
 *** Program.cs               # CLI entry point
 *** Properties/
@@ -177,7 +177,7 @@ var translatedMap = translator.TranslateFunctoids(
 // Inspect translated functoids
 foreach (var functoid in translatedMap.Functoids)
 {
-    Console.WriteLine($"{functoid.FunctoidType}: {functoid.LiquidEquivalent}");
+    Console.WriteLine($"{functoid.FunctoidType}: {functoid.lmlEquivalent}");
 }
 ```
 
@@ -206,7 +206,7 @@ public class Functoid
     public string FunctoidType { get; set; }
     public List<string> InputParameters { get; set; }
     public string ScripterCode { get; set; }
-    public string LiquidEquivalent { get; set; }  // Set by translator
+    public string LmlEquivalent { get; set; }  // Set by translator
 }
 ```
 
@@ -230,8 +230,8 @@ public class Link
 </Functoid>
 ```
 
-**Liquid Output**:
-```liquid
+**LML Output**:
+```LML
 {% assign FullName = FirstName | append: ' ' | append: LastName %}
 ```
 
@@ -244,8 +244,8 @@ public class Link
 </Functoid>
 ```
 
-**Liquid Output**:
-```liquid
+**LML Output**:
+```LML
 {% if Status == 'Active' %}
   {% assign MappedCustomerID = CustomerID %}
 {% endif %}
@@ -260,8 +260,8 @@ public class Link
 </Functoid>
 ```
 
-**Liquid Output**:
-```liquid
+**LML Output**:
+```lml
 {% assign Total = Subtotal | plus: Tax %}
 ```
 
@@ -272,29 +272,29 @@ public class Link
 When schemas are provided, the converter:
 1. Extracts XML namespace prefixes
 2. Generates fully-qualified XPath expressions
-3. Maps to Liquid accessor paths
+3. Maps to lml accessor paths
 
 **Example**:
 - **BizTalk XPath**: `/ns0:Order/ns0:Items/ns0:Item`
-- **Liquid Path**: `Order.Items.Item`
+- **LML Path**: `Order.Items.Item`
 
 ### Scripting Functoid Handling
 
 For complex scripting functoids:
-```liquid
+```LML
 {%- comment -%}
 WARNING: Scripting functoid detected
 Original C# code:
   public string FormatSSN(string ssn) {
     return ssn.Substring(0,3) + "-" + ssn.Substring(3,2) + "-" + ssn.Substring(5);
   }
-Requires manual conversion to Liquid filter
+Requires manual conversion to LML filter
 {%- endcomment -%}
 ```
 
 ### Namespace Preservation
 
-```liquid
+```LML
 {%- comment -%}
 Source Namespaces:
   ns0 = http://Company.Schemas.Order
@@ -325,7 +325,7 @@ Azure Logic Apps Data Mapper **does not support flat file processing**. Flat fil
 #### 2. **Scripting Functoids**
 **Status**: ** **Requires Manual Conversion**
 
-C#/VB.NET code in scripting functoids cannot be automatically converted to Liquid.
+C#/VB.NET code in scripting functoids cannot be automatically converted to lml.
 
 **Example**:
 ```csharp
@@ -335,8 +335,8 @@ public string FormatSSN(string ssn) {
 }
 ```
 
-**Liquid Equivalent** (requires manual implementation):
-```liquid
+**LML Equivalent** (requires manual implementation):
+```LML
 {% assign part1 = ssn | slice: 0, 3 %}
 {% assign part2 = ssn | slice: 3, 2 %}
 {% assign part3 = ssn | slice: 5, 4 %}
@@ -345,7 +345,7 @@ public string FormatSSN(string ssn) {
 
 **Workaround**:
 - Implement as **Azure Functions** called from Logic Apps
-- Rewrite as **Liquid custom filters** (requires Liquid template expertise)
+- Rewrite as **LML custom filters** (requires LML template expertise)
 
 #### 3. **Custom XSLT**
 **Status**: * **NOT SUPPORTED**
@@ -353,19 +353,19 @@ public string FormatSSN(string ssn) {
 Inline XSLT code or `<xsl:template>` elements cannot be converted.
 
 **Workaround**:
-- Rewrite transformation logic in Liquid
+- Rewrite transformation logic in LML
 - Use **XSLT action** in Logic Apps (limited to simple transformations)
 - Consider **Azure Functions** for complex transformations
 
 #### 4. **Database Lookup Functoids**
 **Status**: ** **Requires Logic Apps Actions**
 
-BizTalk database lookup functoids (ValueExtractor, IDExtractor) are external and cannot be embedded in Liquid.
+BizTalk database lookup functoids (ValueExtractor, IDExtractor) are external and cannot be embedded in lml.
 
 **Workaround**:
 - Add **SQL Server connector** actions in Logic Apps workflow
 - Perform lookup BEFORE transformation
-- Pass lookup results as input to Liquid map
+- Pass lookup results as input to LML map
 
 #### 5. **COM+ and .NET Assembly Calls**
 **Status**: * **NOT SUPPORTED**
@@ -381,17 +381,17 @@ Functoids calling external assemblies cannot be converted.
 #### 1. **Complex Looping (Table Looping)**
 **Status**: ** **May Require Restructuring**
 
-BizTalk Table Looping functoids with complex iteration patterns may not translate cleanly to Liquid `for` loops.
+BizTalk Table Looping functoids with complex iteration patterns may not translate cleanly to LML `for` loops.
 
-**Review Required**: Validate loop logic in generated Liquid templates.
+**Review Required**: Validate loop logic in generated LML templates.
 
 #### 2. **Conditional Functoids with Complex Expressions**
 **Status**: ** **Check Generated Output**
 
-Nested logical functoids (AND, OR, NOT) may generate verbose Liquid conditionals.
+Nested logical functoids (AND, OR, NOT) may generate verbose LML conditionals.
 
 **Example**:
-```liquid
+```LML
 {% if condition1 == true and condition2 == false or condition3 == true %}
 ```
 
@@ -400,16 +400,16 @@ Nested logical functoids (AND, OR, NOT) may generate verbose Liquid conditionals
 #### 3. **Cumulative Functoids (Sum, Average, Count)**
 **Status**: ** **Limited to Simple Cases**
 
-Cumulative functoids work only on direct repeating elements. Complex grouping requires manual Liquid code.
+Cumulative functoids work only on direct repeating elements. Complex grouping requires manual LML code.
 
 ### * **Pre-Migration Checklist**
 
 Before converting BTM files, verify:
 
 - [ ] **No flat file schemas referenced** (check schema properties)
-- [ ] **No scripting functoids** (or prepare to rewrite in Liquid/Azure Functions)
+- [ ] **No scripting functoids** (or prepare to rewrite in LML/Azure Functions)
 - [ ] **No database lookup functoids** (plan SQL actions in workflow)
-- [ ] **No custom XSLT** (plan rewrite in Liquid)
+- [ ] **No custom XSLT** (plan rewrite in LML)
 - [ ] **No external assembly calls** (plan Azure Functions migration)
 - [ ] **Simple looping patterns only** (or prepare for manual review)
 
@@ -496,22 +496,22 @@ BTMtoLMLMigrator.exe Map.btm "" ""
 ### 2. Organize Output
 ```cmd
 # Create dedicated output folder
-mkdir C:\LiquidMaps
-BTMtoLMLMigrator.exe Map.btm Source.xsd Target.xsd C:\LiquidMaps\Map.lml
+mkdir C:\lmlMaps
+BTMtoLMLMigrator.exe Map.btm Source.xsd Target.xsd C:\lmlMaps\Map.lml
 ```
 
 ### 3. Batch Processing
 ```powershell
 # Convert all BTM files in directory
 Get-ChildItem C:\BizTalk\Maps\*.btm | ForEach-Object {
-    $outputPath = "C:\LiquidMaps\$($_.BaseName).lml"
+    $outputPath = "C:\lmlMaps\$($_.BaseName).lml"
     & BTMtoLMLMigrator.exe $_.FullName "" "" $outputPath
 }
 ```
 
 ### 4. Validate Before Migration
 - Test maps in BizTalk Mapper before converting
-- Review scripting functoids for Liquid compatibility
+- Review scripting functoids for LML compatibility
 - Check for external dependencies (database lookups, assemblies)
 
 ## ** Integration with MCP Server
@@ -536,7 +536,7 @@ See **BizTalkToLogicApps.MCP** project for MCP server usage.
 - **v1.0** - Initial release
   - BTM parsing with namespace extraction
   - 50+ functoid type translations
-  - Liquid template generation
+  - LML template generation
 
 ## ** Dependencies
 
@@ -571,6 +571,5 @@ For issues, questions, or feature requests:
 - **[ODXtoWFMigrator](../ODXtoWFMigrator/README.md)** - BizTalk orchestration to Logic Apps workflow conversion
 - **[BTPtoLA](../BTPtoLA/README.md)** - BizTalk pipeline to Logic Apps conversion
 - **[BizTalkToLogicApps.MCP](../BizTalkToLogicApps.MCP/README.md)** - MCP server for AI-assisted migration
-- [Azure Logic Apps Data Mapper](https://learn.microsoft.com/azure/logic-apps/logic-apps-enterprise-integration-liquid-transform)
 - [BizTalk Server Documentation](https://learn.microsoft.com/biztalk/)
 

@@ -26,7 +26,7 @@ ODXtoWFMigrator.exe package MyOrchestration.odx bindings.xml
 # ORCHESTRATIONS: Batch convert all orchestrations in a directory
 ODXtoWFMigrator.exe batch convert --directory C:\BizTalk --bindings bindings.xml
 
-# MAPS: Convert BizTalk map to Liquid template (LML)
+# MAPS: Convert BizTalk map to LA template (LML)
 BTMtoLMLMigrator.exe OrderToInvoice.btm Order.xsd Invoice.xsd. LMLs are required today to open maps in the data mapper.
 
 # PIPELINES: Convert BizTalk pipeline to Logic Apps workflow
@@ -69,8 +69,8 @@ This toolkit automates the assists in the process of migrating BizTalk Server ar
 ### **BTMtoLMLMigrator** - Map Migration
 - **BTM Parsing**: Extracts functoids, links, and transformations from BizTalk maps
 - **Schema Analysis**: Processes source and target XSD schemas for namespace extraction
-- **Functoid Translation**: Converts BizTalk functoids to Liquid template equivalents
-- **Liquid Generation**: Creates Azure Logic Apps Data Mapper compatible templates
+- **Functoid Translation**: Converts BizTalk functoids to Logic Apps Mapping Language template equivalents
+- **logic Apps Mapping Language Generation**: Creates Azure Logic Apps Data Mapper compatible templates
 - **Batch Conversion**: Process multiple maps simultaneously
 
 ### **BTPtoLA** - Pipeline Migration
@@ -97,7 +97,7 @@ This toolkit automates the assists in the process of migrating BizTalk Server ar
 - **Batch Processing**: Process multiple orchestrations simultaneously
 - **Self-Recursion Detection**: Automatically convert recursive calls to loops
 - **Callable Workflow Support**: Detect and configure child workflows with Request triggers
-- **Map Conversion**: Transform BizTalk maps (.btm) to Liquid templates (.lml)
+- **Map Conversion**: Transform BizTalk maps (.btm) to Logic Apps Mapping Language templates (.lml)
 - **Pipeline Conversion**: Convert BizTalk pipelines (.btp) to Logic Apps workflows
 
 ### Analysis & Reporting
@@ -229,12 +229,12 @@ BizTalkMigrator/
 |       +-- ConnectorOptimizer.cs    # Connector upgrades
 |       +-- JsonPostProcessor.cs     # JSON post-processing
 |
-+-- BTMtoLMLMigrator/                # BizTalk Maps to Liquid Mapper
++-- BTMtoLMLMigrator/                # BizTalk Maps to Logic Apps Mapping Language Mapper
 |   +-- Program.cs                   # CLI entry point
 |   +-- BtmParser.cs                 # BTM file parser
 |   +-- BtmMigrator.cs               # Migration orchestrator
-|   +-- FunctoidTranslator.cs        # Functoid to Liquid conversion
-|   +-- LmlGenerator.cs              # Liquid template generator
+|   +-- FunctoidTranslator.cs        # Functoid to logic Apps Mapping Language conversion
+|   +-- LmlGenerator.cs              # Logic Apps Mapping Language template generator
 |   +-- Models.cs                    # Data models
 |
 +-- BTPtoLA/                         # Pipeline to Logic Apps conversion
@@ -300,7 +300,7 @@ BizTalkMigrator/
              |                         |                      |
              v                         v                      v
     +----------------+        +----------------+      +----------------+
-    |  Workflow.json |        | Liquid (.lml)  |      |  Workflow.json |
+    |  Workflow.json |        | LA Map. L.(.lml)|      |  Workflow.json |
     +----------------+        +----------------+      +----------------+
              |                         |                      |
              +-------------------------|----------------------+
@@ -312,7 +312,7 @@ BizTalkMigrator/
              |                                                       |
              |  +----------------+  +------------------+             |
              |  | Workflows      |  | Data Mapper      |             |
-             |  | (Orchestrations|  | (Liquid Maps)    |             |
+             |  | (Orchestrations|  | (LA Maps)    |             |
              |  |  + Pipelines)  |  |                  |             |
              |  +----------------+  +------------------+             |
              |                                                       |
@@ -419,7 +419,7 @@ BizTalkMigrator/
             v
 +---------------------------------------+
 | FunctoidTranslator                    |
-| - Convert functoids to Liquid syntax  |
+| - Convert functoids to LA syntax  |
 | - Map string/math/logical operations  |
 | - Handle scripting functoids          |
 +---------------------------------------+
@@ -427,13 +427,13 @@ BizTalkMigrator/
             v
 +---------------------------------------+
 | LmlGenerator                          |
-| - Generate Liquid template            |
+| - Generate LA template            |
 | - Format output for readability       |
 +---------------------------------------+
             |
             v
 +---------------------------------------+
-| Liquid Template (.lml)                |
+| LA Template (.lml)                |
 | For Logic Apps Data Mapper            |
 +---------------------------------------+
 ```
@@ -671,7 +671,7 @@ ODXtoWFMigrator.exe analyze-odx C:\BizTalk\Orchestrations --output gap-report.js
 #### 6. Map Migration
 
 ```powershell
-# Convert single BizTalk map to Liquid template
+# Convert single BizTalk map to Logic Apps Mapping Language template
 BTMtoLMLMigrator.exe OrderToInvoice.btm Order.xsd Invoice.xsd
 
 # Specify custom output location
@@ -829,7 +829,7 @@ ODXtoWFMigrator.exe batch convert `
 BTMtoLMLMigrator.exe OrderToInvoice.btm Order.xsd Invoice.xsd
 ```
 
-**Output**: Liquid template (.lml) with:
+**Output**: LA template (.lml) with:
 - Source to target field mappings
 - Functoid equivalents (string, math, logical operations)
 - Schema namespace references
@@ -894,7 +894,7 @@ See [BizTalkToLogicApps.Tests/README.md](https://github.com/haroldcampos/BizTalk
 | Gap Analysis | Complete | Pattern detection |
 | Report Generation | Complete | HTML/Markdown |
 | Deployment Packages | Complete | CI/CD integration |
-| Map Migration | Complete | BTM to Liquid conversion |
+| Map Migration | Complete | BTM to logic Apps Mapping Language conversion |
 | Pipeline Migration | Complete | BTP to workflow conversion |
 | MCP AI Tools | Complete | 25+ tools for AI assistants |
 

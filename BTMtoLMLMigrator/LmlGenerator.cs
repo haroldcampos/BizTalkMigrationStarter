@@ -10,7 +10,7 @@ using System.Text;
 namespace BizTalktoLogicApps.BTMtoLMLMigrator
 {
     /// <summary>
-    /// Generates Liquid Mapping Language (LML) file content from translated BizTalk map data.
+    /// Generates LA Mapping Language (LML) file content from translated BizTalk map data.
     /// </summary>
     /// <remarks>
     /// This class produces YAML-formatted LML output compatible with Azure Data Mapper,

@@ -167,7 +167,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
     }
 
     /// <summary>
-    /// Represents the intermediate translated map data ready for Liquid Mapping Language (LML) generation.
+    /// Represents the intermediate translated map data ready for LA Mapping Language (LML) generation.
     /// </summary>
     /// <remarks>
     /// This class contains the processed mapping information after functoid translation

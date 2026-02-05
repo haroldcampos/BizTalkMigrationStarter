@@ -335,7 +335,7 @@
           "name": "convert_btm_to_lml",
           "arguments": {
             "btmFilePath": "C:\\BizTalk\\Maps\\CustomerServiceRequest_To_PendingTransactionsResponse.btm",
-            "outputLmlPath": "C:\\Output\\LiquidMaps\\CustomerServiceRequest_To_PendingTransactionsResponse.lml",
+            "outputLmlPath": "C:\\Output\\LMLMaps\\CustomerServiceRequest_To_PendingTransactionsResponse.lml",
             "sourceSchemaPath": "C:\\BizTalk\\Schemas\\CustomerServiceRequest.xsd",
             "targetSchemaPath": "C:\\BizTalk\\Schemas\\PendingTransactionsResponse.xsd",
             "preserveFormatting": true
@@ -353,7 +353,7 @@
           "name": "convert_btm_to_lml",
           "arguments": {
             "btmFilePath": "C:\\BizTalk\\Maps\\ProductCatalog_To_PriceList.btm",
-            "outputLmlPath": "C:\\Azure\\DataMaps\\ProductCatalog_To_PriceList.liquid",
+            "outputLmlPath": "C:\\Azure\\DataMaps\\ProductCatalog_To_PriceList.lml",
             "preserveFormatting": false
           }
         }
@@ -384,7 +384,7 @@
           "name": "batch_convert_btm_to_lml",
           "arguments": {
             "directoryPath": "C:\\BizTalk\\AllMaps",
-            "outputDirectory": "C:\\Azure\\LiquidMaps",
+            "outputDirectory": "C:\\Azure\\LMLMaps",
             "recursive": true
           }
         }
@@ -400,7 +400,7 @@
           "name": "batch_convert_btm_to_lml",
           "arguments": {
             "directoryPath": "C:\\BizTalk\\Project\\Maps",
-            "outputDirectory": "C:\\Output\\LiquidMaps",
+            "outputDirectory": "C:\\Output\\LMLMaps",
             "recursive": true,
             "sourceSchemaDirectory": "C:\\BizTalk\\Project\\Schemas\\Source",
             "targetSchemaDirectory": "C:\\BizTalk\\Project\\Schemas\\Target"

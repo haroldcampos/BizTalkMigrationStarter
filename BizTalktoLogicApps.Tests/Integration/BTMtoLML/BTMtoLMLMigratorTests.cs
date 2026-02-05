@@ -12,7 +12,7 @@ namespace BizTalktoLogicApps.Tests.Integration.BTMtoLML
 {
     /// <summary>
     /// Integration tests for the BTM to LML migration.
-    /// Tests end-to-end conversion of BizTalk Maps (.btm) to Liquid Maps (.lml).
+    /// Tests end-to-end conversion of BizTalk Maps (.btm) to LML Maps (.lml).
     /// </summary>
     [TestClass]
     public class BTMtoLMLMigratorTests
@@ -42,7 +42,7 @@ namespace BizTalktoLogicApps.Tests.Integration.BTMtoLML
         [TestCleanup]
         public void Cleanup()
         {
-            // Do not delete the output directory - keep generated Liquid maps for reference
+            // Do not delete the output directory - keep generated lml maps for reference
         }
 
         #region Argument Validation
@@ -86,7 +86,7 @@ namespace BizTalktoLogicApps.Tests.Integration.BTMtoLML
         #region Successful Conversion - Process All Files
 
         [TestMethod]
-        public void ConvertAllBtmFiles_GeneratesLiquidMaps()
+        public void ConvertAllBtmFiles_GeneratesLMLMaps()
         {
             // Arrange - Get all BTM files from the Data/BizTalk/Maps directory
             var btmFiles = Directory.GetFiles(this.mapsDirectory, "*.btm");
@@ -117,7 +117,7 @@ namespace BizTalktoLogicApps.Tests.Integration.BTMtoLML
 
                     var migrator = new BtmMigrator();
 
-                    // Convert BTM to Liquid Map
+                    // Convert BTM to LML Map
                     var lmlContent = migrator.ConvertBtmToLml(
                         btmFilePath: btmPath,
                         sourceSchemaPath: schemaPaths.Item1,
@@ -129,7 +129,7 @@ namespace BizTalktoLogicApps.Tests.Integration.BTMtoLML
                     // Verify output
                     Assert.IsTrue(File.Exists(outputPath), $"Output file should exist: {outputFileName}");
                     Assert.IsFalse(string.IsNullOrEmpty(lmlContent), 
-                        $"Liquid map should not be empty for {btmFileName}");
+                        $"LML map should not be empty for {btmFileName}");
 
                     results.AppendLine($"  ? SUCCESS: Generated {outputFileName}");
                     var fileInfo = new FileInfo(outputPath);
@@ -174,19 +174,19 @@ namespace BizTalktoLogicApps.Tests.Integration.BTMtoLML
         #region File Output - Process All Files
 
         [TestMethod]
-        public void ConvertBtmToLml_ProcessAllFiles_CreatesAllLiquidMaps()
+        public void ConvertBtmToLml_ProcessAllFiles_CreatesAllLMLMaps()
         {
             // Arrange - Get all BTM files
             var btmFiles = Directory.GetFiles(this.mapsDirectory, "*.btm");
             Assert.IsTrue(btmFiles.Length > 0, "No BTM files found");
 
             var results = new System.Text.StringBuilder();
-            results.AppendLine($"Generating Liquid maps for {btmFiles.Length} BizTalk maps");
+            results.AppendLine($"Generating LML maps for {btmFiles.Length} BizTalk maps");
             results.AppendLine(new string('-', 80));
 
             var generatedFiles = new System.Collections.Generic.List<string>();
 
-            // Act - Generate Liquid maps for each BTM file
+            // Act - Generate LML maps for each BTM file
             foreach (var btmPath in btmFiles)
             {
                 var baseName = Path.GetFileNameWithoutExtension(btmPath);
@@ -222,7 +222,7 @@ namespace BizTalktoLogicApps.Tests.Integration.BTMtoLML
             results.AppendLine($"Output directory: {this.outputDirectory}");
             Console.WriteLine(results.ToString());
 
-            Assert.IsTrue(generatedFiles.Count > 0, "At least one Liquid map should be generated");
+            Assert.IsTrue(generatedFiles.Count > 0, "At least one LML map should be generated");
 
             // Verify all generated files exist and are not empty
             foreach (var file in generatedFiles)
