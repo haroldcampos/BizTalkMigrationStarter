@@ -945,7 +945,7 @@ This project is licensed under the MIT License.
 
 ## Resources
 
-- **How to use this toolkit**: https://www.youtube.com/@hcamposu
+- **How to use this toolkit**: https://youtu.be/H-Cw3mCxMms
 - **Azure Logic Apps Documentation**: https://learn.microsoft.com/azure/logic-apps/
 - **Need BizTalk features in Logic Apps?** https://aka.ms/logicappsneeds
 - **Need Logic Apps on air-gapped environments?** https://aka.ms/ladisconnected
