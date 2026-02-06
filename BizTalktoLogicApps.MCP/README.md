@@ -37,7 +37,7 @@ The Model Context Protocol (MCP) is an open standard for connecting AI assistant
 |  |  +-----------------+  +-----------------+               | |
 |  |  +-----------------+  +-----------------+               | |
 |  |  |  Map Tools      |  | Configuration   |               | |
-|  |  | (BTM->Liquid)   |  |   Tools         |               | |
+|  |  | (BTM->LA)   |  |   Tools         |               | |
 |  |  +-----------------+  +-----------------+               | |
 |  +----------------------------------------------------------+ |
 +---------------------------------------------------------------+
@@ -52,7 +52,7 @@ The Model Context Protocol (MCP) is an open standard for connecting AI assistant
 |  |  • BindingSnapshot            • WorkflowValidator       | |
 |  |  • OdxAnalyzer                • ReportGenerator         | |
 |  +----------------------------------------------------------+ |
-|  |  BTMtoLMLMigrator - BizTalk Maps to Liquid              | |
+|  |  BTMtoLMLMigrator - BizTalk Maps to LA              | |
 |  |  • BtmParser         • FunctoidTranslator               | |
 |  |  • LmlGenerator      • BtmMigrator                      | |
 |  +----------------------------------------------------------+ |
@@ -69,7 +69,7 @@ The Model Context Protocol (MCP) is an open standard for connecting AI assistant
 |----------|-------------|----------------|
 | **Orchestration Tools** | Analyze and convert BizTalk orchestrations (.odx) to Logic Apps workflows, including pattern-based refactoring | ODXtoWFMigrator |
 | **Pipeline Tools** | Convert BizTalk pipelines (.btp) to Logic Apps workflows with component mapping | BTPtoLA |
-| **Map Tools** | Transform BizTalk maps (.btm) to Liquid templates (.lml) for Logic Apps Data Mapper | BTMtoLMLMigrator |
+| **Map Tools** | Transform BizTalk maps (.btm) to logic Apps Mapping Language templates (.lml) for Logic Apps Data Mapper | BTMtoLMLMigrator |
 | **Configuration Tools** | Registry management, workflow validation, connector resolution | All Libraries |
 
 ## Available Tools
@@ -315,7 +315,7 @@ Converts multiple BizTalk pipeline files (.btp) to Logic Apps workflows in a sin
 ### Map Conversion Tools
 
 #### `convert_btm_to_lml`
-Converts BizTalk Map (BTM) file to Azure Logic Apps Liquid Mapping Language (LML) format.
+Converts BizTalk Map (BTM) file to Azure Logic Apps LA Mapping Language (LML) format.
 
 **Parameters:**
 - `btmFilePath` (required): Path to the BizTalk .btm map file
@@ -338,7 +338,7 @@ Converts BizTalk Map (BTM) file to Azure Logic Apps Liquid Mapping Language (LML
 ```
 
 #### `batch_convert_btm_to_lml`
-Batch converts multiple BizTalk Map files to Logic Apps Liquid Mapping Language format.
+Batch converts multiple BizTalk Map files to Logic Apps Mapping Language format.
 
 **Parameters:**
 - `directoryPath` (required): Directory containing .btm files
@@ -428,7 +428,7 @@ The server exposes the following resource URIs:
 - `biztalk://binding/{name}` - BizTalk binding XML files
 - `biztalk://schema/{name}` - BizTalk/XSD schema files
 - `logicapp://definition/{name}` - Generated Logic Apps workflow JSON
-- `logicapp://liquid/{name}` - Generated Liquid template LML files
+- `logicapp://LML/{name}` - Generated LA template LML files
 
 ## Prompts
 
@@ -465,7 +465,7 @@ Document BizTalk vs Logic Apps differences for various artifact types.
 - `artifactType`: "orchestration" | "pipeline" | "map"
 
 ### `analyze-functoid-conversion`
-Explain how specific BizTalk functoids convert to Liquid template equivalents.
+Explain how specific BizTalk functoids convert to LA template equivalents.
 
 **Arguments:**
 - `functoidType`: Type of functoid to analyze
@@ -790,7 +790,7 @@ For optimized migrations with pattern-based refactoring:
 }
 ```
 
-3. **Convert** to Liquid template:
+3. **Convert** to logic Apps Mapping Language template:
 ```json
 {
   "name": "convert_btm_to_lml",
@@ -838,7 +838,7 @@ For optimized migrations with pattern-based refactoring:
   "name": "batch_convert_btm_to_lml",
   "arguments": {
     "directoryPath": "C:\\BizTalk\\Maps",
-    "outputDirectory": "C:\\Output\\LiquidMaps",
+    "outputDirectory": "C:\\Output\\LAMaps",
     "sourceSchemaDirectory": "C:\\BizTalk\\Schemas\\Source",
     "targetSchemaDirectory": "C:\\BizTalk\\Schemas\\Target",
     "recursive": true
@@ -892,7 +892,7 @@ The AI assistant will use:
 
 **Example 3: Map Migration**
 ```
-I need to migrate BizTalk maps to Logic Apps Liquid templates. The maps 
+I need to migrate BizTalk maps to Logic Apps LA templates. The maps 
 are in C:\BizTalk\Maps and schemas in C:\BizTalk\Schemas. Can you:
 
 1. Analyze the complexity of all BTM files
@@ -955,7 +955,7 @@ process.Close();
   - Complex expressions may need manual review
   
   **Maps (BTMtoLMLMigrator):**
-  - Scripting functoids require manual conversion to Liquid
+  - Scripting functoids require manual conversion to logic Apps Mapping Language
   - Custom XSLT not automatically converted
   - Database lookup functoids need Logic Apps actions
   - Flat file schemas not supported by Logic Apps Data Mapper
@@ -1010,7 +1010,7 @@ For issues, questions, or feature requests:
 
 **Related Projects**:
 - **[ODXtoWFMigrator](../ODXtoWFMigrator/README.md)** - BizTalk orchestration to Logic Apps workflow conversion
-- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to Liquid template conversion
+- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to LA template conversion
 - **[BTPtoLA](../BTPtoLA/README.md)** - BizTalk pipeline to Logic Apps conversion
 - [Azure Logic Apps Documentation](https://learn.microsoft.com/azure/logic-apps/)
 - [BizTalk Server Documentation](https://learn.microsoft.com/biztalk/)

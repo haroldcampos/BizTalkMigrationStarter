@@ -11,7 +11,7 @@ using System.Xml;
 namespace BizTalktoLogicApps.BTMtoLMLMigrator
 {
     /// <summary>
-    /// Orchestrates the conversion process from BizTalk Server map (BTM) files to Azure Data Mapper Liquid Mapping Language (LML) format.
+    /// Orchestrates the conversion process from BizTalk Server map (BTM) files to Azure Logic Apps Mapping Language (LML) format.
     /// </summary>
     /// <remarks>
     /// This class coordinates the three-phase conversion pipeline: parsing, translation, and generation.
@@ -35,7 +35,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
         }
 
         /// <summary>
-        /// Converts a BizTalk map file to Liquid Mapping Language format.
+        /// Converts a BizTalk map file to lml format.
         /// </summary>
         /// <param name="btmFilePath">Path to the input BTM file.</param>
         /// <param name="sourceSchemaPath">Path to the source XSD schema file.</param>

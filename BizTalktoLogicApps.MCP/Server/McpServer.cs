@@ -226,9 +226,9 @@ namespace BizTalktoLogicApps.MCP.Server
                 },
                 new Resource
                 {
-                    Uri = "logicapp://liquidmap/{name}",
-                    Name = "Logic Apps Liquid Map",
-                    Description = "Generated Logic Apps Liquid mapping LML file",
+                    Uri = "logicapp://LMLmap/{name}",
+                    Name = "Logic Apps LML Map",
+                    Description = "Generated Logic Apps mapping LML file",
                     MimeType = "text/plain"
                 }
             };
@@ -286,7 +286,7 @@ namespace BizTalktoLogicApps.MCP.Server
                 new Prompt
                 {
                     Name = "convert-biztalk-map",
-                    Description = "Convert BizTalk map (BTM) to Logic Apps Liquid mapping (LML) with guidance",
+                    Description = "Convert BizTalk map (BTM) to Logic Apps mapping (LML) with guidance",
                     Arguments = new[]
                     {
                         new PromptArgument { Name = "btmPath", Description = "Path to BTM map file", Required = true },

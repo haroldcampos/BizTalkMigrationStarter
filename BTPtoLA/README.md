@@ -540,7 +540,7 @@ For issues, questions, or feature requests:
 
 **Related Projects**:
 - **[ODXtoWFMigrator](../ODXtoWFMigrator/README.md)** - BizTalk orchestration to Logic Apps workflow conversion
-- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to Liquid template conversion
+- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to lml template conversion
 - **[BizTalkToLogicApps.MCP](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.MCP/README.md)** - MCP server for AI-assisted migration
 - [BizTalk Pipeline Components Documentation](https://learn.microsoft.com/biztalk/core/about-pipelines-stages-and-components)
 - [Azure Logic Apps Workflow Definition](https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-definition-language)

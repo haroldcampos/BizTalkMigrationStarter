@@ -14,7 +14,7 @@ Data/
 *   *** Schemas/               # BizTalk schema (.xsd) files
 *
 *** LogicApps/                  # OUTPUT: Generated Logic Apps artifacts
-    *** LMLs/                  # Liquid map (.lml) files (from BTM conversion)
+    *** LMLs/                  # Logic Apps map (.lml) files (from BTM conversion)
     *** Pipelines/             # Logic Apps pipeline workflows
     *** Workflows/             # Logic Apps orchestration workflows
 ```
