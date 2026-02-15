@@ -1,0 +1,525 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "tmpGuid": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "tmpGuid",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "DepartmentName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "DepartmentName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "tmpGuid": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "XMLDoc": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "XMLDoc",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "DepartmentName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "markup": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "markup",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "XMLDoc": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "xmlns": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "xmlns",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "markup": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ErrorReportMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ErrorReportMessage",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "xmlns": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "FixedMessageOut": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "FixedMessageOut",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "ErrorReportMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "TryToCastToErrorReportSchema": {
+        "type": "Scope",
+        "actions": {
+          "Scope_ConstructErrorReportMessage": {
+            "type": "Scope",
+            "actions": {
+              "SetErrorDetails": {
+                "type": "Compose",
+                "inputs": "@'markup = \"<errorDetails><div xmlns=\\\"http://www.w3.org/1999/xhtml\\\"><strong>Error code:</strong> \" + FailedMessageIn(ErrorReport.FailureCode) + \"</div>\" +\r\n         \"<div xmlns=\\\"http://www.w3.org/1999/xhtml\\\"><strong>Description:</strong> \" + FailedMessageIn(ErrorReport.Description) + \"</div>\" +\r\n         \"<div xmlns=\\\"http://www.w3.org/1999/xhtml\\\"><strong>Receive port:</strong> \" + FailedMessageIn(ErrorReport.ReceivePortName) + \"</div>\" + \r\n         \"<div xmlns=\\\"http://www.w3.org/1999/xhtml\\\"><strong>Receive location URI:</strong> \" + FailedMessageIn(ErrorReport.InboundTransportLocation) + \"</div></errorDetails>\"; \r\nXMLDoc.LoadXml(markup)'",
+                "runAfter": {}
+              },
+              "ConstructErrorReportMessage_9bbbba02": {
+                "type": "Scope",
+                "actions": {
+                  "AddErrorDetails": {
+                    "type": "Compose",
+                    "inputs": "@'ErrorReportMessage = FailedMessageIn;\r\nxpath(ErrorReportMessage, \"/*[local-name()=''expenseReport'' and namespace-uri()=''http://schemas.microsoft.com/biztalk/2006/sample/ExpenseReport'']/*[local-name()=''errors'' and namespace-uri()=''http://schemas.microsoft.com/biztalk/2006/sample/ExpenseReport'']\") = XMLDoc.FirstChild.ChildNodes'",
+                    "runAfter": {}
+                  },
+                  "SetCorrelationID": {
+                    "type": "Compose",
+                    "inputs": "@'tmpGuid = System.Guid.NewGuid();\r\nErrorReportMessage(ErrorHandling.PipelinesAndSchemas.PropertySchema.correlationID) = tmpGuid.ToString()'",
+                    "runAfter": {
+                      "AddErrorDetails": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "SetErrorDetails": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "CatchExceptionIfCastingFails": {
+            "type": "Scope",
+            "actions": {
+              "SendFailedMessageToSuspend": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "http://localhost/service",
+                  "body": "@triggerBody()",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  }
+                },
+                "runAfter": {}
+              },
+              "Terminate": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": "\"Error handling orchestration failed terminated because failed document does not conform to the schema\";"
+                  }
+                },
+                "runAfter": {
+                  "SendFailedMessageToSuspend": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Scope_ConstructErrorReportMessage": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "FixedMessageOut": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_ErrorReport": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "TryToCastToErrorReportSchema": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SendFailedMessageToSuspend_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SaveNewDepartmentName": {
+        "type": "Compose",
+        "inputs": "@'DepartmentName = FixedMessageIn(ErrorHandling.PipelinesAndSchemas.PropertySchema.department)'",
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Terminate_1": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "Terminated",
+            "message": "\"Error handling orchestration failed terminated because failed document does not conform to the schema\";"
+          }
+        },
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructFixedMessageOut_7752b0af": {
+        "type": "Scope",
+        "actions": {
+          "CopyOldContext": {
+            "type": "Compose",
+            "inputs": "@'FixedMessageOut = FixedMessageIn;\r\nFixedMessageOut(*) = FailedMessageIn(*)'",
+            "runAfter": {}
+          },
+          "SetNewDepartmentName": {
+            "type": "Compose",
+            "inputs": "@'FixedMessageOut(ErrorHandling.PipelinesAndSchemas.PropertySchema.department) = DepartmentName'",
+            "runAfter": {
+              "CopyOldContext": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ResetCorrelationID": {
+            "type": "Compose",
+            "inputs": "@'FixedMessageOut(ErrorHandling.PipelinesAndSchemas.PropertySchema.correlationID) = \"null\"'",
+            "runAfter": {
+              "SetNewDepartmentName": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Delay_ForOneHour": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 1,
+            "unit": "Minute"
+          }
+        },
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SendFixedMessageOut": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ReceiveFixedMessage": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from ReceiveErrorReportPort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SendFailedMessageToSuspend_2": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Terminate_2": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "Terminated",
+            "message": "\"Error handling orchestration failed terminated because failed document does not conform to the schema\";"
+          }
+        },
+        "runAfter": {
+          "SendFailedMessageToSuspend_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Delay_ForOneHour_1": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 1,
+            "unit": "Minute"
+          }
+        },
+        "runAfter": {
+          "Terminate_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SaveNewDepartmentName_1": {
+        "type": "Compose",
+        "inputs": "@'DepartmentName = FixedMessageIn(ErrorHandling.PipelinesAndSchemas.PropertySchema.department)'",
+        "runAfter": {
+          "Send_ErrorReport": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructFixedMessageOut_7752b0af_1": {
+        "type": "Scope",
+        "actions": {
+          "CopyOldContext_1": {
+            "type": "Compose",
+            "inputs": "@'FixedMessageOut = FixedMessageIn;\r\nFixedMessageOut(*) = FailedMessageIn(*)'",
+            "runAfter": {}
+          },
+          "SetNewDepartmentName_1": {
+            "type": "Compose",
+            "inputs": "@'FixedMessageOut(ErrorHandling.PipelinesAndSchemas.PropertySchema.department) = DepartmentName'",
+            "runAfter": {
+              "CopyOldContext_1": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ResetCorrelationID_1": {
+            "type": "Compose",
+            "inputs": "@'FixedMessageOut(ErrorHandling.PipelinesAndSchemas.PropertySchema.correlationID) = \"null\"'",
+            "runAfter": {
+              "SetNewDepartmentName_1": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "SaveNewDepartmentName_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SendFixedMessageOut_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructFixedMessageOut_7752b0af_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ReceiveFixedMessage_1": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from ReceiveErrorReportPort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "SendFixedMessageOut_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ListenForOneHour_Join": {
+        "type": "Compose",
+        "inputs": {
+          "migrationWarning": "BizTalk Listen shape: only the FIRST branch should execute (race pattern). Logic Apps runs ALL branches in parallel. Manual review required.",
+          "originalBizTalkShape": "Listen",
+          "requiredAction": "Convert to Switch on status/timeout, or add Terminate actions to losing branches."
+        },
+        "runAfter": {
+          "SendFailedMessageToSuspend_1": [
+            "SUCCEEDED"
+          ],
+          "SaveNewDepartmentName": [
+            "SUCCEEDED"
+          ],
+          "Terminate_1": [
+            "SUCCEEDED"
+          ],
+          "ConstructFixedMessageOut_7752b0af": [
+            "SUCCEEDED"
+          ],
+          "Delay_ForOneHour": [
+            "SUCCEEDED"
+          ],
+          "SendFixedMessageOut": [
+            "SUCCEEDED"
+          ],
+          "ReceiveFixedMessage": [
+            "SUCCEEDED"
+          ],
+          "Delay_ForOneHour_1": [
+            "SUCCEEDED"
+          ],
+          "ReceiveFixedMessage_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "ListenForOneHour_Join": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Exception Handling & Compensation",
+          "description": "Handle errors and perform compensating actions",
+          "recommendation": "Use Scope action with Configure Run After for error handling"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:13.5313756Z"
+    }
+  }
+}

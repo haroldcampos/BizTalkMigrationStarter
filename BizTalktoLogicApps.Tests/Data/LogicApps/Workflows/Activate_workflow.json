@@ -1,0 +1,300 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "ReturnValue": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ReturnValue",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "Reason": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Reason",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ReturnValue": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ParameterArray": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ParameterArray",
+              "type": "array",
+              "value": []
+            }
+          ]
+        },
+        "runAfter": {
+          "Reason": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "MethodName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "MethodName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ParameterArray": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CalledObject": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "CalledObject",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "MethodName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ObjectType": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ObjectType",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "CalledObject": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "XmlOrderMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "XmlOrderMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "ObjectType": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "XmlOrderMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "serviceType": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "serviceType",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "OrderMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "orderHandler": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "orderHandler",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "serviceType": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "RoutingInfo": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "RoutingInfo",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "orderHandler": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Calling_Code_Scope": {
+        "type": "Scope",
+        "actions": {
+          "Activate_Svc": {
+            "type": "Compose",
+            "inputs": "@variables('orderHandler')?['Activate(serviceType, OrderMsg']?['CustNum, OrderMsg']?['OrderNum)']",
+            "runAfter": {}
+          },
+          "Catch_Exception": {
+            "type": "Scope",
+            "actions": {
+              "Initial_Exception": {
+                "type": "Compose",
+                "inputs": "@'Ex = CodeEx;\r\nObjectType = orderHandler.GetType();\r\nCalledObject = orderHandler;\r\nReason = \"Standard Activate Failed\";\r\nMethodName = \"Activate\";\r\nParameterArray = System.Array.CreateInstance( typeof(System.Object), 3 );\r\nParameterArray.SetValue(serviceType, 0);\r\nParameterArray.SetValue(OrderMsg.CustNum, 1);\r\nParameterArray.SetValue(OrderMsg.OrderNum, 2);\r\nReturnValue = null; // no return value expected'",
+                "runAfter": {}
+              },
+              "Construct_XmlOrderMsg_d1327f0b": {
+                "type": "Compose",
+                "inputs": "@'XmlOrderMsg = OrderMsg'",
+                "runAfter": {
+                  "Initial_Exception": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Call_Exception": {
+                "type": "Workflow",
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "ExceptionHandlerOrch"
+                    }
+                  },
+                  "body": {
+                    "message": "@triggerBody()"
+                  }
+                },
+                "runAfter": {
+                  "Construct_XmlOrderMsg_d1327f0b": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Activate_Svc": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "RoutingInfo": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderCorrelation": {
+        "type": "Compose",
+        "inputs": "@'// Unhandled shape type: CorrelationDeclaration'",
+        "runAfter": {
+          "Calling_Code_Scope": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Exception Handling & Compensation",
+          "description": "Handle errors and perform compensating actions",
+          "recommendation": "Use Scope action with Configure Run After for error handling"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:11.2842723Z"
+    }
+  }
+}

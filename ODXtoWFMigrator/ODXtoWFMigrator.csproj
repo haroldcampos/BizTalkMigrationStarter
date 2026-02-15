@@ -146,10 +146,14 @@
     <Compile Include="BindingSnapshot.cs" />
     <Compile Include="BizTalkOrchestrationParser.cs" />
     <Compile Include="ConnectorSchemaRegistry.cs" />
+    <Compile Include="Diagnostics\OrchestrationDiagnostics.cs" />
     <Compile Include="ExceptionExtensions.cs" />
     <Compile Include="ExpressionMapper.cs" />
     <Compile Include="LogicAppsMapper.cs" />
     <Compile Include="LogicAppJSONGenerator.cs" />
+    <Compile Include="Models\OrchestrationModels.cs" />
+    <Compile Include="Models\WcfMetadata.cs" />
+    <Compile Include="Models\WorkflowModels.cs" />
     <Compile Include="OdxAnalyzer.cs" />
     <Compile Include="OrchestrationReportGenerator.cs" />
     <Compile Include="Program.cs" />

@@ -12,9 +12,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -69,6 +71,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             // ✅ PASS VARIABLE NAMES to BuildActions
             var actionsObj = BuildActions(map.Actions.OrderBy(a => a.Sequence), usedNames, registry, map.VariableNames);
 
+            // Post-process: hoist Terminate actions out of Until loops.
+            // Logic Apps forbids Terminate inside Until. Replace with variable
+            // signalling inside the loop and a conditional Terminate after it.
+            HoistTerminateFromUntilLoops(actionsObj, usedNames);
+
             var def = new JObject();
             def["$schema"] = string.Format("https://schema.management.azure.com/providers/Microsoft.Logic/schemas/{0}/workflowdefinition.json#", schemaVersion);
             def["contentVersion"] = "1.0.0.0";
@@ -94,24 +101,20 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 req["type"] = "Request";
                 req["kind"] = "Http";
                 
-                // ✅ DIAGNOSTIC: Log trigger properties
-                Console.WriteLine("[GENERATOR] Building HTTP Request trigger:");
-                Console.WriteLine($"  TransportType: '{t.TransportType ?? "NULL"}'");
-                Console.WriteLine($"  SecurityMode: '{t.SecurityMode ?? "NULL"}'");
-                Console.WriteLine($"  MessageClientCredentialType: '{t.MessageClientCredentialType ?? "NULL"}'");
-                Console.WriteLine($"  Address: '{t.Address ?? "NULL"}'");
+                // Diagnostic: Log trigger properties
+                Trace.TraceInformation("[GENERATOR] Building HTTP Request trigger: TransportType='{0}', SecurityMode='{1}', Address='{2}'",
+                    t.TransportType ?? "NULL", t.SecurityMode ?? "NULL", t.Address ?? "NULL");
                 
                 // ✅ Add WCF metadata as description/metadata for context preservation
                 if (!string.IsNullOrEmpty(t.SecurityMode) ||
                     !string.IsNullOrEmpty(t.MessageClientCredentialType) ||
                     !string.IsNullOrEmpty(t.TransportType))
                 {
-                    Console.WriteLine("[GENERATOR] WCF metadata detected - adding to trigger");
+                    Trace.TraceInformation("[GENERATOR] WCF metadata detected - adding to trigger");
                     var metadata = BuildWcfMetadataDescription(t);
                     if (!string.IsNullOrEmpty(metadata))
                     {
                         req["description"] = metadata;
-                        Console.WriteLine($"[GENERATOR] Added description: {metadata.Substring(0, Math.Min(100, metadata.Length))}...");
                     }
                     
                     // Add metadata object for programmatic access
@@ -119,12 +122,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     if (metadataObj.Count > 0)
                     {
                         req["metadata"] = metadataObj;
-                        Console.WriteLine($"[GENERATOR] Added metadata object with {metadataObj.Count} properties");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("[GENERATOR] ⚠️ No WCF metadata found - skipping enrichment");
+                    Trace.TraceInformation("[GENERATOR] No WCF metadata found - skipping enrichment");
                 }
                 
                 return req;
@@ -497,6 +499,29 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     continue;
                 }
 
+                // ListenContainer: BizTalk Listen shape (first-branch-wins race).
+                // Logic Apps has no native first-one-wins construct, so we generate
+                // parallel branches with an explicit migration warning in the join action.
+                if (act.Type == "ListenContainer")
+                {
+                    var listenResult = BuildParallelBranches(act, lastLinear, used, registry, variableNames, actionsObj);
+
+                    // Replace the default join with a warning-annotated one
+                    if (listenResult.JoinActionName != null && actionsObj[listenResult.JoinActionName] != null)
+                    {
+                        actionsObj[listenResult.JoinActionName]["inputs"] = new JObject
+                        {
+                            ["migrationWarning"] = "BizTalk Listen shape: only the FIRST branch should execute (race pattern). " +
+                                                   "Logic Apps runs ALL branches in parallel. Manual review required.",
+                            ["originalBizTalkShape"] = "Listen",
+                            ["requiredAction"] = "Convert to Switch on status/timeout, or add Terminate actions to losing branches."
+                        };
+                    }
+
+                    lastLinear = listenResult.JoinActionName;
+                    continue;
+                }
+
                 var actionName = AllocateName(NormalizeName(act.Name), used);
                 var actionObj = BuildAction(act, used, registry, variableNames);
 
@@ -581,10 +606,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     // Process actions in this branch
                     foreach (var inner in branchActions)
                     {
-                        // ✅ CRITICAL FIX: Detect nested ParallelContainer and handle recursively
-                        if (inner.Type == "ParallelContainer")
+                        // ✅ CRITICAL FIX: Detect nested ParallelContainer/ListenContainer and handle recursively
+                        if (inner.Type == "ParallelContainer" || inner.Type == "ListenContainer")
                         {
-                            Console.WriteLine($"[GENERATOR] ✅ Nested ParallelContainer '{inner.Name}' detected in parallel branch {branchIndex} - building recursively");
                             
                             // Recursively build the nested parallel branches
                             var nestedParallelResult = BuildParallelBranches(inner, branchPrev, usedNames, registry, variableNames, actionsObj);
@@ -599,7 +623,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         // ✅ FIX: Skip null actions (empty scopes, etc.)
                         if (actionObj == null)
                         {
-                            Console.WriteLine($"[GENERATOR] Skipping null action in parallel branch {branchIndex}: {inner.Name} (Type: {inner.Type})");
                             continue;
                         }
 
@@ -618,8 +641,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     // ✅ FIX: Handle case where all actions in branch were null
                     if (lastAddedActionInBranch == null)
                     {
-                        // All actions in this branch were null/empty - add a placeholder
-                        Console.WriteLine($"[GENERATOR] All actions in parallel branch {branchIndex} were null - adding placeholder");
 
                         var placeholderName = AllocateName(
                             NormalizeName("Parallel_Branch_" + branchIndex + "_Empty"),
@@ -726,7 +747,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     var httpInputs = new JObject();
                     httpInputs["method"] = act.HttpMethod ?? "POST";
                     httpInputs["uri"] = act.TargetAddress ?? "http://localhost/service";
-                    httpInputs["body"] = "@triggerBody()";
+                    httpInputs["body"] = ResolveMessageBodyExpression(act);
 
                     var headers = new JObject();
                     headers["Content-Type"] = DetermineContentType(act);
@@ -818,12 +839,14 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     return compose;
 
                 case "Wait":
+                case "Delay":
                     var wait = new JObject();
                     wait["type"] = "Wait";
                     var waitInputs = new JObject();
                     var interval = new JObject();
-                    interval["count"] = ParseDelayCount(act.Details) ?? 20;
-                    interval["unit"] = "Minute";
+                    var parsedDelay = ParseDelayExpression(act.Details);
+                    interval["count"] = parsedDelay.Count;
+                    interval["unit"] = parsedDelay.Unit;
                     waitInputs["interval"] = interval;
                     wait["inputs"] = waitInputs;
                     return wait;
@@ -843,7 +866,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     var mapShortName = ExtractMapShortName(act.Details);
 
-                    xsltInputs["content"] = "@triggerBody()";
+                    xsltInputs["content"] = ResolveMessageBodyExpression(act);
                     xsltInputs["map"] = new JObject
                     {
                         ["name"] = mapShortName,
@@ -901,7 +924,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     // Body to pass to child workflow
                     var body = new JObject();
-                    body["message"] = "@triggerBody()";
+                    body["message"] = ResolveMessageBodyExpression(act);
                     wfInputs["body"] = body;
 
                     wf["inputs"] = wfInputs;
@@ -966,11 +989,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         string prevTrue = null;
                         foreach (var c in act.TrueBranch.OrderBy(c => c.Sequence))
                         {
-                            // ✅ CRITICAL FIX: Detect ParallelContainer in If branches
-                            if (c.Type == "ParallelContainer")
+                            // ✅ CRITICAL FIX: Detect ParallelContainer/ListenContainer in If branches
+                            if (c.Type == "ParallelContainer" || c.Type == "ListenContainer")
                             {
-                                Console.WriteLine($"[GENERATOR] ✅ ParallelContainer '{c.Name}' detected in If TRUE branch - building recursively");
-                                
                                 // Build parallel branches into the true branch actions
                                 var parallelResult = BuildParallelBranches(c, prevTrue, usedNames, registry, variableNames, trueActions);
                                 prevTrue = parallelResult.JoinActionName;
@@ -1011,11 +1032,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             string prevFalse = null;
                             foreach (var c in act.FalseBranch.OrderBy(c => c.Sequence))
                             {
-                                // ✅ CRITICAL FIX: Detect ParallelContainer in If FALSE branch
-                                if (c.Type == "ParallelContainer")
+                                // ✅ CRITICAL FIX: Detect ParallelContainer/ListenContainer in If FALSE branch
+                                if (c.Type == "ParallelContainer" || c.Type == "ListenContainer")
                                 {
-                                    Console.WriteLine($"[GENERATOR] ✅ ParallelContainer '{c.Name}' detected in If FALSE branch - building recursively");
-                                    
                                     // Build parallel branches into the false branch actions
                                     var parallelResult = BuildParallelBranches(c, prevFalse, usedNames, registry, variableNames, falseActions);
                                     prevFalse = parallelResult.JoinActionName;
@@ -1065,8 +1084,17 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     string prev = null;
                     foreach (var c in act.Children.OrderBy(c => c.Sequence))
                     {
+                        // Handle nested ParallelContainer/ListenContainer inside Until loops
+                        if (c.Type == "ParallelContainer" || c.Type == "ListenContainer")
+                        {
+                            var nestedResult = BuildParallelBranches(c, prev, usedNames, registry, variableNames, untilActions);
+                            prev = nestedResult.JoinActionName;
+                            continue;
+                        }
+
                         string allocated = AllocateName(NormalizeName(c.Name), usedNames);
                         var inner = BuildAction(c, usedNames, registry, variableNames);
+                        if (inner == null) continue;
                         inner["runAfter"] = prev == null ? new JObject() : new JObject { [prev] = new JArray("SUCCEEDED") };
                         untilActions[allocated] = inner;
                         prev = allocated;
@@ -1104,11 +1132,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     foreach (var c in normalActions.OrderBy(c => c.Sequence))
                     {
-                        // ✅ CRITICAL FIX: Detect ParallelContainer and handle specially
-                        if (c.Type == "ParallelContainer")
+                        // ✅ CRITICAL FIX: Detect ParallelContainer/ListenContainer and handle specially
+                        if (c.Type == "ParallelContainer" || c.Type == "ListenContainer")
                         {
-                            Console.WriteLine($"[GENERATOR] ✅ ParallelContainer '{c.Name}' detected inside Scope - building parallel branches inline");
-                            
                             // Build parallel branches directly into this scope's action collection
                             var parallelResult = BuildParallelBranches(c, p, usedNames, registry, variableNames, childObj);
                             p = parallelResult.JoinActionName;
@@ -1121,7 +1147,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         // ✅ CRITICAL FIX: If the child action is null (empty scope), don't add it
                         if (cjson == null)
                         {
-                            Console.WriteLine($"[GENERATOR] Skipping null action for child: {c.Name}");
                             continue;
                         }
 
@@ -1136,18 +1161,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     {
                         foreach (var catchAction in catchActions)
                         {
-                            // ✅ ADD DEBUG OUTPUT
-                            Console.WriteLine($"[DEBUG] Processing catch block: {catchAction.Name}");
-                            Console.WriteLine($"[DEBUG] Catch children count: {catchAction.Children?.Count ?? 0}");
-
                             if (catchAction.Children == null || catchAction.Children.Count == 0)
                             {
-                                Console.WriteLine($"[DEBUG] Skipping empty catch block: {catchAction.Name}");
                                 continue;
                             }
 
                             string catchName = AllocateName(NormalizeName(catchAction.Name), usedNames);
-                            Console.WriteLine($"[DEBUG] Allocated catch name: {catchName}");
 
                             // Build the catch scope directly with its children
                             var catchScope = new JObject();
@@ -1162,10 +1181,8 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 string catchChildName = AllocateName(NormalizeName(catchChild.Name), usedNames);
                                 var catchChildJson = BuildAction(catchChild, usedNames, registry, variableNames);
 
-                                // ✅ Skip null actions
                                 if (catchChildJson == null)
                                 {
-                                    Console.WriteLine($"[DEBUG]   Skipping null catch child: {catchChild.Name}");
                                     continue;
                                 }
 
@@ -1177,7 +1194,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 catchPrev = catchChildName;
                             }
 
-                            // ✅ Only add catch scope if it has actions
                             if (catchChildObj.Count > 0)
                             {
                                 catchScope["actions"] = catchChildObj;
@@ -1187,19 +1203,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 };
 
                                 childObj[catchName] = catchScope;
-                                Console.WriteLine($"[DEBUG] Generated {catchChildObj.Count} actions in catch scope");
-                            }
-                            else
-                            {
-                                Console.WriteLine($"[DEBUG] Skipping empty catch scope: {catchName}");
                             }
                         }
                     }
 
-                    // ✅ FIX: Return null if the scope is completely empty
                     if (childObj.Count == 0)
                     {
-                        Console.WriteLine($"[GENERATOR] Returning null for empty scope: {act.Name}");
                         return null;
                     }
 
@@ -1236,11 +1245,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     return edf;
 
                 case "ParallelContainer":
-                    // ✅ Handle nested ParallelContainer actions
-                    // This occurs when a parallel shape is inside a Scope or other container
-                    // We can't return a full parallel structure here because we're building a single action
-                    // Instead, return null to let the parent BuildActions or BuildParallelBranches handle it
-                    Console.WriteLine($"[GENERATOR] ⚠️ ParallelContainer '{act.Name}' encountered in BuildAction - should be handled by BuildActions or BuildParallelBranches");
+                case "ListenContainer":
                     return null;
 
                 case "Switch":
@@ -1513,6 +1518,22 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     unmapped["inputs"] = "// Unmapped: " + act.Type + " " + (act.Details ?? "");
                     return unmapped;
             }
+        }
+
+        /// <summary>
+        /// Returns the appropriate body expression for an action based on message flow.
+        /// When InputMessageSourceAction is set, references that action's output via @body('ActionName').
+        /// When null, falls back to @triggerBody() (the activation message).
+        /// </summary>
+        /// <param name="act">The action to resolve the body expression for.</param>
+        /// <returns>A workflow expression string referencing the correct message source.</returns>
+        private static string ResolveMessageBodyExpression(LogicAppAction act)
+        {
+            if (!string.IsNullOrEmpty(act.InputMessageSourceAction))
+            {
+                return string.Format("@body('{0}')", act.InputMessageSourceAction);
+            }
+            return "@triggerBody()";
         }
 
         /// <summary>
@@ -2102,6 +2123,150 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         }
 
         /// <summary>
+        /// Result of parsing a BizTalk delay expression into Logic Apps Wait interval.
+        /// </summary>
+        private sealed class DelayInterval
+        {
+            public int Count { get; set; }
+            public string Unit { get; set; }
+        }
+
+        /// <summary>
+        /// Parses a BizTalk delay expression into a Logic Apps Wait interval (count + unit).
+        /// Handles common BizTalk patterns:
+        ///   - new System.TimeSpan(ticks)               → converts ticks to seconds
+        ///   - new System.TimeSpan(hours, minutes, seconds) → picks the largest non-zero unit
+        ///   - new System.TimeSpan(days, hours, minutes, seconds) → picks the largest non-zero unit
+        ///   - System.TimeSpan.FromMinutes(n)            → n minutes
+        ///   - System.TimeSpan.FromSeconds(n)            → n seconds
+        ///   - System.TimeSpan.FromHours(n)              → n hours
+        ///   - PT5M (ISO 8601 duration)                  → 5 minutes
+        /// Falls back to 1 Minute if parsing fails.
+        /// </summary>
+        /// <param name="expression">The BizTalk delay expression (e.g., "new System.TimeSpan(0, 5, 0)").</param>
+        /// <returns>A DelayInterval with count and unit suitable for Logic Apps Wait action.</returns>
+        private static DelayInterval ParseDelayExpression(string expression)
+        {
+            var fallback = new DelayInterval { Count = 1, Unit = "Minute" };
+
+            if (string.IsNullOrWhiteSpace(expression))
+                return fallback;
+
+            var expr = expression.Trim();
+
+            // Pattern: System.TimeSpan.FromMinutes(n) / FromSeconds(n) / FromHours(n) / FromDays(n)
+            var fromMatch = Regex.Match(expr, @"TimeSpan\.From(\w+)\s*\(\s*(\d+(?:\.\d+)?)\s*\)", RegexOptions.IgnoreCase);
+            if (fromMatch.Success)
+            {
+                var unit = fromMatch.Groups[1].Value;
+                double value;
+                if (double.TryParse(fromMatch.Groups[2].Value, out value))
+                {
+                    int count = (int)Math.Max(1, value);
+                    if (unit.Equals("Seconds", StringComparison.OrdinalIgnoreCase))
+                        return new DelayInterval { Count = count, Unit = "Second" };
+                    if (unit.Equals("Minutes", StringComparison.OrdinalIgnoreCase))
+                        return new DelayInterval { Count = count, Unit = "Minute" };
+                    if (unit.Equals("Hours", StringComparison.OrdinalIgnoreCase))
+                        return new DelayInterval { Count = count, Unit = "Hour" };
+                    if (unit.Equals("Days", StringComparison.OrdinalIgnoreCase))
+                        return new DelayInterval { Count = count, Unit = "Day" };
+                }
+            }
+
+            // Pattern: new System.TimeSpan(args) or new TimeSpan(args)
+            var ctorMatch = Regex.Match(expr, @"new\s+(?:System\.)?TimeSpan\s*\(([^)]*)\)", RegexOptions.IgnoreCase);
+            if (ctorMatch.Success)
+            {
+                var argsStr = ctorMatch.Groups[1].Value.Trim();
+                var argParts = argsStr.Split(',');
+                var args = new List<long>();
+                foreach (var part in argParts)
+                {
+                    long val;
+                    if (long.TryParse(part.Trim(), out val))
+                        args.Add(val);
+                }
+
+                if (args.Count == 1)
+                {
+                    // TimeSpan(ticks) — 10,000,000 ticks per second
+                    var ticks = args[0];
+                    if (ticks <= 0)
+                        return new DelayInterval { Count = 0, Unit = "Second" };
+                    var totalSeconds = ticks / 10000000;
+                    if (totalSeconds < 1) totalSeconds = 1;
+                    return new DelayInterval { Count = (int)totalSeconds, Unit = "Second" };
+                }
+                if (args.Count == 3)
+                {
+                    // TimeSpan(hours, minutes, seconds)
+                    long hours = args[0], minutes = args[1], seconds = args[2];
+                    if (hours == 0 && minutes == 0 && seconds == 0)
+                        return new DelayInterval { Count = 0, Unit = "Second" };
+                    if (hours > 0 && minutes == 0 && seconds == 0)
+                        return new DelayInterval { Count = (int)hours, Unit = "Hour" };
+                    if (hours == 0 && seconds == 0)
+                        return new DelayInterval { Count = (int)minutes, Unit = "Minute" };
+                    if (hours == 0 && minutes == 0)
+                        return new DelayInterval { Count = (int)seconds, Unit = "Second" };
+                    // Mixed: convert to total seconds
+                    var totalSec = hours * 3600 + minutes * 60 + seconds;
+                    if (totalSec % 3600 == 0)
+                        return new DelayInterval { Count = (int)(totalSec / 3600), Unit = "Hour" };
+                    if (totalSec % 60 == 0)
+                        return new DelayInterval { Count = (int)(totalSec / 60), Unit = "Minute" };
+                    return new DelayInterval { Count = (int)totalSec, Unit = "Second" };
+                }
+                if (args.Count == 4)
+                {
+                    // TimeSpan(days, hours, minutes, seconds)
+                    long days = args[0], hours = args[1], minutes = args[2], seconds = args[3];
+                    if (days == 0 && hours == 0 && minutes == 0 && seconds == 0)
+                        return new DelayInterval { Count = 0, Unit = "Second" };
+                    if (days > 0 && hours == 0 && minutes == 0 && seconds == 0)
+                        return new DelayInterval { Count = (int)days, Unit = "Day" };
+                    // Convert to total seconds and pick best unit
+                    var totalSec = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+                    if (totalSec % 86400 == 0)
+                        return new DelayInterval { Count = (int)(totalSec / 86400), Unit = "Day" };
+                    if (totalSec % 3600 == 0)
+                        return new DelayInterval { Count = (int)(totalSec / 3600), Unit = "Hour" };
+                    if (totalSec % 60 == 0)
+                        return new DelayInterval { Count = (int)(totalSec / 60), Unit = "Minute" };
+                    return new DelayInterval { Count = (int)totalSec, Unit = "Second" };
+                }
+            }
+
+            // Pattern: ISO 8601 duration (PT5M, PT30S, PT1H, P1D)
+            var isoMatch = Regex.Match(expr, @"^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$", RegexOptions.IgnoreCase);
+            if (isoMatch.Success)
+            {
+                int days = 0, hours = 0, mins = 0, secs = 0;
+                if (isoMatch.Groups[1].Success) int.TryParse(isoMatch.Groups[1].Value, out days);
+                if (isoMatch.Groups[2].Success) int.TryParse(isoMatch.Groups[2].Value, out hours);
+                if (isoMatch.Groups[3].Success) int.TryParse(isoMatch.Groups[3].Value, out mins);
+                if (isoMatch.Groups[4].Success) int.TryParse(isoMatch.Groups[4].Value, out secs);
+
+                if (days > 0 && hours == 0 && mins == 0 && secs == 0)
+                    return new DelayInterval { Count = days, Unit = "Day" };
+                if (hours > 0 && mins == 0 && secs == 0)
+                    return new DelayInterval { Count = hours, Unit = "Hour" };
+                if (mins > 0 && secs == 0)
+                    return new DelayInterval { Count = mins, Unit = "Minute" };
+                if (secs > 0)
+                    return new DelayInterval { Count = secs, Unit = "Second" };
+            }
+
+            // Fallback: try to extract any number
+            var numericCount = ParseDelayCount(expr);
+            if (numericCount.HasValue && numericCount.Value > 0)
+                return new DelayInterval { Count = numericCount.Value, Unit = "Minute" };
+
+            return fallback;
+        }
+
+        /// <summary>
         /// Infers a queue name from an address by extracting the last path segment.
         /// Used for ServiceBus queue and topic name extraction.
         /// </summary>
@@ -2188,6 +2353,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             // Array/Collection types
             if (lowerType.Contains("list") || lowerType.Contains("array") || 
                 lowerType.Contains("collection") || lowerType.Contains("ienumerable") ||
+                lowerType.Contains("pipelineinputmessages") || lowerType.Contains("pipelineoutputmessages") ||
                 lowerType.Contains("[]"))
                 return "array";
             
@@ -2373,5 +2539,356 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             
             return metadata;
         }
+
+        #region Terminate-inside-Until hoisting
+
+        /// <summary>
+        /// Rewrites Terminate actions nested inside Until loops.
+        /// Logic Apps forbids Terminate inside Until. This method:
+        ///   1. Adds shouldTerminate (bool) and terminateMessage (string) InitializeVariable actions.
+        ///   2. Replaces each nested Terminate with two SetVariable actions (flag + message).
+        ///   3. Inserts a Condition action after the Until that terminates when the flag is set.
+        /// Only modifies the workflow when nested Terminate actions are actually found.
+        /// </summary>
+        private static void HoistTerminateFromUntilLoops(JObject actionsObj, HashSet<string> usedNames)
+        {
+            // Collect Until actions that contain nested Terminate actions.
+            var untilsWithTerminate = new List<KeyValuePair<string, JObject>>();
+
+            foreach (var prop in actionsObj.Properties().ToList())
+            {
+                var action = prop.Value as JObject;
+                if (action == null) continue;
+
+                if (!string.Equals(action["type"]?.ToString(), "Until", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                // Search recursively for Terminate actions inside this Until
+                var terminates = FindTerminateActions(action);
+                if (terminates.Count > 0)
+                {
+                    untilsWithTerminate.Add(new KeyValuePair<string, JObject>(prop.Name, action));
+                }
+            }
+
+            if (untilsWithTerminate.Count == 0)
+                return;
+
+            // --- Step 1: Add sentinel variables at the top of the workflow ---
+            string flagVarName = AllocateName("shouldTerminate", usedNames);
+            string msgVarName = AllocateName("terminateMessage", usedNames);
+
+            var flagInit = new JObject
+            {
+                ["type"] = "InitializeVariable",
+                ["inputs"] = new JObject
+                {
+                    ["variables"] = new JArray
+                    {
+                        new JObject
+                        {
+                            ["name"] = "shouldTerminate",
+                            ["type"] = "boolean",
+                            ["value"] = false
+                        }
+                    }
+                },
+                ["runAfter"] = new JObject()
+            };
+
+            var msgInit = new JObject
+            {
+                ["type"] = "InitializeVariable",
+                ["inputs"] = new JObject
+                {
+                    ["variables"] = new JArray
+                    {
+                        new JObject
+                        {
+                            ["name"] = "terminateMessage",
+                            ["type"] = "string",
+                            ["value"] = ""
+                        }
+                    }
+                },
+                ["runAfter"] = new JObject
+                {
+                    [flagVarName] = new JArray("SUCCEEDED")
+                }
+            };
+
+            // Rewire: find the first action that has an empty runAfter (the original
+            // first action) and make it depend on the new variable inits.
+            foreach (var prop in actionsObj.Properties().ToList())
+            {
+                var act = prop.Value as JObject;
+                if (act == null) continue;
+                var ra = act["runAfter"] as JObject;
+                if (ra != null && ra.Count == 0)
+                {
+                    ra[flagVarName] = new JArray("SUCCEEDED");
+                    // Only rewire the first one with empty runAfter – but the flag
+                    // init itself must have empty runAfter, so we need to be careful.
+                    // Since we haven't added flag/msg yet, this is safe.
+                    break;
+                }
+            }
+
+            // But actually the first empty-runAfter action may now depend on
+            // flagVarName, so we need msgVarName to chain before the first
+            // action. Let's rebuild: first action depends on msgVarName.
+            // Re-scan: update the action we just changed to depend on msgVarName.
+            foreach (var prop in actionsObj.Properties().ToList())
+            {
+                var act = prop.Value as JObject;
+                if (act == null) continue;
+                var ra = act["runAfter"] as JObject;
+                if (ra != null && ra.Property(flagVarName) != null && prop.Name != msgVarName)
+                {
+                    ra.Remove(flagVarName);
+                    ra[msgVarName] = new JArray("SUCCEEDED");
+                    break;
+                }
+            }
+
+            actionsObj.AddFirst(new JProperty(msgVarName, msgInit));
+            actionsObj.AddFirst(new JProperty(flagVarName, flagInit));
+
+            // --- Step 2 & 3: For each Until, replace nested Terminates and add post-loop Condition ---
+            foreach (var kvp in untilsWithTerminate)
+            {
+                string untilName = kvp.Key;
+                var untilAction = kvp.Value;
+
+                // Replace all nested Terminate actions with SetVariable pairs
+                ReplaceTerminateWithSignal(untilAction, usedNames);
+
+                // Build a post-loop Condition that checks shouldTerminate
+                string condName = AllocateName("Check_Terminate_" + NormalizeName(untilName), usedNames);
+                string termName = AllocateName("Terminate_" + NormalizeName(untilName), usedNames);
+
+                var terminateAction = new JObject
+                {
+                    ["type"] = "Terminate",
+                    ["inputs"] = new JObject
+                    {
+                        ["runStatus"] = "Failed",
+                        ["runError"] = new JObject
+                        {
+                            ["code"] = "Terminated",
+                            ["message"] = "@variables('terminateMessage')"
+                        }
+                    },
+                    ["runAfter"] = new JObject()
+                };
+
+                var condition = new JObject
+                {
+                    ["type"] = "If",
+                    ["expression"] = "@equals(variables('shouldTerminate'), true)",
+                    ["actions"] = new JObject
+                    {
+                        [termName] = terminateAction
+                    },
+                    ["else"] = new JObject
+                    {
+                        ["actions"] = new JObject()
+                    },
+                    ["runAfter"] = new JObject
+                    {
+                        [untilName] = new JArray("SUCCEEDED", "FAILED", "TIMEDOUT")
+                    }
+                };
+
+                // Find actions that depended on the Until and rewire them to depend on the Condition
+                foreach (var prop in actionsObj.Properties().ToList())
+                {
+                    var act = prop.Value as JObject;
+                    if (act == null) continue;
+                    var ra = act["runAfter"] as JObject;
+                    if (ra == null) continue;
+
+                    if (ra.Property(untilName) != null)
+                    {
+                        var statuses = ra[untilName];
+                        ra.Remove(untilName);
+                        ra[condName] = statuses;
+                    }
+                }
+
+                actionsObj[condName] = condition;
+            }
+        }
+
+        /// <summary>
+        /// Recursively finds all Terminate actions nested inside an action's children.
+        /// </summary>
+        private static List<KeyValuePair<string, JObject>> FindTerminateActions(JObject container)
+        {
+            var result = new List<KeyValuePair<string, JObject>>();
+
+            // Check direct "actions" object
+            FindTerminateInActions(container["actions"] as JObject, result);
+
+            // Check If true/false branches
+            var ifActions = container["actions"] as JObject;
+            if (ifActions != null)
+            {
+                foreach (var prop in ifActions.Properties())
+                {
+                    var child = prop.Value as JObject;
+                    if (child == null) continue;
+
+                    if (string.Equals(child["type"]?.ToString(), "If", StringComparison.OrdinalIgnoreCase))
+                    {
+                        FindTerminateInActions(child["actions"] as JObject, result);
+                        var elseObj = child["else"] as JObject;
+                        if (elseObj != null)
+                        {
+                            FindTerminateInActions(elseObj["actions"] as JObject, result);
+                        }
+                    }
+
+                    // Recurse into Scope actions
+                    if (string.Equals(child["type"]?.ToString(), "Scope", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.AddRange(FindTerminateActions(child));
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Searches an actions object for Terminate actions and recurses into containers.
+        /// </summary>
+        private static void FindTerminateInActions(JObject actionsObj, List<KeyValuePair<string, JObject>> result)
+        {
+            if (actionsObj == null) return;
+
+            foreach (var prop in actionsObj.Properties())
+            {
+                var action = prop.Value as JObject;
+                if (action == null) continue;
+
+                var type = action["type"]?.ToString();
+                if (string.Equals(type, "Terminate", StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Add(new KeyValuePair<string, JObject>(prop.Name, action));
+                }
+                else if (string.Equals(type, "If", StringComparison.OrdinalIgnoreCase))
+                {
+                    FindTerminateInActions(action["actions"] as JObject, result);
+                    var elseObj = action["else"] as JObject;
+                    if (elseObj != null)
+                    {
+                        FindTerminateInActions(elseObj["actions"] as JObject, result);
+                    }
+                }
+                else if (string.Equals(type, "Scope", StringComparison.OrdinalIgnoreCase))
+                {
+                    FindTerminateInActions(action["actions"] as JObject, result);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Replaces all Terminate actions inside a container with SetVariable pairs
+        /// that signal the post-loop Condition to terminate.
+        /// </summary>
+        private static void ReplaceTerminateWithSignal(JObject container, HashSet<string> usedNames)
+        {
+            ReplaceTerminateInActions(container["actions"] as JObject, usedNames);
+        }
+
+        /// <summary>
+        /// Walks an actions object and replaces Terminate actions with SetVariable pairs.
+        /// </summary>
+        private static void ReplaceTerminateInActions(JObject actionsObj, HashSet<string> usedNames)
+        {
+            if (actionsObj == null) return;
+
+            foreach (var prop in actionsObj.Properties().ToList())
+            {
+                var action = prop.Value as JObject;
+                if (action == null) continue;
+
+                var type = action["type"]?.ToString();
+
+                if (string.Equals(type, "Terminate", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Extract the error message from the Terminate action
+                    var errorMessage = action.SelectToken("inputs.runError.message")?.ToString() ?? "Terminated";
+                    var runAfter = action["runAfter"] as JObject ?? new JObject();
+
+                    // Build SetVariable for shouldTerminate = true
+                    string setFlagName = AllocateName("Set_shouldTerminate_" + NormalizeName(prop.Name), usedNames);
+                    var setFlag = new JObject
+                    {
+                        ["type"] = "SetVariable",
+                        ["inputs"] = new JObject
+                        {
+                            ["name"] = "shouldTerminate",
+                            ["value"] = true
+                        },
+                        ["runAfter"] = runAfter.DeepClone()
+                    };
+
+                    // Build SetVariable for terminateMessage
+                    string setMsgName = AllocateName("Set_terminateMessage_" + NormalizeName(prop.Name), usedNames);
+                    var setMsg = new JObject
+                    {
+                        ["type"] = "SetVariable",
+                        ["inputs"] = new JObject
+                        {
+                            ["name"] = "terminateMessage",
+                            ["value"] = errorMessage
+                        },
+                        ["runAfter"] = new JObject
+                        {
+                            [setFlagName] = new JArray("SUCCEEDED")
+                        }
+                    };
+
+                    // Rewire any actions that depended on the old Terminate name
+                    foreach (var otherProp in actionsObj.Properties().ToList())
+                    {
+                        if (otherProp.Name == prop.Name) continue;
+                        var otherAction = otherProp.Value as JObject;
+                        if (otherAction == null) continue;
+                        var otherRunAfter = otherAction["runAfter"] as JObject;
+                        if (otherRunAfter == null) continue;
+
+                        if (otherRunAfter.Property(prop.Name) != null)
+                        {
+                            var statuses = otherRunAfter[prop.Name];
+                            otherRunAfter.Remove(prop.Name);
+                            otherRunAfter[setMsgName] = statuses;
+                        }
+                    }
+
+                    // Remove the Terminate and add the two SetVariable actions
+                    actionsObj.Remove(prop.Name);
+                    actionsObj[setFlagName] = setFlag;
+                    actionsObj[setMsgName] = setMsg;
+                }
+                else if (string.Equals(type, "If", StringComparison.OrdinalIgnoreCase))
+                {
+                    ReplaceTerminateInActions(action["actions"] as JObject, usedNames);
+                    var elseObj = action["else"] as JObject;
+                    if (elseObj != null)
+                    {
+                        ReplaceTerminateInActions(elseObj["actions"] as JObject, usedNames);
+                    }
+                }
+                else if (string.Equals(type, "Scope", StringComparison.OrdinalIgnoreCase))
+                {
+                    ReplaceTerminateInActions(action["actions"] as JObject, usedNames);
+                }
+            }
+        }
+
+        #endregion
     }
 }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -287,21 +288,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     string connectionString = null;
                     string primaryTransport = null;
                     string endpoint = null;
-                    string securityMode = null;
-                    string messageClientCredentialType = null;
-                    string transportClientCredentialType = null;
-                    string messageEncoding = null;
-                    string algorithmSuite = null;
-                    int? maxReceivedMessageSize = null;
-                    int? maxConcurrentCalls = null;
-                    string openTimeout = null;
-                    string closeTimeout = null;
-                    string sendTimeout = null;
-                    bool? establishSecurityContext = null;
-                    bool? negotiateServiceCredential = null;
-                    bool? includeExceptionDetailInFaults = null;
-                    bool? useSSO = null;
-                    bool? suspendMessageOnFailure = null;
+                    WcfMetadata wcfMetadata = null;
                     string hostAppsSubType = null;
                     string hostAppsConnectionString = null;
 
@@ -338,40 +325,10 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 connectionString = Value(customProps, "ConnectionString");
                                 primaryTransport = Value(customProps, "PrimaryTransport");
                                 endpoint = Value(customProps, "Endpoint") ?? Value(customProps, "Url");
-                                securityMode = Value(customProps, "SecurityMode");
                                 
-                                // WCF-specific metadata extraction
-                                messageClientCredentialType = Value(customProps, "MessageClientCredentialType");
-                                transportClientCredentialType = Value(customProps, "TransportClientCredentialType");
-                                messageEncoding = Value(customProps, "MessageEncoding");
-                                algorithmSuite = Value(customProps, "AlgorithmSuite");
-                                openTimeout = Value(customProps, "OpenTimeout");
-                                closeTimeout = Value(customProps, "CloseTimeout");
-                                sendTimeout = Value(customProps, "SendTimeout");
-                                
-                                var maxMsgSize = Value(customProps, "MaxReceivedMessageSize");
-                                if (!string.IsNullOrEmpty(maxMsgSize) && int.TryParse(maxMsgSize, out var msgSize))
-                                    maxReceivedMessageSize = msgSize;
-                                
-                                var maxCalls = Value(customProps, "MaxConcurrentCalls");
-                                if (!string.IsNullOrEmpty(maxCalls) && int.TryParse(maxCalls, out var calls))
-                                    maxConcurrentCalls = calls;
-                                
-                                // Boolean flags (BizTalk uses -1 for true, 0 for false)
-                                var estSecCtx = Value(customProps, "EstablishSecurityContext");
-                                establishSecurityContext = estSecCtx == "-1" ? true : estSecCtx == "0" ? (bool?)false : null;
-                                
-                                var negCred = Value(customProps, "NegotiateServiceCredential");
-                                negotiateServiceCredential = negCred == "-1" ? true : negCred == "0" ? (bool?)false : null;
-                                
-                                var inclExc = Value(customProps, "IncludeExceptionDetailInFaults");
-                                includeExceptionDetailInFaults = inclExc == "-1" ? true : inclExc == "0" ? (bool?)false : null;
-                                
-                                var sso = Value(customProps, "UseSSO");
-                                useSSO = sso == "-1" ? true : sso == "0" ? (bool?)false : null;
-                                
-                                var suspend = Value(customProps, "SuspendMessageOnFailure");
-                                suspendMessageOnFailure = suspend == "-1" ? true : suspend == "0" ? (bool?)false : null;
+                                // WCF-specific metadata extraction (consolidated)
+                                wcfMetadata = WcfMetadata.FromCustomProps(Value, customProps);
+                                wcfMetadata.ParseReceiveOnlyProps(Value, customProps);
                                 
                                 // Extract HostApps subtype (CICS/IMS/VSAM) from AssemblyMappings
                                 if (transportType.Equals("HostApps", StringComparison.OrdinalIgnoreCase))
@@ -385,7 +342,10 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 }
                             }
                         }
-                        catch { }
+                        catch (Exception ex) when (!ex.IsFatal())
+                        {
+                            Trace.TraceWarning("Could not parse receive location transport data: {0}", ex.Message);
+                        }
                     }
 
                     if (!string.IsNullOrWhiteSpace(address))
@@ -410,23 +370,24 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         ConnectionString = connectionString,
                         PrimaryTransport = primaryTransport,
                         Endpoint = endpoint,
-                        SecurityMode = securityMode,
                         
-                        // WCF-specific metadata
-                        MessageClientCredentialType = messageClientCredentialType,
-                        TransportClientCredentialType = transportClientCredentialType,
-                        MessageEncoding = messageEncoding,
-                        AlgorithmSuite = algorithmSuite,
-                        MaxReceivedMessageSize = maxReceivedMessageSize,
-                        MaxConcurrentCalls = maxConcurrentCalls,
-                        OpenTimeout = openTimeout,
-                        CloseTimeout = closeTimeout,
-                        SendTimeout = sendTimeout,
-                        EstablishSecurityContext = establishSecurityContext,
-                        NegotiateServiceCredential = negotiateServiceCredential,
-                        IncludeExceptionDetailInFaults = includeExceptionDetailInFaults,
-                        UseSSO = useSSO,
-                        SuspendMessageOnFailure = suspendMessageOnFailure,
+                        // Consolidated WCF metadata
+                        Wcf = wcfMetadata ?? new WcfMetadata(),
+                        SecurityMode = wcfMetadata?.SecurityMode,
+                        MessageClientCredentialType = wcfMetadata?.MessageClientCredentialType,
+                        TransportClientCredentialType = wcfMetadata?.TransportClientCredentialType,
+                        MessageEncoding = wcfMetadata?.MessageEncoding,
+                        AlgorithmSuite = wcfMetadata?.AlgorithmSuite,
+                        MaxReceivedMessageSize = wcfMetadata?.MaxReceivedMessageSize,
+                        MaxConcurrentCalls = wcfMetadata?.MaxConcurrentCalls,
+                        OpenTimeout = wcfMetadata?.OpenTimeout,
+                        CloseTimeout = wcfMetadata?.CloseTimeout,
+                        SendTimeout = wcfMetadata?.SendTimeout,
+                        EstablishSecurityContext = wcfMetadata?.EstablishSecurityContext,
+                        NegotiateServiceCredential = wcfMetadata?.NegotiateServiceCredential,
+                        IncludeExceptionDetailInFaults = wcfMetadata?.IncludeExceptionDetailInFaults,
+                        UseSSO = wcfMetadata?.UseSSO,
+                        SuspendMessageOnFailure = wcfMetadata?.SuspendMessageOnFailure,
                         
                         // HostApps metadata
                         HostAppsSubType = hostAppsSubType,
@@ -506,9 +467,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             }
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex) when (!ex.IsFatal())
                     {
-                        // Ignore filter parsing errors
+                        Trace.TraceWarning("Could not parse send port filter: {0}", ex.Message);
                     }
                 }
 
@@ -518,17 +479,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 string primaryTransport = null;
                 string endpoint = null;
                 string securityMode = null;
-                string messageClientCredentialType = null;
-                string transportClientCredentialType = null;
-                string messageEncoding = null;
-                string algorithmSuite = null;
-                int? maxReceivedMessageSize = null;
-                int? maxConcurrentCalls = null;
-                string openTimeout = null;
-                string closeTimeout = null;
-                string sendTimeout = null;
-                bool? establishSecurityContext = null;
-                bool? negotiateServiceCredential = null;
+                WcfMetadata wcfMetadata = null;
                 string hostAppsSubType = null;
                 string hostAppsConnectionString = null;
 
@@ -549,28 +500,8 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             endpoint = Value(customProps, "Endpoint") ?? Value(customProps, "Url");
                             securityMode = Value(customProps, "SecurityMode");
                             
-                            // WCF-specific metadata extraction for send ports
-                            messageClientCredentialType = Value(customProps, "MessageClientCredentialType");
-                            transportClientCredentialType = Value(customProps, "TransportClientCredentialType");
-                            messageEncoding = Value(customProps, "MessageEncoding");
-                            algorithmSuite = Value(customProps, "AlgorithmSuite");
-                            openTimeout = Value(customProps, "OpenTimeout");
-                            closeTimeout = Value(customProps, "CloseTimeout");
-                            sendTimeout = Value(customProps, "SendTimeout");
-                            
-                            var maxMsgSize = Value(customProps, "MaxReceivedMessageSize");
-                            if (!string.IsNullOrEmpty(maxMsgSize) && int.TryParse(maxMsgSize, out var msgSize))
-                                maxReceivedMessageSize = msgSize;
-                            
-                            var maxCalls = Value(customProps, "MaxConcurrentCalls");
-                            if (!string.IsNullOrEmpty(maxCalls) && int.TryParse(maxCalls, out var calls))
-                                maxConcurrentCalls = calls;
-                            
-                            var estSecCtx = Value(customProps, "EstablishSecurityContext");
-                            establishSecurityContext = estSecCtx == "-1" ? true : estSecCtx == "0" ? (bool?)false : null;
-                            
-                            var negCred = Value(customProps, "NegotiateServiceCredential");
-                            negotiateServiceCredential = negCred == "-1" ? true : negCred == "0" ? (bool?)false : null;
+                            // WCF-specific metadata extraction (consolidated)
+                            wcfMetadata = WcfMetadata.FromCustomProps(Value, customProps);
                             
                             // Extract HostApps subtype for send ports
                             if (transportType.Equals("HostApps", StringComparison.OrdinalIgnoreCase))
@@ -584,7 +515,10 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             }
                         }
                     }
-                    catch { }
+                    catch (Exception ex) when (!ex.IsFatal())
+                    {
+                        Trace.TraceWarning("Could not parse send port transport data: {0}", ex.Message);
+                    }
                 }
 
                 snap.SendPorts.Add(new BindingSendPort
@@ -598,20 +532,21 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     ConnectionString = connectionString,
                     PrimaryTransport = primaryTransport,
                     Endpoint = endpoint,
-                    SecurityMode = securityMode,
+                    SecurityMode = securityMode ?? wcfMetadata?.SecurityMode,
                     
-                    // WCF-specific metadata for send ports
-                    MessageClientCredentialType = messageClientCredentialType,
-                    TransportClientCredentialType = transportClientCredentialType,
-                    MessageEncoding = messageEncoding,
-                    AlgorithmSuite = algorithmSuite,
-                    MaxReceivedMessageSize = maxReceivedMessageSize,
-                    MaxConcurrentCalls = maxConcurrentCalls,
-                    OpenTimeout = openTimeout,
-                    CloseTimeout = closeTimeout,
-                    SendTimeout = sendTimeout,
-                    EstablishSecurityContext = establishSecurityContext,
-                    NegotiateServiceCredential = negotiateServiceCredential,
+                    // Consolidated WCF metadata
+                    Wcf = wcfMetadata ?? new WcfMetadata { SecurityMode = securityMode },
+                    MessageClientCredentialType = wcfMetadata?.MessageClientCredentialType,
+                    TransportClientCredentialType = wcfMetadata?.TransportClientCredentialType,
+                    MessageEncoding = wcfMetadata?.MessageEncoding,
+                    AlgorithmSuite = wcfMetadata?.AlgorithmSuite,
+                    MaxReceivedMessageSize = wcfMetadata?.MaxReceivedMessageSize,
+                    MaxConcurrentCalls = wcfMetadata?.MaxConcurrentCalls,
+                    OpenTimeout = wcfMetadata?.OpenTimeout,
+                    CloseTimeout = wcfMetadata?.CloseTimeout,
+                    SendTimeout = wcfMetadata?.SendTimeout,
+                    EstablishSecurityContext = wcfMetadata?.EstablishSecurityContext,
+                    NegotiateServiceCredential = wcfMetadata?.NegotiateServiceCredential,
                     
                     // HostApps metadata for send ports
                     HostAppsSubType = hostAppsSubType,
@@ -676,8 +611,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 // Default to HostFile if we can't determine
                 return "HostFile";
             }
-            catch (Exception)
+            catch (Exception ex) when (!ex.IsFatal())
             {
+                Trace.TraceWarning("Could not detect HostApps subtype: {0}", ex.Message);
                 return null;
             }
         }
@@ -703,8 +639,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return mappingsDoc.Descendants()
                     .FirstOrDefault(e => e.Name.LocalName == "connectionString")?.Value;
             }
-            catch
+            catch (Exception ex) when (!ex.IsFatal())
             {
+                Trace.TraceWarning("Could not extract HostApps connection string: {0}", ex.Message);
                 return null;
             }
         }
@@ -737,7 +674,10 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 var dir = System.IO.Path.GetDirectoryName(address);
                 return string.IsNullOrWhiteSpace(dir) ? "/" : dir;
             }
-            catch { return null; }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                return null;
+            }
         }
         /// <summary>
         /// Extracts the file mask pattern from a file address string.
@@ -752,7 +692,10 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 var file = System.IO.Path.GetFileName(address);
                 return file != null && file.Contains("*") ? file : null;
             }
-            catch { return null; }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                return null;
+            }
         }
         
         /// <summary>
@@ -848,6 +791,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         /// </summary>
         public string Endpoint { get; set; }
         
+        /// <summary>Consolidated WCF binding metadata parsed from transport data.</summary>
+        public WcfMetadata Wcf { get; set; }
+
         /// <summary>
         /// Gets or sets the WCF security mode (None, Transport, Message, TransportWithMessageCredential).
         /// </summary>
@@ -988,6 +934,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         /// </summary>
         public string Endpoint { get; set; }
         
+        /// <summary>Consolidated WCF binding metadata parsed from transport data.</summary>
+        public WcfMetadata Wcf { get; set; }
+
         /// <summary>
         /// Gets or sets the WCF security mode (None, Transport, Message, TransportWithMessageCredential).
         /// </summary>

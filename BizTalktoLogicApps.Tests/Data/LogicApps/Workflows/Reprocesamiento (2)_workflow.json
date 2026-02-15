@@ -1,0 +1,464 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "fechaPago": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "fechaPago",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "reprocesoPagosDominio": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "reprocesoPagosDominio",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "fechaPago": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "reprocesoPagos": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "reprocesoPagos",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "reprocesoPagosDominio": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "idProcesoPago": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "idProcesoPago",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "reprocesoPagos": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "xmlMensajeReproceso": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "xmlMensajeReproceso",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "idProcesoPago": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "reproceso": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "reproceso",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "xmlMensajeReproceso": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "origenInformacionEnvio": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "origenInformacionEnvio",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "reproceso": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "contador": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "contador",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "origenInformacionEnvio": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "archivoPagosAplicacionesDominio": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "archivoPagosAplicacionesDominio",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "contador": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "MensajeReproceso": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "MensajeReproceso",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "archivoPagosAplicacionesDominio": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Flujo_Principal": {
+        "type": "Scope",
+        "actions": {
+          "inicializa_variables": {
+            "type": "Compose",
+            "inputs": "@'reproceso = true'",
+            "runAfter": {}
+          },
+          "Obtiene_XML": {
+            "type": "Scope",
+            "actions": {
+              "ObtieneDatos": {
+                "type": "Compose",
+                "inputs": "@'idProcesoPago = (System.Int64)xpath( MensajeFolio, \"string(/*[local-name()=''Reprocesar'']/*[local-name()=''Folio'']/.)\");\r\n\r\nreprocesoPagosDominio = new Sat.Scade.PagosCore.Dominio.ReprocesaPagosDominio();\r\nreprocesoPagos = reprocesoPagosDominio.ObtenerDatos(idProcesoPago)'",
+                "runAfter": {}
+              },
+              "Construye_Mensaje_Declaración_b86a7a13": {
+                "type": "Compose",
+                "inputs": "@'xmlMensajeReproceso = new System.Xml.XmlDataDocument();\r\nxmlMensajeReproceso = Sat.Scade.PagosCore.Dominio.Utilerias.Serializa(typeof(Sat.Scade.Pagos.Modelo.Comun.RecepcionArchivosBanco),reprocesoPagos.ArchivosBanco);\r\n\r\nMensajeReproceso = xmlMensajeReproceso'",
+                "runAfter": {
+                  "ObtieneDatos": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "inicializa_variables": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Reprocesa_proceso_2d5b94b5": {
+            "type": "If",
+            "expression": "@equals(variables('reprocesoPagos')?['ArchivosBanco']?['Estado'], 'ErrorPlataforma')",
+            "actions": {
+              "StartOrchestration_1_757ac330": {
+                "type": "Workflow",
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "RecepcionPagos"
+                    }
+                  },
+                  "body": {
+                    "message": "@triggerBody()"
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Obtiene_XML": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "inicializa_datos": {
+            "type": "Compose",
+            "inputs": "@'contador = 0;\r\nfechaPago  = reprocesoPagos.ArchivosBanco.ArchivoCifras.FechaPresentacion'",
+            "runAfter": {
+              "Reprocesa_proceso_2d5b94b5": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Until": {
+            "type": "Until",
+            "expression": "@lessOrEquals(variables('reprocesoPagos')?['OrigenInformacionEnvio']?['Count'], variables('contador'))",
+            "limit": {
+              "count": 60,
+              "timeout": "PT1H"
+            },
+            "actions": {
+              "Expression_1": {
+                "type": "Compose",
+                "inputs": "@'WriteEntry(\"Pagos\",\"entra al ciclo de reproceso de otros aplicativos\")'",
+                "runAfter": {}
+              },
+              "Obtener_Origen_de_información": {
+                "type": "Compose",
+                "inputs": "@'origenInformacionEnvio = new Sat.Scade.PagosCore.Modelo.Dominio.OrigenInformacionEnvio();\r\narchivoPagosAplicacionesDominio = new Sat.Scade.PagosCore.Dominio.ArchivoPagosAplicacionesDominio();\r\norigenInformacionEnvio = archivoPagosAplicacionesDominio.ObtenerOrigenInformacionReproceso(reprocesoPagos, contador);\r\ncontador = contador + 1'",
+                "runAfter": {
+                  "Expression_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Verifica_si_se_reprocesa_Acuse_Bancos_b705fcd5": {
+                "type": "If",
+                "expression": "@equals(variables('origenInformacionEnvio')?['IdTipoProcesoExterno'], 'ProcesaAcuseBanco')",
+                "actions": {
+                  "StartOrchestration_1_5b45d488": {
+                    "type": "Workflow",
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "GeneraEnviaAcuseBanco"
+                        }
+                      },
+                      "body": {
+                        "message": "@triggerBody()"
+                      }
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Verifica_si_se_reprocesa_Tesofe_73d86c99": {
+                      "type": "If",
+                      "expression": "@equals(variables('origenInformacionEnvio')?['IdTipoProcesoExterno'], 'ProcesaTesofe')",
+                      "actions": {
+                        "StartOrchestration_1_f2c160eb": {
+                          "type": "Workflow",
+                          "inputs": {
+                            "host": {
+                              "workflow": {
+                                "id": "GeneraEnviaArchivoTesofe"
+                              }
+                            },
+                            "body": {
+                              "message": "@triggerBody()"
+                            }
+                          },
+                          "runAfter": {}
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Verifica_si_se_reprocesa_Cuenta_Tributaria_a6bca058": {
+                            "type": "If",
+                            "expression": "@equals(variables('origenInformacionEnvio')?['IdTipoProcesoExterno'], 'ProcesaCuentaTributaria')",
+                            "actions": {
+                              "StartOrchestration_1_375a361a": {
+                                "type": "Workflow",
+                                "inputs": {
+                                  "host": {
+                                    "workflow": {
+                                      "id": "GeneraEnviaArchivoCT"
+                                    }
+                                  },
+                                  "body": {
+                                    "message": "@triggerBody()"
+                                  }
+                                },
+                                "runAfter": {}
+                              }
+                            },
+                            "else": {
+                              "actions": {
+                                "Expression_1_90664b6e": {
+                                  "type": "Compose",
+                                  "inputs": "@'WriteEntry(\"Pagos\",\"Reprocesa Lotes nepe\")'",
+                                  "runAfter": {}
+                                },
+                                "Verifica_si_se_reprocesa_Lote_Nepe_8395f1c5": {
+                                  "type": "If",
+                                  "expression": "@equals(variables('origenInformacionEnvio')?['IdTipoProcesoExterno'], 'ProcesaLoteNEPE')",
+                                  "actions": {
+                                    "StartOrchestration_1_fc90040a": {
+                                      "type": "Workflow",
+                                      "inputs": {
+                                        "host": {
+                                          "workflow": {
+                                            "id": "GeneraEnviaLoteNEPE"
+                                          }
+                                        },
+                                        "body": {
+                                          "message": "@triggerBody()"
+                                        }
+                                      },
+                                      "runAfter": {}
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "StartOrchestration_1_fc60a4b5": {
+                                        "type": "Workflow",
+                                        "inputs": {
+                                          "host": {
+                                            "workflow": {
+                                              "id": "EnviaNotificacionesPagos"
+                                            }
+                                          },
+                                          "body": {
+                                            "message": "@triggerBody()"
+                                          }
+                                        },
+                                        "runAfter": {}
+                                      }
+                                    }
+                                  },
+                                  "runAfter": {
+                                    "Expression_1_90664b6e": [
+                                      "SUCCEEDED"
+                                    ]
+                                  }
+                                }
+                              }
+                            },
+                            "runAfter": {}
+                          }
+                        }
+                      },
+                      "runAfter": {}
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Obtener_Origen_de_información": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "inicializa_datos": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Excepcion_General": {
+            "type": "Scope",
+            "actions": {
+              "Escribe_error": {
+                "type": "Compose",
+                "inputs": "@'//Microsoft.Framework.Logger.EventViewer.Logger.EscribirEntradaError(ExcepcionGenerica,10000);\r\n\r\n\r\nMicrosoft.Framework.Logger.EventViewer.Logger.EscribirEntradaError(ExcepcionGenerica,Sat.Scade.PagosCore.Modelo.Dominio.IdentificadoresLogEventos.PROCESAMIENTO_00,\r\nSystem.String.Format(Sat.Scade.PagosCore.Modelo.Dominio.IdentificadoresLogEventos.E6000, 0, ExcepcionGenerica.Message))'",
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "Until": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "MensajeReproceso": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Flujo_Principal": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Exception Handling & Compensation",
+          "description": "Handle errors and perform compensating actions",
+          "recommendation": "Use Scope action with Configure Run After for error handling"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:13.4787717Z"
+    }
+  }
+}

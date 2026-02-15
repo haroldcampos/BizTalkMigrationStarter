@@ -1,0 +1,352 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "shouldTerminate": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "shouldTerminate",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "terminateMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "terminateMessage",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "shouldTerminate": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "retryCount": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "retryCount",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "terminateMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "InquiryMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "InquiryMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "retryCount": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "bInquiryStatus": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "bInquiryStatus",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "InquiryMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Until": {
+        "type": "Until",
+        "expression": "@greaterOrEquals(variables('retryCount'), 3)",
+        "limit": {
+          "count": 3,
+          "timeout": "PT1H"
+        },
+        "actions": {
+          "InquiryScope": {
+            "type": "Scope",
+            "actions": {
+              "Check_PO_Existence": {
+                "type": "Scope",
+                "actions": {
+                  "Send_Inquiry": {
+                    "type": "Http",
+                    "inputs": {
+                      "method": "POST",
+                      "uri": "http://localhost/service",
+                      "body": "@triggerBody()",
+                      "headers": {
+                        "Content-Type": "application/json"
+                      }
+                    },
+                    "runAfter": {}
+                  },
+                  "Recv_Response": {
+                    "type": "Compose",
+                    "inputs": "// Unmapped: Response Receive response from OrderInquiryPort (BizTalk correlation pattern - requires manual configuration)",
+                    "runAfter": {
+                      "Send_Inquiry": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {}
+              },
+              "Breakloop": {
+                "type": "Compose",
+                "inputs": "@'bInquiryStatus = InquiryResponseMsg.Response.OrderExist;\r\nretryCount = 3'",
+                "runAfter": {
+                  "Check_PO_Existence": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "CatchSystemException": {
+                "type": "Scope",
+                "actions": {
+                  "Count": {
+                    "type": "Compose",
+                    "inputs": "@'retryCount = retryCount + 1'",
+                    "runAfter": {}
+                  },
+                  "Terminate_87ce685d": {
+                    "type": "If",
+                    "expression": "@less(variables('retryCount'), 3)",
+                    "actions": {
+                      "Log_Susp_Error_2d8eb837": {
+                        "type": "Compose",
+                        "inputs": "@concat('WriteEntry(\"Litware Scenario\", \"Failed to get exsistance of order \"', 'OrderGroupId', ' from order system. Orchestration suspended due to error ', 'Warning')",
+                        "runAfter": {}
+                      },
+                      "Set_shouldTerminate_Suspend_b8087be8": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "shouldTerminate",
+                          "value": true
+                        },
+                        "runAfter": {
+                          "Log_Susp_Error_2d8eb837": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Set_terminateMessage_Suspend_b8087be8": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "terminateMessage",
+                          "value": "OrderSystemSystemFault.Message;"
+                        },
+                        "runAfter": {
+                          "Set_shouldTerminate_Suspend_b8087be8": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Log_Failure_Error_0434b49f": {
+                          "type": "Compose",
+                          "inputs": "@concat('WriteEntry(\"Litware Scenario\", \"Failed to get order \"', 'OrderGroupId', ' from order system. Returing failure due to ', 'Error')",
+                          "runAfter": {}
+                        },
+                        "Failure_Inquiry_732bec69": {
+                          "type": "Compose",
+                          "inputs": "@'bInquiryStatus = false'",
+                          "runAfter": {
+                            "Log_Failure_Error_0434b49f": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Count": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Breakloop": [
+                    "FAILED",
+                    "TIMEDOUT",
+                    "SKIPPED"
+                  ]
+                }
+              },
+              "CatchException": {
+                "type": "Scope",
+                "actions": {
+                  "Count_1": {
+                    "type": "Compose",
+                    "inputs": "@'retryCount = retryCount + 1'",
+                    "runAfter": {}
+                  },
+                  "Terminate_e9e665ca": {
+                    "type": "If",
+                    "expression": "@less(variables('retryCount'), 3)",
+                    "actions": {
+                      "Log_Susp_Error_ebb350c2": {
+                        "type": "Compose",
+                        "inputs": "@concat('WriteEntry(\"Litware Scenario\", \"Failed to get exsistance of order \"', 'OrderGroupId', ' from order system. Orchestration suspended due to error ', 'exp')",
+                        "runAfter": {}
+                      },
+                      "Set_shouldTerminate_Suspend_a6f98024": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "shouldTerminate",
+                          "value": true
+                        },
+                        "runAfter": {
+                          "Log_Susp_Error_ebb350c2": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Set_terminateMessage_Suspend_a6f98024": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "terminateMessage",
+                          "value": "exp.Message;"
+                        },
+                        "runAfter": {
+                          "Set_shouldTerminate_Suspend_a6f98024": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Log_Failure_Error_4fe7fc5a": {
+                          "type": "Compose",
+                          "inputs": "@concat('WriteEntry(\"Litware Scenario\", \"Failed to get order \"', 'OrderGroupId', ' from order system. Returing failure due to ', 'exp')",
+                          "runAfter": {}
+                        },
+                        "Failure_Inquiry_702e02bc": {
+                          "type": "Compose",
+                          "inputs": "@'bInquiryStatus = false'",
+                          "runAfter": {
+                            "Log_Failure_Error_4fe7fc5a": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Count_1": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Breakloop": [
+                    "FAILED",
+                    "TIMEDOUT",
+                    "SKIPPED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "bInquiryStatus": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Check_Terminate_Until": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Check_Terminate_Until": {
+        "type": "If",
+        "expression": "@equals(variables('shouldTerminate'), true)",
+        "actions": {
+          "Terminate_Until": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "Terminated",
+                "message": "@variables('terminateMessage')"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Until": [
+            "SUCCEEDED",
+            "FAILED",
+            "TIMEDOUT"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

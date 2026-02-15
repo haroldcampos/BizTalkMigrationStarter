@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using BizTalktoLogicApps.ODXtoWFMigrator;
 
@@ -63,7 +64,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 throw new ArgumentNullException(nameof(options));
             }
 
-            Console.WriteLine("[CONNECTOR OPTIMIZER] Optimizing connectors for deployment target: " + options.Target);
+            Trace.TraceInformation("[CONNECTOR OPTIMIZER] Optimizing connectors for deployment target: {0}", options.Target);
 
             var upgradesApplied = 0;
 
@@ -78,26 +79,30 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 }
             }
 
-            // Optimize action connectors
-            foreach (var action in workflow.Actions.Where(a => a.Type == "SendConnector"))
+            // Optimize all SendConnector actions (top-level and nested)
+            foreach (var action in workflow.Actions)
             {
-                var upgraded = OptimizeActionConnector(action, registry, options);
-                if (upgraded)
+                if (action.Type == "SendConnector")
                 {
-                    upgradesApplied++;
+                    if (OptimizeActionConnector(action, registry, options))
+                    {
+                        upgradesApplied++;
+                    }
                 }
-            }
 
-            // Recursively optimize connectors in nested actions
-            upgradesApplied += OptimizeNestedActionConnectors(workflow.Actions, registry, options);
+                // Recurse into children and branches
+                upgradesApplied += OptimizeNestedActionConnectors(action.Children, registry, options);
+                upgradesApplied += OptimizeNestedActionConnectors(action.TrueBranch, registry, options);
+                upgradesApplied += OptimizeNestedActionConnectors(action.FalseBranch, registry, options);
+            }
 
             if (upgradesApplied > 0)
             {
-                Console.WriteLine($"[CONNECTOR OPTIMIZER] Applied {upgradesApplied} connector upgrade(s)");
+                Trace.TraceInformation("[CONNECTOR OPTIMIZER] Applied {0} connector upgrade(s)", upgradesApplied);
             }
             else
             {
-                Console.WriteLine("[CONNECTOR OPTIMIZER] No connector upgrades needed");
+                Trace.TraceInformation("[CONNECTOR OPTIMIZER] No connector upgrades needed");
             }
         }
 
@@ -110,7 +115,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             RefactoringOptions options)
         {
             var originalKind = trigger.Kind;
-            var originalTransport = trigger.TransportType;
 
             // Determine optimal connector kind
             var upgradedKind = SelectOptimalConnector(
@@ -122,7 +126,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
 
             if (upgradedKind != null && upgradedKind != originalKind)
             {
-                Console.WriteLine($"[CONNECTOR OPTIMIZER]   Trigger: {originalKind} -> {upgradedKind}");
+                Trace.TraceInformation("[CONNECTOR OPTIMIZER]   Trigger: {0} -> {1}", originalKind, upgradedKind);
                 trigger.Kind = upgradedKind;
                 trigger.TransportType = upgradedKind;
                 return true;
@@ -151,7 +155,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
 
             if (upgradedKind != null && upgradedKind != originalKind)
             {
-                Console.WriteLine($"[CONNECTOR OPTIMIZER]   Action '{action.Name}': {originalKind} -> {upgradedKind}");
+                Trace.TraceInformation("[CONNECTOR OPTIMIZER]   Action '{0}': {1} -> {2}", action.Name, originalKind, upgradedKind);
                 action.ConnectorKind = upgradedKind;
                 return true;
             }
@@ -171,16 +175,15 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
 
             foreach (var action in actions)
             {
-                // Optimize nested SendConnector actions
-                foreach (var child in action.Children.Where(a => a.Type == "SendConnector"))
+                if (action.Type == "SendConnector")
                 {
-                    if (OptimizeActionConnector(child, registry, options))
+                    if (OptimizeActionConnector(action, registry, options))
                     {
                         upgradesApplied++;
                     }
                 }
 
-                // Recurse into children
+                // Recurse into children and branches
                 upgradesApplied += OptimizeNestedActionConnectors(action.Children, registry, options);
                 upgradesApplied += OptimizeNestedActionConnectors(action.TrueBranch, registry, options);
                 upgradesApplied += OptimizeNestedActionConnectors(action.FalseBranch, registry, options);
@@ -262,7 +265,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             {
                 if (registry.HasConnector("Sftp"))
                 {
-                    Console.WriteLine($"[CONNECTOR OPTIMIZER]     Recommendation: Consider upgrading FTP to SFTP for security");
+                    Trace.TraceInformation("[CONNECTOR OPTIMIZER]     Recommendation: Consider upgrading FTP to SFTP for security");
                     // Don't auto-upgrade FTP to SFTP as it requires different authentication
                     // Just log the recommendation
                 }
@@ -275,7 +278,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             {
                 if (options.Target == DeploymentTarget.OnPremises)
                 {
-                    Console.WriteLine("[CONNECTOR OPTIMIZER]     WARNING: Service Bus not available on-premises. Replacing with messaging alternative.");
+                    Trace.TraceWarning("[CONNECTOR OPTIMIZER] Service Bus not available on-premises. Replacing with messaging alternative.");
                     
                     // Auto-replace with RabbitMQ for on-prem (Service Bus doesn't work on-prem)
                     if (string.Equals(options.PreferredMessagingPlatform, "RabbitMQ", StringComparison.OrdinalIgnoreCase) &&
@@ -294,7 +297,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             // Azure Event Hub - cloud-only, needs alternative for on-prem
             if (adapter.IndexOf("eventhub") >= 0 && options.Target == DeploymentTarget.OnPremises)
             {
-                Console.WriteLine("[CONNECTOR OPTIMIZER]     WARNING: Event Hub not available on-premises. Replacing with messaging alternative.");
+                Trace.TraceWarning("[CONNECTOR OPTIMIZER] Event Hub not available on-premises. Replacing with messaging alternative.");
                 
                 if (string.Equals(options.PreferredMessagingPlatform, "Kafka", StringComparison.OrdinalIgnoreCase) &&
                     registry.HasConnector("ConfluentKafka"))
@@ -310,7 +313,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             // Cosmos DB validation for on-prem - cloud-only, needs alternative
             if (adapter.IndexOf("cosmos") >= 0 && options.Target == DeploymentTarget.OnPremises)
             {
-                Console.WriteLine("[CONNECTOR OPTIMIZER]     WARNING: Cosmos DB not available on-premises. Replacing with SQL.");
+                Trace.TraceWarning("[CONNECTOR OPTIMIZER] Cosmos DB not available on-premises. Replacing with SQL.");
                 
                 // Suggest SQL as fallback
                 if (registry.HasConnector("Sql"))
@@ -322,7 +325,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             // Azure Blob Storage - cloud-only, needs alternative for on-prem
             if (adapter.IndexOf("azureblob") >= 0 && options.Target == DeploymentTarget.OnPremises)
             {
-                Console.WriteLine("[CONNECTOR OPTIMIZER]     WARNING: Azure Blob Storage not available on-premises. Replacing with FileSystem.");
+                Trace.TraceWarning("[CONNECTOR OPTIMIZER] Azure Blob Storage not available on-premises. Replacing with FileSystem.");
                 
                 if (registry.HasConnector("FileSystem"))
                 {
@@ -336,7 +339,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 // Check if this is actually a known service that has a managed connector
                 // This would require analyzing the TargetAddress, which we don't have in this context
                 // Just log a recommendation
-                Console.WriteLine($"[CONNECTOR OPTIMIZER]     Info: HTTP action - consider using managed connector if available for target service");
+                Trace.TraceInformation("[CONNECTOR OPTIMIZER] HTTP action - consider using managed connector if available for target service");
             }
 
             // No upgrade needed

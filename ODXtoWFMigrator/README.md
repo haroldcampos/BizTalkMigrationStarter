@@ -276,8 +276,9 @@ When using `--refactor`, additional optimization layers are applied:
 - Handle message/variable references
 
 **Examples**:
-- `orderCount > 10` -> `@greater(variables('orderCount'), 10)`
-- `Message.OrderHeader.Status == "Active"` -> `@equals(body('Message')['OrderHeader']['Status'], 'Active')`
+- `orderCount > 10` ? `@greater(variables('orderCount'), 10)`
+- `Message.OrderHeader.Status == "Active"` ? `@equals(body('Message')['OrderHeader']['Status'], 'Active')`
+- `a == 1 && b == 2 && c == 3` ? `@and(equals(variables('a'), 1), and(equals(variables('b'), 2), equals(variables('c'), 3)))` *(N-ary support)*
 
 #### 5. LogicAppJSONGenerator
 **File**: `LogicAppJSONGenerator.cs` (~1400 lines)
@@ -1235,6 +1236,30 @@ See **BizTalkToLogicApps.MCP** project for MCP server usage.
 ### NuGet Packages
 - **Newtonsoft.Json** 13.0.3 - JSON serialization
 
+## Changelog
+
+### v1.1.0 (January 2026)
+
+#### Bug Fixes
+
+- **Fixed `ThreadLocal<string>` memory leak in `LogicAppsMapper`** — Replaced `ThreadLocal<string>` fields (`_currentOrchestrationName`, `_currentOrchestrationFullName`) with `[ThreadStatic]` static fields. `ThreadLocal<T>` implements `IDisposable` but was never disposed in the static class, causing memory leaks in long-running processes such as the MCP server. `[ThreadStatic]` provides identical per-thread isolation without requiring disposal.
+
+- **Fixed `InvertCondition` ignoring parenthesized grouping** — De Morgan's law splits now respect parenthesis depth via a new `SplitAtTopLevel()` method. Previously, `"(a < 5 && b > 3) || c == 1"` was incorrectly split on the inner `&&` instead of the top-level `||`, producing malformed Until conditions when converting BizTalk While loops.
+
+- **Fixed N-ary `&&`/`||` expressions falling back to string literals in `ExpressionMapper`** — `ConvertLogicalAnd` and `ConvertLogicalOr` now handle 3+ operands by building nested `and()`/`or()` calls (e.g., `a && b && c` ? `and(a, and(b, c))`). Previously, only binary expressions were converted; expressions with 3+ predicates were silently dropped as unconverted string literals.
+
+#### Tests Added
+
+- `InvertCondition_ParenthesizedCompound_RespectsGrouping`
+- `InvertCondition_TernaryAnd_InvertsAllThreeParts`
+- `MapExpression_TernaryAnd_ProducesNestedAndCalls`
+- `MapExpression_TernaryOr_ProducesNestedOrCalls`
+- `MapExpression_QuaternaryAnd_ProducesNestedAndCalls`
+
+### v1.0.0 (January 2026)
+
+- Initial release
+
 ##  License
 
 MIT License - See LICENSE file in repository root.
@@ -1251,11 +1276,11 @@ For issues, questions, or feature requests:
 
 ---
 
-**Version**: 1.0.0  
+**Version**: 1.1.0  
 **Last Updated**: January 2026
 
 **Related Projects**:
-- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to lml template conversion
+- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to LML (Logic Apps Mapping Language) conversion
 - **[BTPtoLA](../BTPtoLA/README.md)** - BizTalk pipeline to Logic Apps conversion
 - **[BizTalkToLogicApps.MCP](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.MCP/README.md)** - MCP server for AI-assisted migration
 - [Azure Logic Apps Documentation](https://learn.microsoft.com/azure/logic-apps/)

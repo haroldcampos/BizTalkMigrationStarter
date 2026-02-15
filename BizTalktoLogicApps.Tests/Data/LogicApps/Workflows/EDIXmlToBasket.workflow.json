@@ -1,0 +1,108 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "brokerID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "brokerID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "partnerID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "partnerID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "brokerID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Get_Broker_ID": {
+        "type": "Compose",
+        "inputs": "@'brokerID = Microsoft.Samples.BizTalk.Litware.Utilities.PartnerHelper.GetPartnerId (Source(BTS.InboundTransportLocation));\r\npartnerID = Microsoft.Samples.BizTalk.Litware.Utilities.PartnerHelper.GetPartnerId(Source(EDI.ISA08))'",
+        "runAfter": {
+          "partnerID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructBasketMessage_1240e7c7": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "X12_00401_850_To_Basket",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Get_Broker_ID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SendBasket": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructBasketMessage_1240e7c7')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructBasketMessage_1240e7c7": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "SendBasket": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

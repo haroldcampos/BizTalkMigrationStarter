@@ -1,0 +1,333 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "ship_request_ack": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ship_request_ack",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "ship_history": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ship_history",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ship_request_ack": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ship_status": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ship_status",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ship_history": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_1_bc83ff84": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Order2ShipRequest",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "ship_status": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructMessage_1_bc83ff84')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_1_bc83ff84": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Receive_2": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from shipperresponse (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Send_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Decision_1_314297eb": {
+        "type": "If",
+        "expression": "@equals(variables('ship_request_ack')?['Ship_Acknowledged'], true)",
+        "actions": {
+          "ConstructMessage_2_42b107c2": {
+            "type": "Xslt",
+            "inputs": {
+              "content": "@triggerBody()",
+              "map": {
+                "name": "Order2OrderAck",
+                "type": "Xslt"
+              },
+              "transformOptions": "ApplyXsltTemplates"
+            },
+            "runAfter": {}
+          }
+        },
+        "else": {
+          "actions": {
+            "ConstructMessage_3_7a0072a3": {
+              "type": "Xslt",
+              "inputs": {
+                "content": "@triggerBody()",
+                "map": {
+                  "name": "Order2OrderNack",
+                  "type": "Xslt"
+                },
+                "transformOptions": "ApplyXsltTemplates"
+              },
+              "runAfter": {}
+            }
+          }
+        },
+        "runAfter": {
+          "Receive_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_2": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructMessage_3_7a0072a3')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Decision_1_314297eb": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Receive_3": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from shippingrequestor (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Send_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_4_151663ec": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Order2ShipHistory",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Receive_3": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Until": {
+        "type": "Until",
+        "expression": "@not(equals(variables('ship_history')?['Ship_Completed'], false))",
+        "limit": {
+          "count": 60,
+          "timeout": "PT1H"
+        },
+        "actions": {
+          "Receive_4": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from shippingrequestor (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {}
+          },
+          "Decision_2_95685980": {
+            "type": "If",
+            "expression": "@equals(variables('ship_status')?['ShipStatus'], 'DONE')",
+            "actions": {
+              "ConstructMessage_5_aa6f9793": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "ShipHistory2Completed",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Receive_4": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_4_151663ec": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Receive_5": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from invoiceprocessor (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Until": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_6_f71a98e4": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Invoice2Ack",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Receive_5": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_3": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructMessage_6_f71a98e4')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_6_f71a98e4": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Receive_6": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from shippingrequestor (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Send_3": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_7_0509c047": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Order2FinalConfirmation",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Receive_6": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_4": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructMessage_7_0509c047')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_7_0509c047": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Send_4": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

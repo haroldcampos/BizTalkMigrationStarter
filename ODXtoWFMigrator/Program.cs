@@ -4,12 +4,10 @@
 using BizTalktoLogicApps;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Schema;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 namespace BizTalktoLogicApps.ODXtoWFMigrator
 {
     partial class Program
@@ -966,6 +964,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 int successCount = 0;
                 int failCount = 0;
 
+                // Parse bindings and load registry once for all files
+                var binding = BindingSnapshot.Parse(bindingsPath);
+                var registry = BizTalkOrchestrationParser.TryLoadConnectorRegistry();
+                var validator = new WorkflowValidator();
+
                 foreach (var odxPath in odxFiles)
                 {
                     try
@@ -1006,7 +1009,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         {
                             // Parse orchestration
                             var orchestration = BizTalkOrchestrationParser.ParseOdx(odxPath);
-                            var binding = BindingSnapshot.Parse(bindingsPath);
 
                             // Check if this orchestration is callable (needs Request trigger for nested workflow support)
                             bool isCallable = callableOrchestrations.Contains(orchestration.Name) ||
@@ -1014,14 +1016,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                             // Map to Logic Apps with callable flag
                             var map = LogicAppsMapper.MapToLogicApp(orchestration, binding, isCallable);
-                            var registry = BizTalkOrchestrationParser.TryLoadConnectorRegistry();
 
                             // Generate JSON
                             json = LogicAppJSONGenerator.GenerateStandardWorkflow(map, "Stateful", schemaVersion, registry);
                         }
 
                         // Validate the generated workflow
-                        var validator = new WorkflowValidator();
                         var validationResult = validator.Validate(json);
 
                         // Save Logic App JSON
@@ -1892,7 +1892,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 var orchName = Path.GetFileNameWithoutExtension(odxPath);
 
                 // Pattern 1: Check common child workflow naming conventions
-                var callablePatterns = new[] { "common", "callexternal", "inner", "child", "sub", "helper", "utility", "process" };
+                var callablePatterns = new[] { "common", "callexternal", "inner", "child", "sub", "helper", "utility" };
                 if (callablePatterns.Any(p => orchName.IndexOf(p, StringComparison.OrdinalIgnoreCase) >= 0))
                 {
                     return true;

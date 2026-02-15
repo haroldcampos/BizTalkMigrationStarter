@@ -1,0 +1,306 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "WebService_CompensationOrchestrationWebServiceProxyMicrosoft_3A15B053": {
+        "type": "Request",
+        "kind": "Http",
+        "description": "Migrated from BizTalk WCF endpoint - BizTalk Adapter: SOAP; Original Address: /CompensationOrchestrationWebServiceProxy/Microsoft_Samples_BizTalk_Compensation_UpdateContact_FromCustomer.asmx",
+        "metadata": {
+          "biztalkTransportType": "SOAP",
+          "biztalkOriginalAddress": "/CompensationOrchestrationWebServiceProxy/Microsoft_Samples_BizTalk_Compensation_UpdateContact_FromCustomer.asmx"
+        }
+      }
+    },
+    "actions": {
+      "PreviousMailingData": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "PreviousMailingData",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "PreviousCrmData": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "PreviousCrmData",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "PreviousMailingData": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "UpdateCrmAssembly": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "UpdateCrmAssembly",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "PreviousCrmData": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "UpdateCrmCompensation": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "UpdateCrmCompensation",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "UpdateCrmAssembly": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "UpdateMailingListAssembly": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "UpdateMailingListAssembly",
+              "type": "array",
+              "value": []
+            }
+          ]
+        },
+        "runAfter": {
+          "UpdateCrmCompensation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Customer_Confirmation": {
+        "type": "Scope",
+        "actions": {
+          "Construct_Confirmation_358b5793": {
+            "type": "Xslt",
+            "inputs": {
+              "content": "@triggerBody()",
+              "map": {
+                "name": "UpdateRequest2UpdateResponse",
+                "type": "Xslt"
+              },
+              "transformOptions": "ApplyXsltTemplates"
+            },
+            "runAfter": {}
+          },
+          "Send_Confirmation": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@body('Construct_Confirmation_358b5793')",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "Construct_Confirmation_358b5793": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "UpdateMailingListAssembly": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Update_Backend_Systems": {
+        "type": "Scope",
+        "actions": {
+          "Update_CRM": {
+            "type": "Scope",
+            "actions": {
+              "Construct_CRM_Update_928f1586": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "Request2Crm",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {}
+              },
+              "Update_CRM_1": {
+                "type": "Scope",
+                "actions": {
+                  "Update_CRM_2": {
+                    "type": "Compose",
+                    "inputs": "@'Update(CrmUpdateRequestMsg))'",
+                    "runAfter": {}
+                  },
+                  "Undo_CRM_Update": {
+                    "type": "Scope",
+                    "actions": {
+                      "Update_with_Previous_Data": {
+                        "type": "Scope",
+                        "actions": {
+                          "Undo_CRM_1": {
+                            "type": "Compose",
+                            "inputs": "@variables('UpdateCrmCompensation')?['Update(PreviousCrmData)']",
+                            "runAfter": {}
+                          }
+                        },
+                        "runAfter": {}
+                      }
+                    },
+                    "runAfter": {
+                      "Update_CRM_2": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Construct_CRM_Update_928f1586": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "Update_Mailing_List": {
+            "type": "Scope",
+            "actions": {
+              "Construct_Mailing_List_Update_381a9bbd": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "Request2MailingList",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {}
+              },
+              "Update_Mailing": {
+                "type": "Scope",
+                "actions": {
+                  "Update_Mailing_List_1": {
+                    "type": "Compose",
+                    "inputs": "@'Update(MailingListUpdateRequestMsg))'",
+                    "runAfter": {}
+                  }
+                },
+                "runAfter": {
+                  "Construct_Mailing_List_Update_381a9bbd": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Update_CRM": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Catch_Exception": {
+            "type": "Scope",
+            "actions": {
+              "Delay": {
+                "type": "Wait",
+                "inputs": {
+                  "interval": {
+                    "count": 1,
+                    "unit": "Minute"
+                  }
+                },
+                "runAfter": {}
+              },
+              "Default_Compensate": {
+                "type": "Compose",
+                "inputs": "@'Compensate:'",
+                "runAfter": {
+                  "Delay": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Update_Mailing_List": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "UpdateMailingListAssembly": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Parallel_Join": {
+        "type": "Compose",
+        "inputs": {
+          "parallelBranchesCompleted": true,
+          "branchCount": 2
+        },
+        "runAfter": {
+          "Customer_Confirmation": [
+            "SUCCEEDED"
+          ],
+          "Update_Backend_Systems": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ToCustomerSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "filePath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Orchestrations\\Compensation\\Out\\%MessageID%.xml",
+            "body": "@triggerBody()"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "createFile",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "runAfter": {
+          "Parallel_Join": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

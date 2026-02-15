@@ -1,0 +1,244 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "orderID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "orderID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "partnerID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "partnerID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "orderID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "BusinessFaultMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "BusinessFaultMessage",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "partnerID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SystemFaultMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "SystemFaultMessage",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "BusinessFaultMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderMessage_39ebf841": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Basket_To_PurchaseOrder",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "SystemFaultMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CreateScope": {
+        "type": "Scope",
+        "actions": {
+          "Save_To_OrderDB": {
+            "type": "Compose",
+            "inputs": "@'orderID = OrderMessage(Microsoft.Samples.BizTalk.Litware.Schemas.OrderGroupID);\r\npartnerID = OrderMessage(Microsoft.Samples.BizTalk.Litware.Schemas.SoldToName);\r\nMicrosoft.Samples.BizTalk.Litware.Utilities.DBHelper.PlaceOrder(partnerID, orderID, OrderMessage)'",
+            "runAfter": {}
+          },
+          "CatchBusinessExceptions": {
+            "type": "Scope",
+            "actions": {
+              "BusinessFaultMessage_bc6cec11": {
+                "type": "Compose",
+                "inputs": "@'BusinessFaultMessage = Microsoft.Samples.BizTalk.Litware.Utilities.ResourceHelper.GetEmptyBusinessFault();\r\nBusinessFaultMessage.Message = appEx.Message;\r\nBusinessFaultMessage.Trace = appEx.StackTrace'",
+                "runAfter": {}
+              },
+              "SendBusinessFault": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "http://localhost/service",
+                  "body": "@triggerBody()",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  }
+                },
+                "runAfter": {
+                  "BusinessFaultMessage_bc6cec11": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "End_Orch": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": "appEx.Message;"
+                  }
+                },
+                "runAfter": {
+                  "SendBusinessFault": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Save_To_OrderDB": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          },
+          "CatchAllException": {
+            "type": "Scope",
+            "actions": {
+              "SystemFaultMessage_a579afb9": {
+                "type": "Compose",
+                "inputs": "@'SystemFaultMessage = Microsoft.Samples.BizTalk.Litware.Utilities.ResourceHelper.GetEmptySystemFault();\r\nSystemFaultMessage.Message = e.Message;\r\nSystemFaultMessage.Trace = e.StackTrace'",
+                "runAfter": {}
+              },
+              "Send_System_Fault": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "http://localhost/service",
+                  "body": "@triggerBody()",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  }
+                },
+                "runAfter": {
+                  "SystemFaultMessage_a579afb9": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "End_Orch_1": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": "e.Message;"
+                  }
+                },
+                "runAfter": {
+                  "Send_System_Fault": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Save_To_OrderDB": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "OrderMessage_39ebf841": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_Order": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('OrderMessage_39ebf841')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "CreateScope": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Send_Order": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

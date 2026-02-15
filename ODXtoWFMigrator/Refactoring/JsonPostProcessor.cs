@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using BizTalktoLogicApps.ODXtoWFMigrator;
@@ -42,7 +43,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 throw new ArgumentNullException(nameof(workflowJson));
             }
 
-            Console.WriteLine("[JSON POST-PROCESSOR] Applying final JSON optimizations");
+            Trace.TraceInformation("[JSON POST-PROCESSOR] Applying final JSON optimizations");
 
             try
             {
@@ -58,12 +59,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 // Format with indentation for readability
                 var formatted = JsonConvert.SerializeObject(workflow, Formatting.Indented);
 
-                Console.WriteLine("[JSON POST-PROCESSOR] JSON optimization complete");
+                Trace.TraceInformation("[JSON POST-PROCESSOR] JSON optimization complete");
                 return formatted;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[JSON POST-PROCESSOR] Warning: Could not post-process JSON - {ex.Message}");
+                Trace.TraceWarning("[JSON POST-PROCESSOR] Could not post-process JSON - {0}", ex.Message);
                 return workflowJson; // Return original on error
             }
         }
@@ -75,7 +76,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
         /// <returns>Parameters JSON string.</returns>
         public static string GenerateParametersFile(string workflowJson)
         {
-            Console.WriteLine("[JSON POST-PROCESSOR] Generating parameters file");
+            Trace.TraceInformation("[JSON POST-PROCESSOR] Generating parameters file");
 
             try
             {
@@ -109,12 +110,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                     ["parameters"] = parametersObj
                 };
 
-                Console.WriteLine($"[JSON POST-PROCESSOR] Extracted {parametersObj.Count} parameter(s)");
+                Trace.TraceInformation("[JSON POST-PROCESSOR] Extracted {0} parameter(s)", parametersObj.Count);
                 return JsonConvert.SerializeObject(result, Formatting.Indented);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[JSON POST-PROCESSOR] Warning: Could not generate parameters - {ex.Message}");
+                Trace.TraceWarning("[JSON POST-PROCESSOR] Could not generate parameters - {0}", ex.Message);
                 
                 // Return minimal valid parameters file
                 var fallback = new JObject
@@ -167,7 +168,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 workflow["metadata"] = metadata;
             }
 
-            Console.WriteLine($"[JSON POST-PROCESSOR]   Added metadata for {patterns.Count} pattern(s)");
+            Trace.TraceInformation("[JSON POST-PROCESSOR] Added metadata for {0} pattern(s)", patterns.Count);
         }
 
         /// <summary>

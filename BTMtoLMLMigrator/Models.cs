@@ -301,6 +301,32 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     }
                 }
             }
+
+            // Sort InputLinks to match the parameter order established during parsing.
+            // This ensures non-commutative functoids (subtract, divide, substring, etc.)
+            // receive their arguments in the correct positional order.
+            foreach (var functoid in _mapData.Functoids)
+            {
+                if (functoid.InputParameters.Count > 0 && functoid.InputLinks.Count > 1)
+                {
+                    var linkOrder = new Dictionary<string, int>();
+                    for (int i = 0; i < functoid.InputParameters.Count; i++)
+                    {
+                        var p = functoid.InputParameters[i];
+                        if (p.Type == "link" && !string.IsNullOrEmpty(p.Value))
+                        {
+                            linkOrder[p.Value] = i;
+                        }
+                    }
+
+                    functoid.InputLinks.Sort((a, b) =>
+                    {
+                        int orderA = linkOrder.ContainsKey(a.LinkId) ? linkOrder[a.LinkId] : int.MaxValue;
+                        int orderB = linkOrder.ContainsKey(b.LinkId) ? linkOrder[b.LinkId] : int.MaxValue;
+                        return orderA.CompareTo(orderB);
+                    });
+                }
+            }
         }
         
         /// <summary>

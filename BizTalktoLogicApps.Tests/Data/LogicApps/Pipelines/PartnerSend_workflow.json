@@ -1,0 +1,68 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "pipelinesend": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "Assemble": {
+        "type": "Scope",
+        "actions": {
+          "XMLassembler": {
+            "type": "XmlCompose",
+            "inputs": {
+              "schema": {
+                "source": "LogicApp",
+                "name": "SCHEMA_NAME_HERE"
+              },
+              "content": "@triggerBody()"
+            },
+            "metadata": {
+              "comment": "// Component: XML Assembler\r\n// Description: Converts XML messages to appropriate format, adds envelopes, moves properties from context to body\r\n// Behavior: Serializes message, wraps in envelope, adds headers/trailers, moves context properties to document\r\n// Message Flow: 1 message in ? 1 message out\r\n// Properties:\r\n//   EnvelopeDocSpecNames = \r\n//   EnvelopeSpecTargetNamespaces = \r\n//   DocumentSpecNames = \r\n//   DocumentSpecTargetNamespaces = \r\n//   ProcessingInstructionsOptions = 0\r\n//   AddXmlDeclaration = true\r\n//   TargetCharset = \r\n//   TargetCodePage = 0\n// Use 'Compose XML with schema' action\n// ACTION REQUIRED:\n// 1. Upload XSD schema to Logic App artifacts\n// 2. Select schema in Compose XML action\n// 3. Map input data to schema structure (as JSON object)\n// 4. Configure envelope if needed\n// Stage: Assemble (All)"
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {}
+      },
+      "Encode": {
+        "type": "Scope",
+        "actions": {
+          "MIMESMIMEencoder": {
+            "type": "InvokeFunction",
+            "inputs": {
+              "functionName": "EncodeMimeSmimeMessage",
+              "parameters": {
+                "messageContent": "@triggerBody()?['$content']",
+                "encryptMessage": "true",
+                "signMessage": "true",
+                "SendBodyPartAsAttachment": "false",
+                "ContentTransferEncoding": "base64",
+                "SignatureType": "2",
+                "EnableEncryption": "false",
+                "EncryptionAlgorithm": "0",
+                "AddSigningCertToMessage": "true",
+                "ValidateCRL": "false"
+              }
+            },
+            "metadata": {
+              "comment": "// Component: MIME/SMIME Encoder\r\n// Description: Encodes messages in MIME/SMIME format with support for 7bit, 8bit, binary, quoted-printable, base64, and UUencode encoding. Can MIME encode, sign, or encrypt outgoing messages.\r\n// Behavior: Creates MIME structure, encrypts content using recipient certificates, adds digital signatures using group signing certificate. If signing certificate not found in group or personal store, or if encryption certificate not found, message is suspended. For request-response encryption, requires custom component to set BTS.EncryptionCert before this component.\r\n// Message Flow: 1 message in → 1 message out (or suspended on certificate error)\r\n// Properties:\r\n//   SendBodyPartAsAttachment = false\r\n//   ContentTransferEncoding = base64\r\n//   SignatureType = 2\r\n//   EnableEncryption = false\r\n//   EncryptionAlgorithm = 0\r\n//   AddSigningCertToMessage = true\r\n//   ValidateCRL = false\n// ?? WARNING: MIME processing requires Azure Functions\n// IMPLEMENTATION: Deploy Azure Function with MimeKit library\n// FUNCTION NAME: EncodeMimeSmimeMessage\n// Stage: Encode (All)"
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Assemble": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

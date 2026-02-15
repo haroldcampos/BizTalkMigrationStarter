@@ -1,0 +1,44 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: AdvancedShipNotice.xsd
+$targetSchema: AdvancedShipNotice.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+msdata:CommonPO:
+  POHeader:
+    $@Number: /ns0:PO/Header/PONumber
+  BillTo:
+    Address:
+      $@Address1: /ns0:PO/BillTo/Address/Address1
+      $@Address2: /ns0:PO/BillTo/Address/Address2
+      $@City: /ns0:PO/BillTo/Address/City
+      $@PostalCode: /ns0:PO/BillTo/Address/Zip
+      $@State: /ns0:PO/BillTo/Address/State
+  ShipTo:
+    Address:
+      $@Address1: /ns0:PO/ShipTo/Address/Address1
+      $@Address2: /ns0:PO/ShipTo/Address/Address2
+      $@City: /ns0:PO/ShipTo/Address/City
+      $@Name: /ns0:PO/ShipTo/Address/Name
+      $@PostalCode: /ns0:PO/ShipTo/Address/Zip
+      $@State: /ns0:PO/ShipTo/Address/State
+      $value: /ns0:PO/ShipTo/Address
+  Item:
+    $value: /ns0:PO/Item
+    ItemDescription:
+      $@Description: /ns0:PO/Item/Description
+    ItemHeader:
+      <Equivalent>:
+        <ItemHeaderType>:
+          $@Price: /ns0:PO/Item/Price
+          $@Quantity: /ns0:PO/Item/Quantity

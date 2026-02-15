@@ -4,38 +4,40 @@
 
 **BizTalk Map (BTM) to Logic Apps Mapping Language (LML) Converter** - Migrates BizTalk Server XSLT-based maps to Azure Logic Apps Data Mapper's Language format. You will need to have available the source and destination schemas, along with the BizTalk map.
 
-## ** Purpose
+The tool produces **YAML-based LML files** compatible with [Azure Logic Apps Data Mapper](https://learn.microsoft.com/azure/logic-apps/logic-apps-enterprise-integration-maps). The output uses XPath-style source expressions, `$for()` loops, `$if()` conditionals, and `$@` attribute syntax defined by the Data Mapper specification.
 
-Converts BizTalk transformation maps to Logic Apps LA templates, enabling:
+## Purpose
+
+Converts BizTalk transformation maps to Azure Data Mapper LML files, enabling:
 - **Automated map migration** from BizTalk to Azure
-- **Functoid translation** to lml filters and functions
+- **Functoid translation** to Data Mapper functions (`concat`, `add`, `is-equal`, etc.)
 - **XPath preservation** with namespace handling
 - **Schema-aware conversion** for accurate data mapping
 
-## * Features
+## Features
 
 ### Core Capabilities
 
-- * **BTM Parsing** - Extracts functoids, links, and schemas from .btm files
-- * **Functoid Translation** - Converts 50+ functoid types to LA equivalents
-- * **XPath Generation** - Creates LML accessor paths from BizTalk XPath
-- * **Namespace Handling** - Preserves XML namespaces in LA templates
-- * **Schema Integration** - Uses XSD schemas for accurate type mapping
-- * **LML Generation** - Produces standards-compliant LA map files
+- **BTM Parsing** - Extracts functoids, links, and schemas from .btm files
+- **Functoid Translation** - Converts 50+ functoid types to Data Mapper function equivalents
+- **XPath Generation** - Creates LML source expressions from BizTalk XPath
+- **Namespace Handling** - Preserves XML namespaces with `$sourceNamespaces` / `$targetNamespaces` declarations
+- **Schema Integration** - Uses XSD schemas for accurate type mapping and loop detection
+- **LML Generation** - Produces YAML-formatted `.lml` files for Azure Data Mapper
 
 ### Supported Functoid Types
 
-| Category | Functoids |
-|----------|-----------|
-| **String** | String Concatenate, Uppercase, Lowercase, Substring, String Find, Size |
-| **Mathematical** | Add, Subtract, Multiply, Divide, Modulo, Absolute Value |
-| **Logical** | Logical AND, Logical OR, Logical NOT, Equal, Not Equal, Greater Than, Less Than |
-| **Conversion** | Value Mapping, Value Mapping (Flattening), Index, Iteration, Looping |
-| **Advanced** | Scripting (C#/VB.NET), Table Looping, Custom XSLT |
-| **Date/Time** | Date/Time formatting functions |
-| **Cumulative** | Sum, Average, Min, Max, Count |
+| Category | Functoids | LML Function Examples |
+|----------|-----------|----------------------|
+| **String** | String Concatenate, Uppercase, Lowercase, Substring, String Find, Size | `concat()`, `upper-case()`, `lower-case()`, `substring()`, `contains()`, `string-length()` |
+| **Mathematical** | Add, Subtract, Multiply, Divide, Modulo, Absolute Value | `add()`, `subtract()`, `multiply()`, `divide()`, `modulo()`, `abs()` |
+| **Logical** | Logical AND, OR, NOT, Equal, Not Equal, Greater Than, Less Than | `and()`, `or()`, `not()`, `is-equal()`, `greater-than()`, `less-than()` |
+| **Conversion** | Value Mapping, Value Mapping (Flattening), Index, Iteration, Looping | `if-then-else()`, `position()`, `$for()` |
+| **Advanced** | Scripting (C#/VB.NET), Table Looping, Custom XSLT | `custom-function()` with original code in comment |
+| **Date/Time** | Current Date, Current Time, Date Formatting | `current-date()`, `current-time()`, `current-dateTime()`, `format-dateTime()` |
+| **Cumulative** | Sum, Average, Min, Max, Count | `sum()`, `avg()`, `min()`, `max()`, `count()` |
 
-## ** Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -67,7 +69,45 @@ BTMtoLMLMigrator.exe CustomerUpdate.btm Customer.xsd UpdateRequest.xsd
 BTMtoLMLMigrator.exe ComplexTransform.btm SourceSchema.xsd TargetSchema.xsd Output.lml
 ```
 
-## *** Architecture
+## LML Output Format
+
+The converter generates **YAML-based LML files** for Azure Data Mapper. Every generated `.lml` file follows this structure:
+
+```yaml
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: Order.xsd
+$targetSchema: Invoice.xsd
+$sourceNamespaces:
+  ns0: http://schemas.example.com/Order
+$targetNamespaces:
+  ns0: http://schemas.example.com/Invoice
+ns0:Invoice:
+  CustomerName: concat(/ns0:Order/FirstName, ' ', /ns0:Order/LastName)
+  OrderDate: current-dateTime()
+  Items:
+    $for(/ns0:Order/Items/Item):
+      LineItem:
+        ProductId: ProductId
+        Quantity: Qty
+```
+
+### Key LML Syntax Elements
+
+| Syntax | Purpose | Example |
+|--------|---------|---------|
+| `$version` | LML format version | `$version: 1` |
+| `$input` / `$output` | Data formats | `$input: XML` |
+| `$sourceSchema` / `$targetSchema` | Schema file references | `$sourceSchema: Order.xsd` |
+| `$sourceNamespaces` / `$targetNamespaces` | Namespace declarations | `ns0: http://...` |
+| `FieldName: expression` | Simple field mapping | `Total: add(/ns0:Order/Subtotal, /ns0:Order/Tax)` |
+| `$for(xpath):` | Loop over repeating elements | `$for(/ns0:Order/Items/Item):` |
+| `$if(condition):` | Conditional mapping | `$if(is-equal(/ns0:Order/Status, "Active")):` |
+| `$@AttributeName` | XML attribute mapping | `$@Currency: /ns0:Order/@Currency` |
+| `$value` | Element text when attributes/children coexist | `$value: /ns0:Order/Amount` |
+
+## Architecture
 
 ### Three-Phase Pipeline
 
@@ -93,43 +133,45 @@ BTMtoLMLMigrator.exe ComplexTransform.btm SourceSchema.xsd TargetSchema.xsd Outp
 **Output**: `BtmMapData` model
 
 #### 2. FunctoidTranslator
-**Responsibility**: Convert BizTalk functoids to LA equivalents
+**Responsibility**: Convert BizTalk functoids to Data Mapper expressions
 
 **Translates**:
-- String operations -> LA filters (`upcase`, `downcase`, `append`)
-- Math operations -> LA arithmetic
-- Logical operations -> LA conditionals (`if`, `unless`)
-- Scripting functoids -> LA custom filters (manual review required)
+- String operations -> Data Mapper functions (`concat()`, `upper-case()`, `lower-case()`)
+- Math operations -> Data Mapper arithmetic (`add()`, `subtract()`, `multiply()`)
+- Logical operations -> Data Mapper conditionals (`if-then-else()`, `is-equal()`)
+- Looping functoids -> `$for()` loop structures
+- Scripting functoids -> `custom-function()` with original code in comment (manual review required)
 
-**Output**: `BtmMapData` with translated functoids
+**Output**: `TranslatedMapData` with LML-ready expressions
 
 #### 3. LmlGenerator
-**Responsibility**: Generate LA template from translated map
+**Responsibility**: Generate YAML-formatted LML from translated map data
 
 **Generates**:
-- LA template structure
-- Assign blocks for field mappings
-- Filter chains for transformations
-- Conditional logic for branching
-- Loops for repeating elements
+- LML header (`$version`, `$input`, `$output`, `$sourceSchema`, `$targetSchema`)
+- Namespace declarations (`$sourceNamespaces`, `$targetNamespaces`)
+- Hierarchical field mappings with XPath source expressions
+- `$for()` loops for repeating elements
+- `$if()` conditionals for conditional mappings
+- `$@` attribute mappings
 
-**Output**: `.lml` Logic Apps Mapping Language template file
+**Output**: `.lml` Azure Data Mapper file
 
-## ** Project Structure
+## Project Structure
 
 ```
 BTMtoLMLMigrator/
-*** BtmMigrator.cs           # Main orchestration class
-*** BtmParser.cs             # BTM XML parsing
-*** FunctoidTranslator.cs    # Functoid -> Logic Apps Mapping Language translation
-*** LmlGenerator.cs          # Logic Apps Mapping Language template generation
-*** Models.cs                # Data models (BtmMapData, Functoid, Link)
-*** Program.cs               # CLI entry point
-*** Properties/
-    *** AssemblyInfo.cs      # Assembly metadata
+??? BtmMigrator.cs           # Main orchestration class
+??? BtmParser.cs             # BTM XML parsing
+??? FunctoidTranslator.cs    # Functoid -> Data Mapper expression translation
+??? LmlGenerator.cs          # YAML LML template generation
+??? Models.cs                # Data models (BtmMapData, TranslatedMapData, LmlMapping)
+??? Program.cs               # CLI entry point
+??? Properties/
+    ??? AssemblyInfo.cs      # Assembly metadata
 ```
 
-## ** Programmatic Usage
+## Programmatic Usage
 
 ### C# Integration
 
@@ -174,141 +216,166 @@ var translatedMap = translator.TranslateFunctoids(
     targetSchemaPath: @"C:\Schemas\Target.xsd"
 );
 
-// Inspect translated functoids
-foreach (var functoid in translatedMap.Functoids)
+// Inspect translated mappings
+foreach (var mapping in translatedMap.Mappings)
 {
-    Console.WriteLine($"{functoid.FunctoidType}: {functoid.lmlEquivalent}");
+    Console.WriteLine($"{mapping.TargetPath}: {mapping.SourceExpression}");
 }
 ```
 
-## ** Data Models
+## Data Models
 
 ### BtmMapData
 ```csharp
 public class BtmMapData
 {
-    public string BtmFilePath { get; set; }
     public string SourceSchema { get; set; }
     public string TargetSchema { get; set; }
-    public List<Functoid> Functoids { get; set; }
-    public List<Link> Links { get; set; }
     public Dictionary<string, string> SourceNamespaces { get; set; }
     public Dictionary<string, string> TargetNamespaces { get; set; }
+    public List<BtmFunctoid> Functoids { get; set; }
+    public List<BtmLink> Links { get; set; }
+    public BtmSchemaTree SourceTree { get; set; }
+    public BtmSchemaTree TargetTree { get; set; }
 }
 ```
 
-### Functoid
+### TranslatedMapData
 ```csharp
-public class Functoid
+public class TranslatedMapData
 {
-    public string FunctoidId { get; set; }
-    public string FunctoidFid { get; set; }
-    public string FunctoidType { get; set; }
-    public List<string> InputParameters { get; set; }
-    public string ScripterCode { get; set; }
-    public string LmlEquivalent { get; set; }  // Set by translator
+    public string Version { get; set; }           // "1"
+    public string InputFormat { get; set; }       // "XML"
+    public string OutputFormat { get; set; }      // "XML"
+    public string SourceSchema { get; set; }
+    public string TargetSchema { get; set; }
+    public Dictionary<string, string> SourceNamespaces { get; set; }
+    public Dictionary<string, string> TargetNamespaces { get; set; }
+    public List<LmlMapping> Mappings { get; set; }
 }
 ```
 
-### Link
+### LmlMapping
 ```csharp
-public class Link
+public class LmlMapping
 {
-    public string LinkFrom { get; set; }  // Source field or functoid ID
-    public string LinkTo { get; set; }    // Target field or functoid ID
+    public string TargetPath { get; set; }            // Target element XPath
+    public string SourceExpression { get; set; }      // Data Mapper expression
+    public List<LmlMapping> Children { get; set; }    // Child element mappings
+    public string LoopExpression { get; set; }        // XPath for $for() loops
+    public string ConditionalExpression { get; set; } // Expression for $if()
+    public bool IsLoop { get; set; }
+    public bool IsConditional { get; set; }
+    public bool IsAttribute { get; set; }
+    public Dictionary<string, string> Attributes { get; set; } // $@ mappings
 }
 ```
 
-## ** Functoid Translation Examples
+## Functoid Translation Examples
 
 ### String Concatenate
-**BizTalk**:
-```xml
-<Functoid Type="StringConcatenate">
-  <Input>FirstName</Input>
-  <Input>LastName</Input>
-</Functoid>
-```
+**BizTalk**: StringConcatenate functoid with two inputs (FirstName, LastName)
 
 **LML Output**:
-```LML
-{% assign FullName = FirstName | append: ' ' | append: LastName %}
+```yaml
+FullName: concat(/ns0:Order/FirstName, ' ', /ns0:Order/LastName)
 ```
 
 ### Value Mapping with Condition
-**BizTalk**:
-```xml
-<Functoid Type="ValueMapping">
-  <Input>Status == 'Active'</Input>
-  <Input>CustomerID</Input>
-</Functoid>
-```
+**BizTalk**: ValueMapping functoid with condition and value inputs
 
 **LML Output**:
-```LML
-{% if Status == 'Active' %}
-  {% assign MappedCustomerID = CustomerID %}
-{% endif %}
+```yaml
+MappedCustomerID: if-then-else(is-equal(/ns0:Order/Status, "Active"), /ns0:Order/CustomerID, null)
 ```
 
 ### Mathematical Add
-**BizTalk**:
-```xml
-<Functoid Type="Add">
-  <Input>Subtotal</Input>
-  <Input>Tax</Input>
-</Functoid>
-```
+**BizTalk**: MathAdd functoid with two inputs (Subtotal, Tax)
 
 **LML Output**:
-```lml
-{% assign Total = Subtotal | plus: Tax %}
+```yaml
+Total: add(/ns0:Order/Subtotal, /ns0:Order/Tax)
 ```
 
-## ** Advanced Features
+### Logical Comparison with Conditional Mapping
+**BizTalk**: LogicalGt functoid connected directly to a target field
+
+**LML Output**:
+```yaml
+HighValueOrder: if-then-else(greater-than(/ns0:Order/Amount, 1000), /ns0:Order/Amount, null)
+```
+
+### Looping (Repeating Elements)
+**BizTalk**: Looping functoid connecting source and target repeating records
+
+**LML Output**:
+```yaml
+LineItems:
+  $for(/ns0:Order/Items/Item):
+    LineItem:
+      ProductId: ProductId
+      Quantity: Qty
+      Price: UnitPrice
+```
+
+### Attribute Mapping
+**BizTalk**: Direct link to a target attribute
+
+**LML Output**:
+```yaml
+Order:
+  $@Currency: /ns0:Order/@CurrencyCode
+  $@OrderDate: current-dateTime()
+  Amount: /ns0:Order/TotalAmount
+```
+
+## Advanced Features
 
 ### Schema-Aware XPath Generation
 
 When schemas are provided, the converter:
-1. Extracts XML namespace prefixes
-2. Generates fully-qualified XPath expressions
-3. Maps to lml accessor paths
+1. Extracts XML namespace prefixes from XSD `targetNamespace`
+2. Generates namespace-qualified XPath source expressions
+3. Detects repeating elements (`maxOccurs="unbounded"`) to create `$for()` loops
+4. Only applies namespace prefix to the root element (nested elements inherit)
 
 **Example**:
-- **BizTalk XPath**: `/ns0:Order/ns0:Items/ns0:Item`
-- **LML Path**: `Order.Items.Item`
+- **BizTalk XPath**: `/*[local-name()='Order']/*[local-name()='Items']/*[local-name()='Item']`
+- **LML Source Expression**: `/ns0:Order/Items/Item`
 
 ### Scripting Functoid Handling
 
-For complex scripting functoids:
-```LML
-{%- comment -%}
-WARNING: Scripting functoid detected
-Original C# code:
-  public string FormatSSN(string ssn) {
-    return ssn.Substring(0,3) + "-" + ssn.Substring(3,2) + "-" + ssn.Substring(5);
-  }
-Requires manual conversion to LML filter
-{%- endcomment -%}
+Scripting functoids with inline C# code are translated to a `custom-function()` placeholder with the original code preserved in a comment:
+
+```yaml
+FormattedSSN: custom-function(/ns0:Employee/SSN) /* Original code: public string FormatSSN(string ssn) { return ssn.Substring(0,3) + "-" + ssn.Substring(3,2) + "-" + ssn.Substring(5); } */
 ```
+
+Common patterns are auto-detected and translated:
+- `Regex.IsMatch()` ? `matches()`
+- `String.Replace()` ? `replace()`
+- `StartsWith()` ? `starts-with()`
+- `EndsWith()` ? `ends-with()`
 
 ### Namespace Preservation
 
-```LML
-{%- comment -%}
-Source Namespaces:
-  ns0 = http://Company.Schemas.Order
-Target Namespaces:
-  ns1 = http://Company.Schemas.Invoice
-{%- endcomment -%}
+Namespaces are declared in dedicated LML header sections:
+
+```yaml
+$sourceNamespaces:
+  ns0: http://Company.Schemas.Order
+$targetNamespaces:
+  ns0: http://Company.Schemas.Invoice
 ```
 
-## ** Known Limitations & Unsupported Scenarios
+The target schema's primary business namespace is enforced as `ns0` for Azure Data Mapper compatibility.
 
-### * **NOT SUPPORTED - Cannot Convert**
+## Known Limitations & Unsupported Scenarios
+
+### NOT SUPPORTED - Cannot Convert
 
 #### 1. **Flat File Maps**
-**Status**: * **NOT SUPPORTED**
+**Status**: **NOT SUPPORTED**
 
 Azure Logic Apps Data Mapper **does not support flat file processing**. Flat file maps require:
 - BizTalk Flat File schemas (.xsd with flat file annotations)
@@ -323,9 +390,9 @@ Azure Logic Apps Data Mapper **does not support flat file processing**. Flat fil
 - Maps referencing schemas ending with patterns like `_FF.xsd`, `_FlatFile.xsd`
 
 #### 2. **Scripting Functoids**
-**Status**: ** **Requires Manual Conversion**
+**Status**: **Requires Manual Conversion**
 
-C#/VB.NET code in scripting functoids cannot be automatically converted to lml.
+C#/VB.NET code in scripting functoids cannot be fully converted to LML. The converter auto-detects common patterns (regex, string operations) and translates them, but complex logic requires manual implementation.
 
 **Example**:
 ```csharp
@@ -335,32 +402,29 @@ public string FormatSSN(string ssn) {
 }
 ```
 
-**LML Equivalent** (requires manual implementation):
-```LML
-{% assign part1 = ssn | slice: 0, 3 %}
-{% assign part2 = ssn | slice: 3, 2 %}
-{% assign part3 = ssn | slice: 5, 4 %}
-{% assign formatted_ssn = part1 | append: '-' | append: part2 | append: '-' | append: part3 %}
+**Generated LML** (requires manual review):
+```yaml
+FormattedSSN: custom-function(/ns0:Employee/SSN) /* Original code: ... */
 ```
 
 **Workaround**:
 - Implement as **Azure Functions** called from Logic Apps
-- Rewrite as **LML custom filters** (requires LML template expertise)
+- Use Data Mapper's built-in `concat()` and `substring()` functions where possible
 
 #### 3. **Custom XSLT**
-**Status**: * **NOT SUPPORTED**
+**Status**: **NOT SUPPORTED**
 
 Inline XSLT code or `<xsl:template>` elements cannot be converted.
 
 **Workaround**:
-- Rewrite transformation logic in LML
+- Rewrite transformation logic using Data Mapper functions
 - Use **XSLT action** in Logic Apps (limited to simple transformations)
 - Consider **Azure Functions** for complex transformations
 
 #### 4. **Database Lookup Functoids**
-**Status**: ** **Requires Logic Apps Actions**
+**Status**: **Requires Logic Apps Actions**
 
-BizTalk database lookup functoids (ValueExtractor, IDExtractor) are external and cannot be embedded in lml.
+BizTalk database lookup functoids (ValueExtractor, IDExtractor) are external and cannot be embedded in LML.
 
 **Workaround**:
 - Add **SQL Server connector** actions in Logic Apps workflow
@@ -368,7 +432,7 @@ BizTalk database lookup functoids (ValueExtractor, IDExtractor) are external and
 - Pass lookup results as input to LML map
 
 #### 5. **COM+ and .NET Assembly Calls**
-**Status**: * **NOT SUPPORTED**
+**Status**: **NOT SUPPORTED**
 
 Functoids calling external assemblies cannot be converted.
 
@@ -376,44 +440,44 @@ Functoids calling external assemblies cannot be converted.
 - Reimplement as **Azure Functions**
 - Use **Logic Apps connectors** if equivalent exists (e.g., SAP, SharePoint)
 
-### ** **Partial Support - Manual Review Required**
+### Partial Support - Manual Review Required
 
 #### 1. **Complex Looping (Table Looping)**
-**Status**: ** **May Require Restructuring**
+**Status**: **May Require Restructuring**
 
-BizTalk Table Looping functoids with complex iteration patterns may not translate cleanly to LML `for` loops.
+BizTalk Table Looping functoids with complex iteration patterns may not translate cleanly to `$for()` loops.
 
 **Review Required**: Validate loop logic in generated LML templates.
 
 #### 2. **Conditional Functoids with Complex Expressions**
-**Status**: ** **Check Generated Output**
+**Status**: **Check Generated Output**
 
-Nested logical functoids (AND, OR, NOT) may generate verbose LML conditionals.
+Nested logical functoids (AND, OR, NOT) may generate deeply nested LML expressions.
 
 **Example**:
-```LML
-{% if condition1 == true and condition2 == false or condition3 == true %}
+```yaml
+Result: if-then-else(and(is-equal(Field1, "A"), not(is-equal(Field2, "B"))), ValueA, ValueB)
 ```
 
-**Review Required**: Simplify generated conditions for readability.
+**Review Required**: Verify generated expressions produce correct results in Azure Data Mapper.
 
 #### 3. **Cumulative Functoids (Sum, Average, Count)**
-**Status**: ** **Limited to Simple Cases**
+**Status**: **Limited to Simple Cases**
 
 Cumulative functoids work only on direct repeating elements. Complex grouping requires manual LML code.
 
-### * **Pre-Migration Checklist**
+### Pre-Migration Checklist
 
 Before converting BTM files, verify:
 
 - [ ] **No flat file schemas referenced** (check schema properties)
-- [ ] **No scripting functoids** (or prepare to rewrite in LML/Azure Functions)
+- [ ] **No scripting functoids** (or prepare to rewrite using Data Mapper functions / Azure Functions)
 - [ ] **No database lookup functoids** (plan SQL actions in workflow)
-- [ ] **No custom XSLT** (plan rewrite in LML)
+- [ ] **No custom XSLT** (plan rewrite using Data Mapper functions)
 - [ ] **No external assembly calls** (plan Azure Functions migration)
 - [ ] **Simple looping patterns only** (or prepare for manual review)
 
-### ** **How to Detect Unsupported Scenarios**
+### How to Detect Unsupported Scenarios
 
 Use the **`analyze_btm_file`** tool before conversion:
 
@@ -433,7 +497,7 @@ Use the **`analyze_btm_file`** tool before conversion:
 - `"Table Looping"` -> May need manual review
 - High functoid count (50+) -> Complex map, thorough testing needed
 
-## ** Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -467,7 +531,7 @@ var mapData = parser.Parse(btmPath, sourceSchemaPath, targetSchemaPath);
 
 Console.WriteLine($"Functoids: {mapData.Functoids.Count}");
 Console.WriteLine($"Links: {mapData.Links.Count}");
-Console.WriteLine($"Complexity: {(mapData.Functoids.Count > 50 * "High" : "Medium")}");
+Console.WriteLine($"Complexity: {(mapData.Functoids.Count > 50 ? "High" : "Medium")}");
 ```
 
 #### Identify Problematic Functoids
@@ -482,14 +546,14 @@ if (scriptingFunctoids.Any())
 }
 ```
 
-## * Best Practices
+## Best Practices
 
 ### 1. Always Provide Schemas
 ```cmd
-# GOOD - With schemas
+# GOOD - With schemas (enables loop detection, namespace resolution)
 BTMtoLMLMigrator.exe Map.btm Source.xsd Target.xsd
 
-# OK - Without schemas (less accurate)
+# OK - Without schemas (less accurate, no loop detection)
 BTMtoLMLMigrator.exe Map.btm "" ""
 ```
 
@@ -511,10 +575,11 @@ Get-ChildItem C:\BizTalk\Maps\*.btm | ForEach-Object {
 
 ### 4. Validate Before Migration
 - Test maps in BizTalk Mapper before converting
-- Review scripting functoids for LML compatibility
+- Review scripting functoids for Data Mapper function equivalents
 - Check for external dependencies (database lookups, assemblies)
+- Load the generated `.lml` file in Azure Data Mapper to verify
 
-## ** Integration with MCP Server
+## Integration with MCP Server
 
 This library is wrapped by **BizTalktoLogicApps.MCP** for AI assistant integration:
 
@@ -531,14 +596,14 @@ This library is wrapped by **BizTalktoLogicApps.MCP** for AI assistant integrati
 
 See **BizTalkToLogicApps.MCP** project for MCP server usage.
 
-## ** Version History
+## Version History
 
 - **v1.0** - Initial release
   - BTM parsing with namespace extraction
-  - 50+ functoid type translations
-  - LML template generation
+  - 50+ functoid type translations to Data Mapper functions
+  - YAML-based LML generation for Azure Data Mapper
 
-## ** Dependencies
+## Dependencies
 
 ### .NET Framework
 - **Target**: .NET Framework 4.7.2
@@ -548,17 +613,23 @@ See **BizTalkToLogicApps.MCP** project for MCP server usage.
 ### No External Packages
 All functionality uses built-in .NET Framework libraries.
 
-## ** License
+## Changelog
+
+### v1.0.0 (January 2026)
+
+- Initial release
+
+## License
 
 MIT License - See LICENSE file in repository root.
 
-## ** Support
+## Support
 
 For issues, questions, or feature requests:
 
 - **GitHub Issues**: https://github.com/haroldcampos/BizTalkMigrationStarter/issues
 
-## ** Author
+## Author
 
 **Harold Campos**
 

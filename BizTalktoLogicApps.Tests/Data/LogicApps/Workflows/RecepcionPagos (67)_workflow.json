@@ -1,0 +1,603 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "recepcionArchivos": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "recepcionArchivos",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "validacionesBancoDominio": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "validacionesBancoDominio",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "recepcionArchivos": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "lineasCapturaInexistentes": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "lineasCapturaInexistentes",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "validacionesBancoDominio": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "xmlMensajeRecepcionPago": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "xmlMensajeRecepcionPago",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "lineasCapturaInexistentes": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "procesoPago": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "procesoPago",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "xmlMensajeRecepcionPago": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "cifrasDominio": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "cifrasDominio",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "procesoPago": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "excepcion": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "excepcion",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "cifrasDominio": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "procesoPagoDominio": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "procesoPagoDominio",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "excepcion": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "reproceso": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "reproceso",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "procesoPagoDominio": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "cuentaActiva": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "cuentaActiva",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "reproceso": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "NepeActiva": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "NepeActiva",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "cuentaActiva": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "configuracionesDominio": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "configuracionesDominio",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "NepeActiva": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "enProceso": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "enProceso",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "configuracionesDominio": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Variable_1": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Variable_1",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "enProceso": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "a": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "a",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "Variable_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "RecepcionPago": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "RecepcionPago",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "a": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "MensajePagoCompleto": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "MensajePagoCompleto",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "RecepcionPago": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "inicailiza_valores": {
+        "type": "Compose",
+        "inputs": "@'excepcion = new Sat.Scade.PagosCore.Modelo.Dominio.ManejoExcepcion();\r\nrecepcionArchivos = new Sat.Scade.Pagos.Modelo.Comun.RecepcionArchivosBanco();\r\nconfiguracionesDominio = new Sat.Scade.PagosCore.Dominio.ConfiguracionesDominio();\r\nprocesoPago = new Sat.Scade.Pagos.Modelo.Comun.ProcesosPagos();\r\nenProceso = false'",
+        "runAfter": {
+          "MensajePagoCompleto": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Procesa_archivos_de_bancos": {
+        "type": "Scope",
+        "actions": {
+          "Recupera_Datos": {
+            "type": "Compose",
+            "inputs": "@'System.Diagnostics.EventLog.WriteEntry(\"RecepcionPagos\", \"Accede a Recepción pagos\");\r\nrecepcionArchivos = (Sat.Scade.Pagos.Modelo.Comun.RecepcionArchivosBanco)Sat.Scade.PagosCore.Dominio.Utilerias.Deserializa(typeof(Sat.Scade.Pagos.Modelo.Comun.RecepcionArchivosBanco),RecepcionPago);\r\n\r\nexcepcion.IdProcesoPago = recepcionArchivos.IdProceso;\r\n\r\nprocesoPago.IdProcesoPago = recepcionArchivos.IdProceso;\r\nprocesoPago.Reproceso = reproceso;\r\nprocesoPagoDominio = new Sat.Scade.PagosCore.Dominio.ProcesosPagosDominio();\r\nprocesoPago = procesoPagoDominio.ObtenerEstado(procesoPago);\r\nprocesoPago.TipoProceso = recepcionArchivos.TipoProceso;\r\nif (reproceso && procesoPago.EstadoProcesoPago == Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.ErrorPlataforma)\r\n{\r\n    recepcionArchivos.Estado = procesoPago.EstadoProcesoPagoAnterior;\r\n}\r\nelse\r\n{\r\n    recepcionArchivos.Estado = procesoPago.EstadoProcesoPago;\r\n}\r\n\r\ncuentaActiva = System.Convert.ToBoolean(configuracionesDominio.ObtenerConfiguracion(Sat.Scade.PagosCore.Dominio.ConstantesConfiguracion.CUENTAACTIVA));\r\nNepeActiva = System.Convert.ToBoolean(configuracionesDominio.ObtenerConfiguracion(Sat.Scade.PagosCore.Dominio.ConstantesConfiguracion.NEPEACTIVA))'",
+            "runAfter": {}
+          },
+          "Verifica_recepción_de_archivos_50099723": {
+            "type": "If",
+            "expression": "@'recepcionArchivos.Estado == Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.InicioProceso &&\r\nrecepcionArchivos.TipoProceso == Sat.Scade.Pagos.Modelo.Comun.TipoProceso.Pagos'",
+            "actions": {
+              "Recupera_Archivo": {
+                "type": "Compose",
+                "inputs": "@'System.Diagnostics.EventLog.WriteEntry(\"RecepcionPagos\", \"Accede a Recepción pagos\");\r\n\r\nrecepcionArchivos.Estado = Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.ValidandoArchivo;\r\n\r\nprocesoPago.EstadoProcesoPago = Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.ValidandoArchivo;\r\nprocesoPagoDominio.ActualizarEstado(procesoPago)'",
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Recupera_Datos": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Está_validando_archivos_e10b5b72": {
+            "type": "If",
+            "expression": "@equals(variables('recepcionArchivos')?['Estado'], 'ValidandoArchivo')",
+            "actions": {
+              "Valida_archivo": {
+                "type": "Compose",
+                "inputs": "@'recepcionArchivos.ArchivoOperaciones.RutaBTS =  System.String.Format(\"{0}\\\\{1}\", recepcionArchivos.ArchivoOperaciones.RutaArchivo, recepcionArchivos.ArchivoOperaciones.NombreArchivo);\r\n\r\nvalidacionesBancoDominio = new Sat.Scade.PagosCore.Dominio.ValidacionesBancoDominio();\r\nvalidacionesBancoDominio.AplicarValidacion(ref recepcionArchivos);\r\nprocesoPago.EstadoProcesoPago = recepcionArchivos.Estado;\r\nprocesoPagoDominio.ActualizarEstado(procesoPago)'",
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Verifica_recepción_de_archivos_50099723": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Verifica_si_los_archivos_fueron_validados_d7b8cdd7": {
+            "type": "If",
+            "expression": "@'recepcionArchivos.Estado == Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.AceptadoSAT ||\r\nrecepcionArchivos.Estado == Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.RechazadoSAT'",
+            "actions": {
+              "Valida_Archivos_Bancos_7b747a4f": {
+                "type": "Scope",
+                "actions": {
+                  "Se_completa_el_mensaje_3369b33b": {
+                    "type": "Compose",
+                    "inputs": "@'xmlMensajeRecepcionPago = new System.Xml.XmlDataDocument();\r\nxmlMensajeRecepcionPago = Sat.Scade.PagosCore.Dominio.Utilerias.Serializa(typeof(Sat.Scade.Pagos.Modelo.Comun.RecepcionArchivosBanco),recepcionArchivos);\r\n\r\nMensajePagoCompleto = xmlMensajeRecepcionPago'",
+                    "runAfter": {}
+                  },
+                  "StartOrchestration_1": {
+                    "type": "Workflow",
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "GeneraEnviaAcuseBanco"
+                        }
+                      },
+                      "body": {
+                        "message": "@triggerBody()"
+                      }
+                    },
+                    "runAfter": {
+                      "Se_completa_el_mensaje_3369b33b": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Los_archivos_fueron_aceptados_c30971ee": {
+                    "type": "If",
+                    "expression": "@equals(variables('recepcionArchivos')?['Estado'], 'AceptadoSAT')",
+                    "actions": {
+                      "StartOrchestration_2_35ae6985": {
+                        "type": "Workflow",
+                        "inputs": {
+                          "host": {
+                            "workflow": {
+                              "id": "GeneraEnviaArchivoTesofe"
+                            }
+                          },
+                          "body": {
+                            "message": "@triggerBody()"
+                          }
+                        },
+                        "runAfter": {}
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "runAfter": {
+                      "StartOrchestration_1": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Está_validando_archivos_e10b5b72": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Los_archivos_fueron_aceptados_c7d911a3": {
+            "type": "If",
+            "expression": "@'recepcionArchivos.Estado == Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.AceptadoSAT ||\r\nrecepcionArchivos.Estado == Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.ValidandoLC ||\r\nrecepcionArchivos.Estado == Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.PendienteMarcacion ||\r\n(recepcionArchivos.Estado == Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.InicioProceso &&\r\n recepcionArchivos.Procesos == Sat.Scade.Pagos.Modelo.Comun.Procesos.ContingenciaMinilote  \r\n)'",
+            "actions": {
+              "CallOrchestration_1_9d363a04": {
+                "type": "Workflow",
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "ProcesaArchivosAceptados"
+                    }
+                  },
+                  "body": {
+                    "message": "@triggerBody()"
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Verifica_si_los_archivos_fueron_validados_d7b8cdd7": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Excepcion_Plataforma": {
+            "type": "Scope",
+            "actions": {
+              "Cancela_Pago": {
+                "type": "Compose",
+                "inputs": "@'excepcion.Error = true;\r\nexcepcion.Mensaje = System.String.Format(\"IdProcesoPago:{0}\", ExcepcionGenerica.Message);\r\n\r\nprocesoPagoDominio = new Sat.Scade.PagosCore.Dominio.ProcesosPagosDominio();\r\n\r\nprocesoPago.EstadoProcesoPago = Sat.Scade.Pagos.Modelo.Comun.EstatusProcesosPagos.ErrorPlataforma;\r\nprocesoPagoDominio.ActualizarEstado(procesoPago);\r\n//Microsoft.Framework.Logger.EventViewer.Logger.EscribirEntradaError(ExcepcionGenerica,10000);\r\n\r\nMicrosoft.Framework.Logger.EventViewer.Logger.EscribirEntradaError(ExcepcionGenerica,Sat.Scade.PagosCore.Modelo.Dominio.IdentificadoresLogEventos.PROC_RECEPCION_BANCOS_01,\r\nSystem.String.Format(Sat.Scade.PagosCore.Modelo.Dominio.IdentificadoresLogEventos.E6001, procesoPago.IdProcesoPago, ExcepcionGenerica.Message))'",
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "Los_archivos_fueron_aceptados_c7d911a3": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          },
+          "ExcepcionNegocio": {
+            "type": "Scope",
+            "actions": {
+              "Pago_En_Proceso": {
+                "type": "Compose",
+                "inputs": "@'enProceso=true;\r\n//Microsoft.Framework.Logger.EventViewer.Logger.EscribirEntradaWarning(ExcepcionNegocio.Message,10000);\r\n\r\nMicrosoft.Framework.Logger.EventViewer.Logger.EscribirEntradaError(ExcepcionNegocio,Sat.Scade.PagosCore.Modelo.Dominio.IdentificadoresLogEventos.PROC_RECEPCION_BANCOS_01,\r\nSystem.String.Format(Sat.Scade.PagosCore.Modelo.Dominio.IdentificadoresLogEventos.E6001, procesoPago.IdProcesoPago, ExcepcionNegocio.Message))'",
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "Los_archivos_fueron_aceptados_c7d911a3": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "inicailiza_valores": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Verifica_si_la_transacción_se_encuetra_en_proceso_b125d9a4": {
+        "type": "If",
+        "expression": "@'!enProceso'",
+        "actions": {
+          "Verifica_si_la_orquestación__6fe51f92": {
+            "type": "If",
+            "expression": "@variables('excepcion')?['Error']",
+            "actions": {
+              "Suspende_la_orquestación_7d76c41b": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": "excepcion.Mensaje;"
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {}
+          },
+          "Scope_1_d0d0c689": {
+            "type": "Scope",
+            "actions": {
+              "Obtener_Estado": {
+                "type": "Compose",
+                "inputs": "@'procesoPagoDominio = new Sat.Scade.PagosCore.Dominio.ProcesosPagosDominio();\r\nprocesoPago = new Sat.Scade.Pagos.Modelo.Comun.ProcesosPagos();\r\nprocesoPago.IdProcesoPago = excepcion.IdProcesoPago;\r\nprocesoPago.Reproceso = true;\r\nprocesoPago = procesoPagoDominio.ObtenerEstado(procesoPago)'",
+                "runAfter": {}
+              },
+              "Verifica_si_es_error_de_plataforma_7eb22b2d": {
+                "type": "If",
+                "expression": "@equals(variables('procesoPago')?['EstadoProcesoPagoAnterior'], 'ErrorPlataforma')",
+                "actions": {
+                  "StartOrchestration_5_4ffe1766": {
+                    "type": "Until",
+                    "expression": "@'// WARNING: Self-recursive Start detected. Converted to Until loop.\r\n// Original Start: Sat.Scade.PagosCore.Procesos.RecepcionPagos\r\n@equals(variables(''retryComplete''), true)'",
+                    "limit": {
+                      "count": 60,
+                      "timeout": "PT1H"
+                    },
+                    "actions": {},
+                    "runAfter": {}
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "runAfter": {
+                  "Obtener_Estado": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Verifica_si_la_orquestación__6fe51f92": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Procesa_archivos_de_bancos": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Verifica_si_la_transacción_se_encuetra_en_proceso_b125d9a4": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Exception Handling & Compensation",
+          "description": "Handle errors and perform compensating actions",
+          "recommendation": "Use Scope action with Configure Run After for error handling"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:13.3963537Z"
+    }
+  }
+}

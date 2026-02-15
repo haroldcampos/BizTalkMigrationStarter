@@ -1,0 +1,65 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "ConstructMessage_1_38ac4bec": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Transform_3",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {}
+      },
+      "Send_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructMessage_1_38ac4bec')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_1_38ac4bec": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Send_1": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

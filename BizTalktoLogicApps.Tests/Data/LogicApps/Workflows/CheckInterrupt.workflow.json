@@ -1,0 +1,182 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_called_from_parent_workflow": {
+        "type": "Request",
+        "kind": "Http",
+        "description": "Migrated from BizTalk WCF endpoint - BizTalk Adapter: HTTP",
+        "metadata": {
+          "biztalkTransportType": "HTTP"
+        }
+      }
+    },
+    "actions": {
+      "OrderCorrelation": {
+        "type": "Compose",
+        "inputs": "@'// Unhandled shape type: CorrelationDeclaration'",
+        "runAfter": {}
+      },
+      "Interrupted": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Wait_0": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 1,
+            "unit": "Minute"
+          }
+        },
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Throw_InterruptEx": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "Terminated",
+            "message": ""
+          }
+        },
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Interrupted_1": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from InterruptPort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Interrupted_2": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Throw_InterruptEx_1": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "Terminated",
+            "message": ""
+          }
+        },
+        "runAfter": {
+          "Interrupted_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Interrupted_3": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from InterruptPort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Throw_InterruptEx_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Wait_0_1": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 1,
+            "unit": "Minute"
+          }
+        },
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Check_for_Interrupt_Join": {
+        "type": "Compose",
+        "inputs": {
+          "migrationWarning": "BizTalk Listen shape: only the FIRST branch should execute (race pattern). Logic Apps runs ALL branches in parallel. Manual review required.",
+          "originalBizTalkShape": "Listen",
+          "requiredAction": "Convert to Switch on status/timeout, or add Terminate actions to losing branches."
+        },
+        "runAfter": {
+          "Interrupted": [
+            "SUCCEEDED"
+          ],
+          "Wait_0": [
+            "SUCCEEDED"
+          ],
+          "Throw_InterruptEx": [
+            "SUCCEEDED"
+          ],
+          "Interrupted_1": [
+            "SUCCEEDED"
+          ],
+          "Interrupted_3": [
+            "SUCCEEDED"
+          ],
+          "Wait_0_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Check_for_Interrupt_Join": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

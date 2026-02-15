@@ -51,6 +51,7 @@ namespace BizTalktoLogicApps.MCP.Server.ToolHandlers
                     var outputLmlPath = args["outputLmlPath"]?.ToString();
                     var sourceSchemaPath = args["sourceSchemaPath"]?.ToString();
                     var targetSchemaPath = args["targetSchemaPath"]?.ToString();
+                    // preserveFormatting is accepted but reserved for future use
 
                     if (string.IsNullOrEmpty(btmFilePath) || !File.Exists(btmFilePath))
                     {

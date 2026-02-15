@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -286,22 +287,22 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     
                     if (shouldAddPrefix && !lastPart.Contains(":"))
                     {
-                        Console.WriteLine($"  Adding namespace prefix to element: {lastPart} -> {targetNsPrefix}:{lastPart} (prefix={targetNsPrefix}, isRoot={isRootElement})");
+                        Trace.TraceInformation("  Adding namespace prefix to element: {0} -> {1}:{0} (prefix={1}, isRoot={2})", lastPart, targetNsPrefix, isRootElement);
                         return $"{targetNsPrefix}:{lastPart}";
                     }
                     else if (lastPart.Contains(":"))
                     {
-                        Console.WriteLine($"  Element already has namespace prefix: {lastPart}");
+                        Trace.TraceInformation("  Element already has namespace prefix: {0}", lastPart);
                         return lastPart;  // Keep existing prefix
                     }
                     else
                     {
-                        Console.WriteLine($"  NOT adding namespace prefix to nested element: {lastPart} (prefix={targetNsPrefix}, isRoot={isRootElement})");
+                        Trace.TraceInformation("  NOT adding namespace prefix to nested element: {0} (prefix={1}, isRoot={2})", lastPart, targetNsPrefix, isRootElement);
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"  NOT adding namespace prefix to element: {lastPart} (no target namespace prefix)");
+                    Trace.TraceInformation("  NOT adding namespace prefix to element: {0} (no target namespace prefix)", lastPart);
                 }
             }
             
@@ -356,7 +357,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 return "";  // No unique target namespace found
             }
             
-            Console.WriteLine($"  Target schema namespace '{targetSchemaNamespace}' is at prefix '{targetPrefix}'");
+            Trace.TraceInformation("  Target schema namespace '{0}' is at prefix '{1}'", targetSchemaNamespace, targetPrefix);
             return targetPrefix;  // Return ns0, ns1, ns2, etc.
         }
 

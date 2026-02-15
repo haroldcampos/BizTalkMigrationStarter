@@ -19,14 +19,19 @@ Ensures the reliability and correctness of BizTalk to Azure Logic Apps migration
 | Component | Test Class | Coverage |
 |-----------|-----------|----------|
 | **Orchestration Parser** | `BizTalkOrchestrationParserTests` | ODX file parsing, shape extraction |
-| **Binding Snapshot** | `BindingSnapshotTests` | Bindings XML parsing |
-| **Logic Apps Mapper** | `LogicAppsMapperTests` | Shape-to-action mapping |
-| **Expression Mapper** | `ExpressionMapperTests` | XLANG to WDL translation |
+| **Binding Snapshot** | `BindingSnapshotTests` | Bindings XML parsing, send port filters, WCF metadata |
+| **Logic Apps Mapper** | `LogicAppsMapperTests` | Shape-to-action mapping, self-recursion, message flow, De Morgan's law, duplicate prevention |
+| **Logic Apps Mapper (Thread Safety)** | `LogicAppsMapperThreadSafetyTests` | Concurrent `MapToLogicApp` calls, `[ThreadStatic]` isolation |
+| **Expression Mapper** | `ExpressionMapperTests` | XLANG to WDL translation, N-ary logical operators, exception variables, type casts |
 | **Workflow Validator** | `WorkflowValidatorTests` | JSON schema validation |
-| **BTM Parser** | `BtmParserTests` | BizTalk map parsing |
-| **LML Generator** | `LmlGeneratorTests` | Liquid template generation |
-| **Pipeline Parser** | `PipelineParserTests` | BizTalk pipeline parsing |
-| **Refactoring Options** | `RefactoringOptionsTests` | Configuration validation |
+| **Receive Pattern Analysis** | `ReceivePatternAnalysisTests` | Activation patterns, correlation detection |
+| **Exception Extensions** | `ExceptionExtensionsTests` | Fatal exception detection (`OutOfMemoryException`, etc.) |
+| **BTM Parser** | `BtmParserTests` | BizTalk map parsing, functoid/link extraction |
+| **LML Generator** | `LmlGeneratorTests` | Logic Apps Mapping Language (LML) YAML generation, namespace handling |
+| **Pipeline Parser** | `PipelineParserTests` | BizTalk pipeline parsing, stage/component extraction |
+| **Pipeline Workflow Mapper** | `PipelineWorkflowMapperTests` | Component to action mapping, default pipeline detection |
+| **Pipeline JSON Generator** | `PipelineJSONGeneratorTests` | Pipeline workflow JSON structure |
+| **Refactoring Options** | `RefactoringOptionsTests` | Configuration validation, deployment target constraints |
 
 ### Integration Tests
 
@@ -51,12 +56,9 @@ Ensures the reliability and correctness of BizTalk to Azure Logic Apps migration
 
 ### Running Tests
 
-#### Run All Tests
-``cmd
-dotnet test BizTalktoLogicApps.Tests.csproj
-``
+> **Note:** `dotnet test` may hang on .NET Framework 4.7.2 projects. Use Visual Studio Test Explorer or `vstest.console.exe` instead.
 
-### Visual Studio Test Explorer
+### Visual Studio Test Explorer (Recommended)
 
 1. Open **Test Explorer** (Test → Test Explorer)
 2. Click **Run All** to execute all tests
@@ -64,19 +66,53 @@ dotnet test BizTalktoLogicApps.Tests.csproj
 
 ## Project Structure
 
-``
+```
 BizTalktoLogicApps.Tests/
-├── Unit/                          # Unit tests
-├── Integration/                   # Integration tests
-├── Data/                          # Test data files
-│   └── BizTalk/
-│       ├── ODX/                  # Sample orchestrations
-│       ├── Bindings/             # Sample bindings
-│       ├── BTM/                  # Sample maps
-│       └── BTP/                  # Sample pipelines
+├── Unit/                                    # Fast, isolated unit tests
+│   ├── BizTalkOrchestrationParserTests.cs
+│   ├── BindingSnapshotTests.cs
+│   ├── LogicAppsMapperTests.cs
+│   ├── LogicAppsMapperThreadSafetyTests.cs
+│   ├── ExpressionMapperTests.cs
+│   ├── WorkflowValidatorTests.cs
+│   ├── ReceivePatternAnalysisTests.cs
+│   ├── ExceptionExtensionsTests.cs
+│   ├── Refactoring/
+│   │   └── RefactoringOptionsTests.cs
+│   ├── BTPtoLA/
+│   │   ├── PipelineParserTests.cs
+│   │   ├── PipelineWorkflowMapperTests.cs
+│   │   └── PipelineJSONGeneratorTests.cs
+│   └── BTMtoLMLMigrator/
+│       ├── BtmParserTests.cs
+│       └── LmlGeneratorTests.cs
+├── Integration/                             # Tests requiring file I/O
+│   ├── CompleteUserScenarioTests.cs
+│   ├── EndToEndReportGenerationTests.cs
+│   ├── LogicAppJSONGeneratorTests.cs
+│   ├── OdxAnalyzerTests.cs
+│   ├── ODXtoWFMigrator/
+│   │   └── ODXtoWFMigratorTests.cs
+│   ├── BTPtoLA/
+│   │   └── BTPtoLAMigratorTests.cs
+│   ├── BTMtoLML/
+│   │   └── BTMtoLMLMigratorTests.cs
+│   └── Refactoring/
+│       └── RefactoredWorkflowGeneratorTests.cs
+├── Data/                                    # Test data (see Data/README.md)
+│   ├── BizTalk/
+│   │   ├── Bindings/
+│   │   ├── Maps/
+│   │   ├── ODX/
+│   │   ├── Pipelines/
+│   │   └── Schemas/
+│   └── LogicApps/
+│       ├── LMLs/
+│       ├── Pipelines/
+│       └── Workflows/
 └── Properties/
     └── AssemblyInfo.cs
-``
+```
 
 ## Test Data
 
@@ -126,9 +162,25 @@ catch (Exception ex) when (!ex.IsFatal())
 ## Related Projects
 
 - **[ODXtoWFMigrator](../ODXtoWFMigrator/README.md)** - Orchestration to workflow migration
-- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - Map to Liquid template conversion
+- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - Map to LML (Logic Apps Mapping Language) conversion
 - **[BTPtoLA](../BTPtoLA/README.md)** - Pipeline to Logic Apps conversion
 - **[BizTalkToLogicApps.MCP](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.MCP/README.md)** - MCP server wrapper
+
+## Changelog
+
+### v1.1.0 (January 2026)
+
+#### Tests Added
+
+- `InvertCondition_ParenthesizedCompound_RespectsGrouping` — validates parenthesized compound conditions split correctly at top-level operators
+- `InvertCondition_TernaryAnd_InvertsAllThreeParts` — validates 3-way `&&` inversion produces `||` with all operators inverted
+- `MapExpression_TernaryAnd_ProducesNestedAndCalls` — validates `a == 1 && b == 2 && c == 3` produces nested `and()` calls
+- `MapExpression_TernaryOr_ProducesNestedOrCalls` — validates `x == 1 || y == 2 || z == 3` produces nested `or()` calls
+- `MapExpression_QuaternaryAnd_ProducesNestedAndCalls` — validates 4-way `&&` produces nested `and()` calls
+
+### v1.0.0 (January 2026)
+
+- Initial release
 
 ## License
 
@@ -140,5 +192,5 @@ MIT License - See LICENSE file in repository root.
 
 ---
 
-**Version**: 1.0.0  
+**Version**: 1.1.0  
 **Last Updated**: January 2026

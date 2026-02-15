@@ -3,514 +3,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml;
-using System.Xml.Linq;
 using System.Xml.XPath;
 
 namespace BizTalktoLogicApps.ODXtoWFMigrator
 {
-    /// <summary>
-    /// Represents the complete model of a parsed BizTalk orchestration.
-    /// </summary>
-    /// <remarks>
-    /// Contains all orchestration metadata including messages, port types, ports, and the complete shape hierarchy.
-    /// This is the root model returned by <see cref="BizTalkOrchestrationParser.ParseOdx"/>.
-    /// </remarks>
-    public sealed class OrchestrationModel
-    {
-        /// <summary>
-        /// Gets or sets the namespace of the orchestration.
-        /// </summary>
-        public string Namespace { get; set; }
-        
-        /// <summary>
-        /// Gets or sets the simple name of the orchestration.
-        /// </summary>
-        public string Name { get; set; }
-        
-        /// <summary>
-        /// Gets the fully qualified name of the orchestration (Namespace.Name).
-        /// </summary>
-        public string FullName => string.IsNullOrEmpty(Namespace) ? Name : Namespace + "." + Name;
-        
-        /// <summary>
-        /// Gets the collection of message declarations in the orchestration.
-        /// </summary>
-        public List<MessageModel> Messages { get; } = new List<MessageModel>();
-        
-        /// <summary>
-        /// Gets the collection of port type definitions.
-        /// </summary>
-        public List<PortTypeModel> PortTypes { get; } = new List<PortTypeModel>();
-        
-        /// <summary>
-        /// Gets the collection of port declarations (runtime instances of port types).
-        /// </summary>
-        public List<PortModel> Ports { get; } = new List<PortModel>();
-        
-        /// <summary>
-        /// Gets the root-level shapes (orchestration body).
-        /// </summary>
-        /// <remarks>
-        /// This collection contains only top-level shapes. Nested shapes are in <see cref="ShapeModel.Children"/>.
-        /// </remarks>
-        public List<ShapeModel> Shapes { get; } = new List<ShapeModel>();
-    }
-
-    /// <summary>
-    /// Represents a message declaration in a BizTalk orchestration.
-    /// </summary>
-    public sealed class MessageModel
-    {
-        /// <summary>Gets or sets the message variable name.</summary>
-        public string Name { get; set; }
-        
-        /// <summary>Gets or sets the message schema type (fully qualified).</summary>
-        public string Type { get; set; }
-        
-        /// <summary>Gets or sets the parameter direction (In, Out, InOut).</summary>
-        public string Direction { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a port type definition with operations.
-    /// </summary>
-    public sealed class PortTypeModel
-    {
-        /// <summary>Gets or sets the port type name.</summary>
-        public string Name { get; set; }
-        
-        /// <summary>Gets or sets the type modifier (Public, Private, Internal).</summary>
-        public string Modifier { get; set; }
-        
-        /// <summary>Gets the collection of operations defined in this port type.</summary>
-        public List<OperationModel> Operations { get; } = new List<OperationModel>();
-    }
-
-    /// <summary>
-    /// Represents a port operation (one-way or request-response).
-    /// </summary>
-    public sealed class OperationModel
-    {
-        /// <summary>Gets or sets the operation name.</summary>
-        public string Name { get; set; }
-        
-        /// <summary>Gets or sets the operation type (OneWay, RequestResponse).</summary>
-        public string OperationType { get; set; }
-        
-        /// <summary>Gets or sets the request message type.</summary>
-        public string RequestMessageType { get; set; }
-        
-        /// <summary>Gets or sets the response message type (for request-response operations).</summary>
-        public string ResponseMessageType { get; set; }
-        
-        /// <summary>Gets or sets the fault message type.</summary>
-        public string FaultMessageType { get; set; }
-    }
-
-    /// <summary>
-    /// Defines the communication direction of a BizTalk port.
-    /// </summary>
-    public enum PortDirection 
-    { 
-        /// <summary>No direction specified.</summary>
-        None, 
-        /// <summary>One-way receive port.</summary>
-        Receive, 
-        /// <summary>One-way send port.</summary>
-        Send, 
-        /// <summary>Request-response port (receive request, send response).</summary>
-        ReceiveSend, 
-        /// <summary>Solicit-response port (send request, receive response).</summary>
-        SendReceive 
-    }
-
-    /// <summary>
-    /// Represents a port declaration instance with binding information.
-    /// </summary>
-    public sealed class PortModel
-    {
-        /// <summary>Gets or sets the port instance name.</summary>
-        public string Name { get; set; }
-        
-        /// <summary>Gets or sets the reference to the port type.</summary>
-        public string PortTypeReference { get; set; }
-        
-        /// <summary>Gets or sets the port communication direction.</summary>
-        public PortDirection Direction { get; set; }
-        
-        /// <summary>Gets or sets the binding kind (Logical, Physical, Direct, Web).</summary>
-        public string BindingKind { get; set; }
-        
-        /// <summary>Gets or sets the adapter name (FILE, FTP, HTTP, etc.).</summary>
-        public string AdapterName { get; set; }
-        
-        /// <summary>Gets or sets the transport type.</summary>
-        public string TransportType { get; set; }
-        
-        /// <summary>Gets or sets the transport address (from bindings).</summary>
-        public string Address { get; set; }
-        
-        /// <summary>Gets or sets the folder path (for FILE adapter).</summary>
-        public string FolderPath { get; set; }
-        
-        /// <summary>Gets or sets the file mask pattern (for FILE adapter).</summary>
-        public string FileMask { get; set; }
-        
-        /// <summary>Gets or sets the polling interval in seconds (for FILE/FTP adapters).</summary>
-        public int? PollingIntervalSeconds { get; set; }
-        
-        /// <summary>Gets or sets the receive pipeline name.</summary>
-        public string ReceivePipelineName { get; set; }
-        
-        /// <summary>Gets or sets the send pipeline name.</summary>
-        public string SendPipelineName { get; set; }
-    }
-
-    /// <summary>
-    /// Abstract base class for all orchestration shapes.
-    /// </summary>
-    /// <remarks>
-    /// Shapes form a hierarchy with parent-child relationships representing control flow.
-    /// Each shape has a unique identifier (Oid), sequence number, and can have child shapes.
-    /// </remarks>
-    public abstract class ShapeModel
-    {
-        /// <summary>Gets or sets the BizTalk object identifier (OID) from the ODX file.</summary>
-        public string Oid { get; set; }
-        
-        /// <summary>Gets or sets the shape name (designer name).</summary>
-        public string Name { get; set; }
-        
-        /// <summary>Gets or sets the shape type identifier.</summary>
-        public string ShapeType { get; set; }
-        
-        /// <summary>Gets or sets the sequence number in the orchestration flow.</summary>
-        public int Sequence { get; set; }
-        
-        /// <summary>Gets or sets the parent shape (null for root-level shapes).</summary>
-        public ShapeModel Parent { get; set; }
-        
-        /// <summary>Gets the child shapes contained within this shape.</summary>
-        public List<ShapeModel> Children { get; } = new List<ShapeModel>();
-        
-        /// <summary>Gets or sets a unique identifier for duplicate shape name handling.</summary>
-        public string UniqueId { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a Receive shape that receives messages from a port.
-    /// </summary>
-    public sealed class ReceiveShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the port name to receive from.</summary>
-        public string PortName { get; set; }
-        
-        /// <summary>Gets or sets the message variable name.</summary>
-        public string MessageName { get; set; }
-        
-        /// <summary>Gets or sets the operation name.</summary>
-        public string OperationName { get; set; }
-        
-        /// <summary>Gets or sets the operation message name.</summary>
-        public string OperationMessageName { get; set; }
-        
-        /// <summary>Gets or sets whether this receive activates the orchestration instance.</summary>
-        public bool Activate { get; set; }
-        
-        /// <summary>Gets the correlation sets initialized by this receive.</summary>
-        public List<string> InitializesCorrelationSets { get; } = new List<string>();
-        
-        /// <summary>Gets the correlation sets followed by this receive.</summary>
-        public List<string> FollowsCorrelationSets { get; } = new List<string>();
-    }
-
-    /// <summary>
-    /// Represents a Send shape that sends messages to a port.
-    /// </summary>
-    public sealed class SendShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the port name to send to.</summary>
-        public string PortName { get; set; }
-        
-        /// <summary>Gets or sets the message variable name.</summary>
-        public string MessageName { get; set; }
-        
-        /// <summary>Gets or sets the operation name.</summary>
-        public string OperationName { get; set; }
-        
-        /// <summary>Gets or sets the operation message name.</summary>
-        public string OperationMessageName { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a Construct Message shape that builds or modifies messages.
-    /// </summary>
-    public sealed class ConstructShapeModel : ShapeModel
-    {
-        /// <summary>Gets the list of message names being constructed.</summary>
-        public List<string> ConstructedMessages { get; } = new List<string>();
-        
-        /// <summary>Gets the inner shapes (Transform, MessageAssignment) that build the message.</summary>
-        public List<ShapeModel> InnerShapes { get; } = new List<ShapeModel>();
-    }
-
-    /// <summary>
-    /// Represents a Transform shape that applies XSLT maps to messages.
-    /// </summary>
-    public sealed class TransformShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the XSLT map class name (fully qualified).</summary>
-        public string ClassName { get; set; }
-        
-        /// <summary>Gets or sets the input message names.</summary>
-        public List<string> InputMessages { get; set; } = new List<string>();
-        
-        /// <summary>Gets or sets the output message names.</summary>
-        public List<string> OutputMessages { get; } = new List<string>();
-    }
-
-    /// <summary>
-    /// Represents a Variable Assignment shape.
-    /// </summary>
-    public sealed class VariableAssignmentShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the C# assignment expression.</summary>
-        public string Expression { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a Message Assignment shape within a Construct block.
-    /// </summary>
-    public sealed class MessageAssignmentShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the C# expression that assigns message properties.</summary>
-        public string Expression { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a While loop shape.
-    /// </summary>
-    public sealed class WhileShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the while condition expression.</summary>
-        public string Expression { get; set; }
-    }
-
-    /// <summary>
-    /// Represents an Until loop shape.
-    /// </summary>
-    public sealed class UntilShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the until condition expression.</summary>
-        public string Expression { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a Call Orchestration shape.
-    /// </summary>
-    public sealed class CallShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the called orchestration name.</summary>
-        public string Invokee { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a correlation set declaration.
-    /// </summary>
-    public sealed class CorrelationDeclarationShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the correlation type reference.</summary>
-        public string CorrelationTypeRef { get; set; }
-        
-        /// <summary>Gets the statement references that use this correlation set.</summary>
-        public List<StatementCorrelationRef> StatementRefs { get; } = new List<StatementCorrelationRef>();
-    }
-
-    /// <summary>
-    /// Represents a Loop or ForEach shape.
-    /// </summary>
-    public sealed class LoopShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the loop type (Loop, ForEach).</summary>
-        public string LoopType { get; set; }
-        
-        /// <summary>Gets or sets the collection expression to iterate over.</summary>
-        public string CollectionExpression { get; set; }
-        
-        /// <summary>Gets or sets the iterator variable name.</summary>
-        public string ItemVariable { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a Decide (If/Else) shape with conditional branching.
-    /// </summary>
-    public sealed class DecideShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the decision condition expression.</summary>
-        public string Expression { get; set; }
-        
-        /// <summary>Gets or sets the shapes to execute when condition is true.</summary>
-        public List<ShapeModel> TrueBranch { get; set; } = new List<ShapeModel>();
-        
-        /// <summary>Gets or sets the shapes to execute when condition is false (else branch).</summary>
-        public List<ShapeModel> FalseBranch { get; set; } = new List<ShapeModel>();
-    }
-
-    /// <summary>
-    /// Represents a Switch shape with multiple case branches.
-    /// </summary>
-    public sealed class SwitchShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the switch expression to evaluate.</summary>
-        public string Expression { get; set; }
-        
-        /// <summary>Gets or sets the case branches keyed by case value.</summary>
-        public Dictionary<string, List<ShapeModel>> Cases { get; set; } = new Dictionary<string, List<ShapeModel>>();
-        
-        /// <summary>Gets or sets the default case shapes.</summary>
-        public List<ShapeModel> DefaultCase { get; set; } = new List<ShapeModel>();
-    }
-
-    /// <summary>
-    /// Represents a Listen shape that waits for the first of multiple events.
-    /// </summary>
-    public sealed class ListenShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the listen branches (first to complete wins).</summary>
-        public List<ShapeModel> Branches { get; set; } = new List<ShapeModel>();
-    }
-
-    /// <summary>
-    /// Represents a correlation statement reference.
-    /// </summary>
-    public sealed class StatementCorrelationRef
-    {
-        /// <summary>Gets or sets the statement OID that uses the correlation set.</summary>
-        public string StatementOid { get; set; }
-        
-        /// <summary>Gets or sets whether this statement initializes the correlation set.</summary>
-        public bool Initializes { get; set; }
-    }
-
-    /// <summary>Represents a Scope shape for grouping and error handling.</summary>
-    public sealed class ScopeShapeModel : ShapeModel { }
-    
-    /// <summary>Represents a Terminate, Suspend, or Throw shape.</summary>
-    public sealed class TerminateShapeModel : ShapeModel 
-    { 
-        /// <summary>Gets or sets the error message or exception details.</summary>
-        public string ErrorMessage { get; set; } 
-    }
-    
-    /// <summary>Represents an unknown or unsupported shape type.</summary>
-    public sealed class FallbackShapeModel : ShapeModel 
-    { 
-        /// <summary>Gets or sets details about the unhandled shape.</summary>
-        public string Details { get; set; } 
-    }
-    
-    /// <summary>Represents an Expression shape for executing C# code.</summary>
-    public sealed class ExpressionShapeModel : ShapeModel 
-    { 
-        /// <summary>Gets or sets the C# expression to execute.</summary>
-        public string Expression { get; set; } 
-    }
-    
-    /// <summary>Represents a Delay shape for waiting a specified duration.</summary>
-    public sealed class DelayShapeModel : ShapeModel 
-    { 
-        /// <summary>Gets or sets the delay duration expression (e.g., "System.TimeSpan.FromMinutes(5)").</summary>
-        public string DelayExpression { get; set; } 
-    }
-    
-    /// <summary>Represents a Compensate shape for invoking compensation logic.</summary>
-    public sealed class CompensateShapeModel : ShapeModel 
-    { 
-        /// <summary>Gets or sets the target scope to compensate.</summary>
-        public string Target { get; set; } 
-    }
-    /// <summary>Represents a Group shape for logical organization.</summary>
-    public sealed class GroupShapeModel : ShapeModel { }
-    
-    /// <summary>Represents a Parallel shape with concurrent execution branches.</summary>
-    public sealed class ParallelShapeModel : ShapeModel { }
-    
-    /// <summary>Represents a branch within a Parallel shape.</summary>
-    public sealed class ParallelBranchShapeModel : ShapeModel { }
-    
-    /// <summary>Represents a Start Orchestration shape (asynchronous call).</summary>
-    public sealed class StartShapeModel : ShapeModel 
-    { 
-        /// <summary>Gets or sets the orchestration to start.</summary>
-        public string Invokee { get; set; } 
-    }
-    
-    /// <summary>Represents a Task shape within a Listen shape.</summary>
-    public sealed class TaskShapeModel : ShapeModel { }
-    /// <summary>Represents a Catch exception handler shape.</summary>
-    public sealed class CatchShapeModel : ShapeModel 
-    { 
-        /// <summary>Gets or sets the exception type to catch (e.g., "System.Exception").</summary>
-        public string ExceptionType { get; set; }
-        
-        /// <summary>Gets or sets the exception variable name.</summary>
-        public string ExceptionVariable { get; set; }
-        
-        /// <summary>Gets or sets the exception handler shapes.</summary>
-        public List<ShapeModel> ExceptionHandlers { get; set; } = new List<ShapeModel>();
-    }
-    
-    /// <summary>Represents a Compensation scope shape.</summary>
-    public sealed class CompensationScopeShapeModel : ShapeModel { }
-    
-    /// <summary>Represents an Atomic Transaction scope.</summary>
-    public sealed class AtomicTransactionShapeModel : ShapeModel { }
-    
-    /// <summary>Represents a Long Running Transaction scope.</summary>
-    public sealed class LongRunningTransactionShapeModel : ShapeModel { }
-
-    /// <summary>
-    /// Represents transaction attributes metadata.
-    /// </summary>
-    public sealed class TransactionAttributeShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the transaction timeout.</summary>
-        public string Timeout { get; set; }
-        
-        /// <summary>Gets or sets the isolation level.</summary>
-        public string Isolation { get; set; }
-        
-        /// <summary>Gets or sets whether to retry on failure.</summary>
-        public bool Retry { get; set; }
-        
-        /// <summary>Gets or sets whether to batch transactions.</summary>
-        public bool Batch { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a variable declaration shape.
-    /// </summary>
-    public sealed class VariableDeclarationShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the variable type (e.g., "System.String", "System.Xml.XmlDocument").</summary>
-        public string VarType { get; set; }
-        
-        /// <summary>Gets or sets whether to use the default constructor.</summary>
-        public string UseDefault { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a Call Rules (Business Rules Engine) shape.
-    /// </summary>
-    public sealed class CallRulesShapeModel : ShapeModel
-    {
-        /// <summary>Gets or sets the BRE policy name to execute.</summary>
-        public string PolicyName { get; set; }
-    }
-
     /// <summary>
     /// Parses BizTalk Server orchestration files (.odx) and converts them to an object model.
     /// Extracts orchestration metadata, shapes, ports, messages, and control flow structures.
@@ -601,6 +101,41 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Failed to parse message declarations in orchestration '{model.Name}': {ex.Message}", ex);
+            }
+
+            // Parse Service-level Variable Declarations (e.g., SendPipelineInputMessages, ReceivePipelineOutputMessages)
+            // These are declared as children of ServiceDeclaration, outside ServiceBody,
+            // and must be collected into model.Shapes so CollectVariableDeclarationsRecursive
+            // can hoist them into InitializeVariable actions at workflow root level.
+            try
+            {
+                foreach (var varNav in Select(nav, nsmgr, "/om:MetaModel/om:Element[@Type='Module']/om:Element[@Type='ServiceDeclaration']/om:Element[@Type='VariableDeclaration']"))
+                {
+                    var varName = Eval(varNav, nsmgr, "om:Property[@Name='Name']/@Value");
+                    if (string.IsNullOrEmpty(varName))
+                    {
+                        continue;
+                    }
+
+                    var varType = Eval(varNav, nsmgr, "om:Property[@Name='Type']/@Value");
+                    var varOid = varNav.GetAttribute("OID", string.Empty);
+
+                    model.Shapes.Add(new VariableDeclarationShapeModel
+                    {
+                        ShapeType = "VariableDeclaration",
+                        Oid = varOid,
+                        Name = varName,
+                        VarType = varType,
+                        UseDefault = Eval(varNav, nsmgr, "om:Property[@Name='UseDefaultConstructor']/@Value"),
+                        Sequence = -1
+                    });
+
+                    Trace.TraceInformation("[PARSER] Collected service-level variable: {0} ({1})", varName, varType);
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("[PARSER] Failed to parse service-level variable declarations: {0}", ex.Message);
             }
 
             // Parse Port Types
@@ -845,8 +380,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 string oid = child.GetAttribute("OID", "");
                 ShapeModel shape = null;
 
-                // Debug logging
-                Console.WriteLine($"[PARSE] Found shape type: {type}, OID: {oid}, Parent: {parent?.Name ?? "ROOT"}");
+                Trace.TraceInformation("[PARSE] Found shape type: {0}, OID: {1}, Parent: {2}", type, oid, parent?.Name ?? "ROOT");
 
                 if (EqualsIgnoreCase(type, "CallRules") || EqualsIgnoreCase(type, "CallPolicy"))
                 {
@@ -937,7 +471,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 .Cast<XPathNavigator>()
                                 .ToList();
 
-                            Console.WriteLine($"[PARSER] Decision '{decideShape.Name}' has {branches.Count} branches");
+                            Trace.TraceInformation("[PARSER] Decision '{0}' has {1} branches", decideShape.Name, branches.Count);
 
                             if (branches.Count > 0)
                             {
@@ -960,7 +494,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                         if (nestedExpr != null)
                                         {
                                             exprValue = Eval(nestedExpr, nsmgr, "om:Property[@Name='Expression']/@Value");
-                                            Console.WriteLine($"[PARSER]   Found nested Expression shape in branch {i}");
+                                        Trace.TraceInformation("[PARSER]   Found nested Expression shape in branch {0}", i);
                                         }
                                     }
 
@@ -970,7 +504,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                         ruleBranch = branch;
                                         foundExpression = exprValue;
                                         decideShape.Expression = exprValue;
-                                        Console.WriteLine($"[PARSER]   ✅ Found Expression in branch {i} ('{branchName ?? "unnamed"}'): {exprValue.Substring(0, Math.Min(60, exprValue.Length))}...");
+                                        Trace.TraceInformation("[PARSER]   Found Expression in branch {0} ('{1}'): {2}...", i, branchName ?? "unnamed", exprValue.Substring(0, Math.Min(60, exprValue.Length)));
                                     }
                                 }
 
@@ -983,8 +517,8 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                         foundExpression = Eval(siblingExpr, nsmgr, "om:Property[@Name='Expression']/@Value");
                                         if (!string.IsNullOrWhiteSpace(foundExpression))
                                         {
-                                            decideShape.Expression = foundExpression;
-                                            Console.WriteLine($"[PARSER]   ✅ Found Expression as sibling to branches: {foundExpression.Substring(0, Math.Min(60, foundExpression.Length))}...");
+                                        decideShape.Expression = foundExpression;
+                                            Trace.TraceInformation("[PARSER]   Found Expression as sibling to branches: {0}...", foundExpression.Substring(0, Math.Min(60, foundExpression.Length)));
                                         }
                                     }
                                 }
@@ -1008,7 +542,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     {
                                         falseBranchNav = branches[1];
                                     }
-                                    Console.WriteLine($"[PARSER]   ⚠️ No Expression found - using branch order");
+                                    Trace.TraceInformation("[PARSER]   No Expression found - using branch order");
                                 }
 
                                 // Parse TRUE branch (including any Expression shapes inside it)
@@ -1020,18 +554,18 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     // Parse ALL shapes in the branch, including Expression shapes
                                     ParseShapes(trueBranchNav, nsmgr, trueBranchModel, ref trueBranchSeq, oidMap, null);
 
-                                    Console.WriteLine($"[PARSER]   TrueBranch parsed: {trueBranchModel.Shapes.Count} shapes");
+                                    Trace.TraceInformation("[PARSER]   TrueBranch parsed: {0} shapes", trueBranchModel.Shapes.Count);
 
                                     // Check if we captured any Expression shapes
                                     var expressionShapes = trueBranchModel.Shapes.OfType<ExpressionShapeModel>().ToList();
                                     if (expressionShapes.Any())
                                     {
-                                        Console.WriteLine($"[PARSER]     Found {expressionShapes.Count} Expression shape(s) in TRUE branch");
+                                        Trace.TraceInformation("[PARSER]     Found {0} Expression shape(s) in TRUE branch", expressionShapes.Count);
                                         // If decide doesn't have expression yet, use the first Expression shape's expression
                                         if (string.IsNullOrWhiteSpace(decideShape.Expression) && expressionShapes.Any())
                                         {
                                             decideShape.Expression = expressionShapes.First().Expression;
-                                            Console.WriteLine($"[PARSER]     Using Expression from shape: {expressionShapes.First().Name}");
+                                            Trace.TraceInformation("[PARSER]     Using Expression from shape: {0}", expressionShapes.First().Name);
                                         }
                                     }
 
@@ -1056,13 +590,13 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     // Parse ALL shapes in the branch, including Expression shapes
                                     ParseShapes(falseBranchNav, nsmgr, falseBranchModel, ref falseBranchSeq, oidMap, null);
 
-                                    Console.WriteLine($"[PARSER]   FalseBranch parsed: {falseBranchModel.Shapes.Count} shapes");
+                                    Trace.TraceInformation("[PARSER]   FalseBranch parsed: {0} shapes", falseBranchModel.Shapes.Count);
 
                                     // Check if we captured any Expression shapes
                                     var expressionShapes = falseBranchModel.Shapes.OfType<ExpressionShapeModel>().ToList();
                                     if (expressionShapes.Any())
                                     {
-                                        Console.WriteLine($"[PARSER]     Found {expressionShapes.Count} Expression shape(s) in FALSE branch");
+                                        Trace.TraceInformation("[PARSER]     Found {0} Expression shape(s) in FALSE branch", expressionShapes.Count);
                                     }
 
                                     foreach (var branchShape in falseBranchModel.Shapes)
@@ -1080,7 +614,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             else
                             {
                                 // No DecisionBranch elements found, look for direct child shapes
-                                Console.WriteLine($"[PARSER]   No DecisionBranch elements found, looking for direct children");
+                                Trace.TraceInformation("[PARSER]   No DecisionBranch elements found, looking for direct children");
 
                                 // Check for Expression shape as direct child
                                 var directExpr = child.SelectSingleNode("om:Element[@Type='Expression']", nsmgr);
@@ -1090,7 +624,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     if (!string.IsNullOrWhiteSpace(exprValue))
                                     {
                                         decideShape.Expression = exprValue;
-                                        Console.WriteLine($"[PARSER]   Found direct Expression child: {exprValue.Substring(0, Math.Min(60, exprValue.Length))}...");
+                                        Trace.TraceInformation("[PARSER]   Found direct Expression child: {0}...", exprValue.Substring(0, Math.Min(60, exprValue.Length)));
                                     }
                                 }
                             }
@@ -1121,7 +655,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 }
                             }
 
-                            Console.WriteLine($"[PARSER] Switch '{switchShape.Name}' with expression: {switchShape.Expression?.Substring(0, Math.Min(60, switchShape.Expression?.Length ?? 0))}...");
+                            Trace.TraceInformation("[PARSER] Switch '{0}' with expression: {1}...", switchShape.Name, switchShape.Expression?.Substring(0, Math.Min(60, switchShape.Expression?.Length ?? 0)));
 
                             // Parse all case branches
                             var caseBranches = Select(child, nsmgr, "om:Element[@Type='DecisionBranch']");
@@ -1137,7 +671,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                                     caseName?.ToLower().Contains("default") == true ||
                                                     caseName?.ToLower().Contains("else") == true;
 
-                                Console.WriteLine($"[PARSER]   Case {++caseIndex}: '{caseName}' with value: {caseValue ?? "(default)"}");
+                                Trace.TraceInformation("[PARSER]   Case {0}: '{1}' with value: {2}", ++caseIndex, caseName, caseValue ?? "(default)");
 
                                 // Parse shapes within this case
                                 var caseModel = new OrchestrationModel();
@@ -1157,7 +691,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 if (isDefaultCase)
                                 {
                                     switchShape.DefaultCase.AddRange(caseModel.Shapes);
-                                    Console.WriteLine($"[PARSER]     Default case parsed: {caseModel.Shapes.Count} shapes");
+                                    Trace.TraceInformation("[PARSER]     Default case parsed: {0} shapes", caseModel.Shapes.Count);
                                 }
                                 else
                                 {
@@ -1170,11 +704,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     }
 
                                     switchShape.Cases[caseKey].AddRange(caseModel.Shapes);
-                                    Console.WriteLine($"[PARSER]     Case '{caseKey}' parsed: {caseModel.Shapes.Count} shapes");
+                                    Trace.TraceInformation("[PARSER]     Case '{0}' parsed: {1} shapes", caseKey, caseModel.Shapes.Count);
                                 }
                             }
 
-                            Console.WriteLine($"[PARSER] Switch complete with {switchShape.Cases.Count} cases and {(switchShape.DefaultCase.Count > 0 ? "a" : "no")} default case");
+                            Trace.TraceInformation("[PARSER] Switch complete with {0} cases and {1} default case", switchShape.Cases.Count, switchShape.DefaultCase.Count > 0 ? "a" : "no");
 
                             shape = switchShape;
                             break;
@@ -1189,11 +723,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             };
 
                             // Implement Listen branch parsing
-                            var listenBranches = Select(child, nsmgr, "om:Element[@Type='Task']");
+                            // BizTalk ODX files use either Task or ListenBranch elements for Listen branches
+                            var listenBranches = Select(child, nsmgr, "om:Element[@Type='Task' or @Type='ListenBranch']");
                             int branchIndex = 0;
                             foreach (var branchNav in listenBranches)
                             {
-                                Console.WriteLine($"[PARSER] Parsing Listen branch {++branchIndex}");
+                                Trace.TraceInformation("[PARSER] Parsing Listen branch {0}", ++branchIndex);
                                 var branchModel = new OrchestrationModel();
                                 int branchSeq = 0;
                                 ParseShapes(branchNav, nsmgr, branchModel, ref branchSeq, oidMap, listenShape);
@@ -1266,29 +801,29 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             };
                             break;
 
-                    case "While":
-                        shape = new WhileShapeModel
-                        {
-                            ShapeType = type,
-                            Oid = oid,
-                            Name = Eval(child, nsmgr, "om:Property[@Name='Name']/@Value"),
-                            Expression = Eval(child, nsmgr, "om:Property[@Name='Expression']/@Value"),
-                            Sequence = seq++
-                        };
-                        break;
+                        case "While":
+                            shape = new WhileShapeModel
+                            {
+                                ShapeType = type,
+                                Oid = oid,
+                                Name = Eval(child, nsmgr, "om:Property[@Name='Name']/@Value"),
+                                Expression = Eval(child, nsmgr, "om:Property[@Name='Expression']/@Value"),
+                                Sequence = seq++
+                            };
+                            break;
 
-                    case "Until":
-                        shape = new UntilShapeModel
-                        {
-                            ShapeType = type,
-                            Oid = oid,
-                            Name = Eval(child, nsmgr, "om:Property[@Name='Name']/@Value"),
-                            Expression = Eval(child, nsmgr, "om:Property[@Name='Expression']/@Value"),
-                            Sequence = seq++
-                        };
-                        break;
+                        case "Until":
+                            shape = new UntilShapeModel
+                            {
+                                ShapeType = type,
+                                Oid = oid,
+                                Name = Eval(child, nsmgr, "om:Property[@Name='Name']/@Value"),
+                                Expression = Eval(child, nsmgr, "om:Property[@Name='Expression']/@Value"),
+                                Sequence = seq++
+                            };
+                            break;
 
-                    case "Call":
+                        case "Call":
                             shape = new CallShapeModel
                             {
                                 ShapeType = type,
@@ -1487,7 +1022,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                         case "TransactionAttribute":
                             // Skip metadata shapes - don't create action for them
-                            Console.WriteLine($"[PARSE] Skipping metadata shape: TransactionAttribute");
+                            Trace.TraceInformation("[PARSE] Skipping metadata shape: TransactionAttribute");
                             continue;
 
                         case "VariableDeclaration":
@@ -1502,9 +1037,25 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             };
                             break;
 
+                        // Scope-level MessageDeclaration: BizTalk allows messages to be declared
+                        // inside Scopes. In Logic Apps, messages are variables and must be
+                        // initialized at workflow root level. Parse as VariableDeclarationShapeModel
+                        // so CollectVariableDeclarationsRecursive hoists them as InitializeVariable.
+                        case "MessageDeclaration":
+                            shape = new VariableDeclarationShapeModel
+                            {
+                                ShapeType = "VariableDeclaration",
+                                Oid = oid,
+                                Name = Eval(child, nsmgr, "om:Property[@Name='Name']/@Value"),
+                                VarType = Eval(child, nsmgr, "om:Property[@Name='Type']/@Value"),
+                                Sequence = seq++
+                            };
+                            Trace.TraceInformation("[PARSER] Scope-level MessageDeclaration '{0}' parsed as VariableDeclaration for hoisting", shape.Name);
+                            break;
+
                         // Catch-all for unknown shapes
                         default:
-                            Console.WriteLine($"[PARSE] ⚠️ Unknown shape type: {type}");
+                            Trace.TraceWarning("[PARSE] Unknown shape type: {0}", type);
                             shape = new FallbackShapeModel
                             {
                                 ShapeType = type,
@@ -1540,7 +1091,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         needsRecursion = false;
                     }
 
-                    Console.WriteLine($"[PARSE] Shape {shape.Name} ({shape.ShapeType}) - Will recurse: {needsRecursion}");
+                    Trace.TraceInformation("[PARSE] Shape {0} ({1}) - Will recurse: {2}", shape.Name, shape.ShapeType, needsRecursion);
 
                     if (needsRecursion)
                     {
@@ -1622,7 +1173,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             if (shape.InputMessages.Count == 2)
             {
                 shape.OutputMessages.Add(shape.InputMessages[1]);
-                shape.InputMessages = new List<string> { shape.InputMessages[0] };
+                var firstInput = shape.InputMessages[0];
+                shape.InputMessages.Clear();
+                shape.InputMessages.Add(firstInput);
             }
             return shape;
         }
@@ -1756,30 +1309,30 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 {
                     try
                     {
-                        Console.WriteLine($"[INFO] Loading connector registry from: {path}");
+                        Trace.TraceInformation("[INFO] Loading connector registry from: {0}", path);
                         var registry = ConnectorSchemaRegistry.LoadFromFile(path);
 
                         if (registry != null)
                         {
-                            Console.WriteLine($"[SUCCESS] Connector registry loaded successfully with {registry.ConnectorCount} connector(s)");
+                            Trace.TraceInformation("[SUCCESS] Connector registry loaded successfully with {0} connector(s)", registry.ConnectorCount);
                         }
 
                         return registry;
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[WARNING] Failed to load connector registry from {path}: {ex.Message}");
+                        Trace.TraceWarning("Failed to load connector registry from {0}: {1}", path, ex.Message);
                     }
                 }
             }
 
-            Console.WriteLine("[WARNING] Connector registry file (connector-registry.json) not found in any search path:");
+            Trace.TraceWarning("Connector registry file (connector-registry.json) not found in any search path.");
             foreach (var path in pathsArray)
             {
-                Console.WriteLine($"  - {path}");
+                Trace.TraceWarning("  Searched: {0}", path);
             }
-            Console.WriteLine("[WARNING] Workflow generation will proceed without connector schema information.");
-            Console.WriteLine("[WARNING] Generated workflows may require manual connector configuration.");
+            Trace.TraceWarning("Workflow generation will proceed without connector schema information.");
+            Trace.TraceWarning("Generated workflows may require manual connector configuration.");
 
             return null;
         }
@@ -1804,296 +1357,13 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         }
 
         /// <summary>
-        /// Performs diagnostic analysis on a BizTalk orchestration and outputs detailed shape hierarchy.
-        /// Prints shape counts, complete hierarchy tree, and decision/switch details to console.
-        /// Useful for understanding orchestration structure and troubleshooting parsing issues.
+        /// Delegates to <see cref="Diagnostics.OrchestrationDiagnostics.DiagnoseOrchestration"/>.
+        /// Kept for backward compatibility with existing call sites.
         /// </summary>
         /// <param name="odxPath">The path to the BizTalk orchestration (.odx) file to diagnose.</param>
         public static void DiagnoseOrchestration(string odxPath)
         {
-            var model = ParseOdx(odxPath);
-
-            Console.WriteLine("\n================================================================================");
-            Console.WriteLine($"=== Orchestration Diagnostic: {model.FullName} ===");
-            Console.WriteLine("================================================================================");
-            Console.WriteLine($"Top-Level Shapes: {model.Shapes.Count}");
-
-            int totalDecisions = 0;
-            int totalSwitches = 0;
-            int totalMessageAssignments = 0;
-            int totalStarts = 0;
-            int totalReceives = 0;
-            int totalSends = 0;
-            int totalConstructs = 0;
-            int totalScopes = 0;
-
-            CountShapesRecursive(model.Shapes, ref totalDecisions, ref totalSwitches, ref totalMessageAssignments,
-                ref totalStarts, ref totalReceives, ref totalSends, ref totalConstructs, ref totalScopes, 0);
-
-            Console.WriteLine("\n=== TOTAL SHAPE COUNTS (including nested) ===");
-            Console.WriteLine($"  ✓ Decision/If Shapes: {totalDecisions}");
-            Console.WriteLine($"  ✓ Switch Shapes: {totalSwitches}");
-            Console.WriteLine($"  ✓ Construct Shapes: {totalConstructs}");
-            Console.WriteLine($"  ✓ MessageAssignment Shapes: {totalMessageAssignments}");
-            Console.WriteLine($"  ✓ Start Orchestration Shapes: {totalStarts}");
-            Console.WriteLine($"  ✓ Receive Shapes: {totalReceives}");
-            Console.WriteLine($"  ✓ Send Shapes: {totalSends}");
-            Console.WriteLine($"  ✓ Scope Shapes: {totalScopes}");
-
-            Console.WriteLine("\n=== COMPLETE SHAPE HIERARCHY ===");
-            foreach (var shape in model.Shapes.OrderBy(s => s.Sequence))
-            {
-                PrintShapeTree(shape, 0);
-            }
-
-            Console.WriteLine("\n================================================================================");
-            Console.WriteLine("=== DECISION DETAILS ===");
-            Console.WriteLine("================================================================================");
-            PrintDecisionDetails(model.Shapes, 0);
-        }
-
-        /// <summary>
-        /// Recursively counts shapes by type throughout the entire orchestration hierarchy.
-        /// Traverses decision branches, switch cases, construct inner shapes, and all child shapes.
-        /// </summary>
-        /// <param name="shapes">The collection of shapes to count.</param>
-        /// <param name="decisions">Reference counter for Decision/If shapes.</param>
-        /// <param name="switches">Reference counter for Switch shapes.</param>
-        /// <param name="msgAssignments">Reference counter for MessageAssignment shapes.</param>
-        /// <param name="starts">Reference counter for Start Orchestration shapes.</param>
-        /// <param name="receives">Reference counter for Receive shapes.</param>
-        /// <param name="sends">Reference counter for Send shapes.</param>
-        /// <param name="constructs">Reference counter for Construct shapes.</param>
-        /// <param name="scopes">Reference counter for Scope/Transaction shapes.</param>
-        /// <param name="depth">Current recursion depth (for tracking nesting level).</param>
-        private static void CountShapesRecursive(
-            IEnumerable<ShapeModel> shapes,
-            ref int decisions,
-            ref int switches,
-            ref int msgAssignments,
-            ref int starts,
-            ref int receives,
-            ref int sends,
-            ref int constructs,
-            ref int scopes,
-            int depth)
-        {
-            foreach (var shape in shapes)
-            {
-                if (shape is DecideShapeModel decide)
-                {
-                    decisions++;
-                    CountShapesRecursive(decide.TrueBranch, ref decisions, ref switches, ref msgAssignments, ref starts, ref receives, ref sends, ref constructs, ref scopes, depth + 1);
-                    CountShapesRecursive(decide.FalseBranch, ref decisions, ref switches, ref msgAssignments, ref starts, ref receives, ref sends, ref constructs, ref scopes, depth + 1);
-                }
-                else if (shape is SwitchShapeModel switchShape)
-                {
-                    switches++;
-                    foreach (var caseShapes in switchShape.Cases.Values)
-                    {
-                        CountShapesRecursive(caseShapes, ref decisions, ref switches, ref msgAssignments, ref starts, ref receives, ref sends, ref constructs, ref scopes, depth + 1);
-                    }
-                    if (switchShape.DefaultCase.Count > 0)
-                    {
-                        CountShapesRecursive(switchShape.DefaultCase, ref decisions, ref switches, ref msgAssignments, ref starts, ref receives, ref sends, ref constructs, ref scopes, depth + 1);
-                    }
-                }
-                else if (shape is ConstructShapeModel construct)
-                {
-                    constructs++;
-                    foreach (var inner in construct.InnerShapes)
-                    {
-                        if (inner is MessageAssignmentShapeModel) msgAssignments++;
-                    }
-                }
-                else if (shape is MessageAssignmentShapeModel)
-                {
-                    msgAssignments++;
-                }
-                else if (shape is StartShapeModel)
-                {
-                    starts++;
-                }
-                else if (shape is ReceiveShapeModel)
-                {
-                    receives++;
-                }
-                else if (shape is SendShapeModel)
-                {
-                    sends++;
-                }
-                else if (shape is ScopeShapeModel || shape is AtomicTransactionShapeModel || shape is LongRunningTransactionShapeModel)
-                {
-                    scopes++;
-                }
-
-                if (shape.Children.Count > 0)
-                {
-                    CountShapesRecursive(shape.Children, ref decisions, ref switches, ref msgAssignments, ref starts, ref receives, ref sends, ref constructs, ref scopes, depth + 1);
-                }
-            }
-        }
-        /// <summary>
-        /// Recursively prints the shape hierarchy tree with indentation to console.
-        /// Shows shape type, name, sequence, unique ID, and special details for Decision/Switch/Construct shapes.
-        /// </summary>
-        /// <param name="shape">The shape to print.</param>
-        /// <param name="indent">The indentation level (number of levels deep in hierarchy).</param>
-        private static void PrintShapeTree(ShapeModel shape, int indent)
-        {
-            string prefix = new string(' ', indent * 2);
-            string id = !string.IsNullOrEmpty(shape.UniqueId) ? $" [{shape.UniqueId.Substring(0, 8)}]" : "";
-            string seq = $" [Seq:{shape.Sequence}]";
-
-            Console.WriteLine($"{prefix}[{shape.ShapeType}] {shape.Name}{id}{seq}");
-
-            if (shape is DecideShapeModel decide)
-            {
-                Console.WriteLine($"{prefix}  Expression: {(string.IsNullOrEmpty(decide.Expression) ? "(no expression)" : decide.Expression.Substring(0, Math.Min(60, decide.Expression.Length)))}");
-
-                if (decide.TrueBranch.Count > 0)
-                {
-                    Console.WriteLine($"{prefix}  ✓ TRUE branch ({decide.TrueBranch.Count} shapes):");
-                    foreach (var child in decide.TrueBranch.OrderBy(c => c.Sequence))
-                        PrintShapeTree(child, indent + 2);
-                }
-                else
-                {
-                    Console.WriteLine($"{prefix}  ✓ TRUE branch (empty)");
-                }
-
-                if (decide.FalseBranch.Count > 0)
-                {
-                    Console.WriteLine($"{prefix}  ✗ FALSE branch ({decide.FalseBranch.Count} shapes):");
-                    foreach (var child in decide.FalseBranch.OrderBy(c => c.Sequence))
-                        PrintShapeTree(child, indent + 2);
-                }
-                else
-                {
-                    Console.WriteLine($"{prefix}  ✗ FALSE branch (empty)");
-                }
-            }
-
-            if (shape is SwitchShapeModel switchShape)
-            {
-                Console.WriteLine($"{prefix}  Expression: {(string.IsNullOrEmpty(switchShape.Expression) ? "(no expression)" : switchShape.Expression.Substring(0, Math.Min(60, switchShape.Expression.Length)))}");
-
-                if (switchShape.Cases.Count > 0)
-                {
-                    Console.WriteLine($"{prefix}  Cases ({switchShape.Cases.Count}):");
-                    foreach (var caseEntry in switchShape.Cases)
-                    {
-                        Console.WriteLine($"{prefix}    Case '{caseEntry.Key}': {caseEntry.Value.Count} shapes");
-                        foreach (var caseShape in caseEntry.Value.OrderBy(c => c.Sequence))
-                        {
-                            PrintShapeTree(caseShape, indent + 3);
-                        }
-                    }
-                }
-
-                if (switchShape.DefaultCase.Count > 0)
-                {
-                    Console.WriteLine($"{prefix}  Default case ({switchShape.DefaultCase.Count} shapes):");
-                    foreach (var defaultShape in switchShape.DefaultCase.OrderBy(c => c.Sequence))
-                    {
-                        PrintShapeTree(defaultShape, indent + 2);
-                    }
-                }
-            }
-
-            if (shape is ConstructShapeModel construct && construct.InnerShapes.Count > 0)
-            {
-                Console.WriteLine($"{prefix}  Inner shapes ({construct.InnerShapes.Count}):");
-                foreach (var inner in construct.InnerShapes)
-                    PrintShapeTree(inner, indent + 2);
-            }
-
-            if (shape is CatchShapeModel catchModel)
-            {
-                Console.WriteLine($"{prefix}  Exception Type: {catchModel.ExceptionType}");
-                Console.WriteLine($"{prefix}  Exception Variable: {catchModel.ExceptionVariable}");
-                if (catchModel.ExceptionHandlers.Count > 0)
-                {
-                    Console.WriteLine($"{prefix}  Exception Handlers ({catchModel.ExceptionHandlers.Count} shapes):");
-                    foreach (var handler in catchModel.ExceptionHandlers.OrderBy(h => h.Sequence))
-                    {
-                        PrintShapeTree(handler, indent + 2);
-                    }
-                }
-            }
-
-            if (!(shape is DecideShapeModel) && !(shape is SwitchShapeModel))
-            {
-                foreach (var child in shape.Children.OrderBy(c => c.Sequence))
-                {
-                    PrintShapeTree(child, indent + 1);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Recursively prints detailed information about Decision and Switch shapes.
-        /// Shows expressions, branch counts, case values, and recursively explores nested decisions.
-        /// </summary>
-        /// <param name="shapes">The collection of shapes to analyze for decisions.</param>
-        /// <param name="level">The indentation level for formatted output.</param>
-        private static void PrintDecisionDetails(IEnumerable<ShapeModel> shapes, int level)
-        {
-            foreach (var shape in shapes.OrderBy(s => s.Sequence))
-            {
-                if (shape is DecideShapeModel decide)
-                {
-                    string indent = new string(' ', level * 2);
-                    Console.WriteLine($"{indent}▶ Decision: '{decide.Name}'");
-                    Console.WriteLine($"{indent}  Sequence: {decide.Sequence}");
-                    Console.WriteLine($"{indent}  UniqueId: {decide.UniqueId}");
-                    Console.WriteLine($"{indent}  Expression: {decide.Expression}");
-                    Console.WriteLine($"{indent}  True Branch: {decide.TrueBranch.Count} shapes");
-                    Console.WriteLine($"{indent}  False Branch: {decide.FalseBranch.Count} shapes");
-
-                    if (decide.TrueBranch.Count > 0)
-                    {
-                        Console.WriteLine($"{indent}  TRUE:");
-                        PrintDecisionDetails(decide.TrueBranch, level + 2);
-                    }
-
-                    if (decide.FalseBranch.Count > 0)
-                    {
-                        Console.WriteLine($"{indent}  FALSE:");
-                        PrintDecisionDetails(decide.FalseBranch, level + 2);
-                    }
-
-                    Console.WriteLine();
-                }
-                else if (shape is SwitchShapeModel switchShape)
-                {
-                    string indent = new string(' ', level * 2);
-                    Console.WriteLine($"{indent}▶ Switch: '{switchShape.Name}'");
-                    Console.WriteLine($"{indent}  Sequence: {switchShape.Sequence}");
-                    Console.WriteLine($"{indent}  UniqueId: {switchShape.UniqueId}");
-                    Console.WriteLine($"{indent}  Expression: {switchShape.Expression}");
-                    Console.WriteLine($"{indent}  Cases: {switchShape.Cases.Count}");
-                    Console.WriteLine($"{indent}  Has Default: {(switchShape.DefaultCase.Count > 0 ? "Yes" : "No")}");
-
-                    foreach (var caseEntry in switchShape.Cases)
-                    {
-                        Console.WriteLine($"{indent}  CASE '{caseEntry.Key}':");
-                        PrintDecisionDetails(caseEntry.Value, level + 2);
-                    }
-
-                    if (switchShape.DefaultCase.Count > 0)
-                    {
-                        Console.WriteLine($"{indent}  DEFAULT:");
-                        PrintDecisionDetails(switchShape.DefaultCase, level + 2);
-                    }
-
-                    Console.WriteLine();
-                }
-                else if (shape.Children.Count > 0)
-                {
-                    PrintDecisionDetails(shape.Children, level);
-                }
-            }
+            Diagnostics.OrchestrationDiagnostics.DiagnoseOrchestration(odxPath);
         }
     }
 }

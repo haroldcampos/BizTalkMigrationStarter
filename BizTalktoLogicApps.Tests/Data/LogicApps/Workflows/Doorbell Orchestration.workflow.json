@@ -1,0 +1,108 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "HeaderInfo": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "HeaderInfo",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "ns0": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ns0",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "HeaderInfo": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_1_521b1e60": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "DoorbellMap",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "ns0": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_2_1c10a045": {
+        "type": "Compose",
+        "inputs": "@'HeaderInfo = new System.Xml.XmlDocument();\r\nHeaderInfo.LoadXml(\"<ns0:MSH_25_GLO_DEF xmlns:ns0=\\\"http://microsoft.com/HealthCare/HL7/2X\\\"><MSH><MSH.2_EncodingCharacters>^~\\\\&amp;</MSH.2_EncodingCharacters><MSH.3_SendingApplication><HD.0_NamespaceId>SrcApp</HD.0_NamespaceId><HD.1_UniversalId>SrcAppUid</HD.1_UniversalId></MSH.3_SendingApplication><MSH.4_SendingFacility><HD.0_NamespaceId>srcFac</HD.0_NamespaceId><HD.1_UniversalId>srcFacUid</HD.1_UniversalId></MSH.4_SendingFacility><MSH.5_ReceivingApplication><HD.0_NamespaceId>dstApp</HD.0_NamespaceId><HD.1_UniversalId>dstAppUid</HD.1_UniversalId></MSH.5_ReceivingApplication><MSH.6_ReceivingFacility><HD.0_NamespaceId>dstFac</HD.0_NamespaceId><HD.1_UniversalId>dstFacUid</HD.1_UniversalId></MSH.6_ReceivingFacility><MSH.7_DateTimeOfMessage><TS.1>200307092343</TS.1></MSH.7_DateTimeOfMessage><MSH.8_Security>sec</MSH.8_Security><MSH.9_MessageType><CM_MSG.0_MessageType>ADT</CM_MSG.0_MessageType><CM_MSG.1_TriggerEvent>A04</CM_MSG.1_TriggerEvent></MSH.9_MessageType><MSH.10_MessageControlId>msgid2134</MSH.10_MessageControlId><MSH.11_ProcessingId><PT.0_ProcessingId>P</PT.0_ProcessingId></MSH.11_ProcessingId><MSH.12_VersionId><VID_0_VersionId>2.2</VID_0_VersionId></MSH.12_VersionId></MSH></ns0:MSH_25_GLO_DEF>\");\r\n\r\nDoorbellFinalMessage.MSHSegment = HeaderInfo;\r\nDoorbellFinalMessage.BodySegments = DoorbellOutputMessage;\r\nDoorbellFinalMessage.ZSegments = \"\";\r\n\r\nDoorbellFinalMessage(BTAHL7Schemas.MSH1) = 124; \r\nDoorbellFinalMessage(BTAHL7Schemas.MessageEncoding) = 65001;\r\nDoorbellFinalMessage(BTAHL7Schemas.MSH2) = \"^~\\\\&\";\r\nDoorbellFinalMessage(BTAHL7Schemas.ParseError) = false; \r\nDoorbellFinalMessage(BTAHL7Schemas.TrailingDelimiterAllowed) = false;  \r\nDoorbellFinalMessage(BTAHL7Schemas.ZPartPresent) = false;\r\nDoorbellFinalMessage(BTAHL7Schemas.SegmentDelimiter2Char) = true'",
+        "runAfter": {
+          "ConstructMessage_1_521b1e60": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DoorbellSend": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_2_1c10a045": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "DoorbellSend": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

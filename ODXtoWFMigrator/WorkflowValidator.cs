@@ -361,8 +361,22 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 ValidateAction(actionProp.Name, actionProp.Value as JObject);
             }
 
+            // Check for Terminate actions nested inside Until loops (Logic Apps forbids this)
+            foreach (var actionProp in actions.Properties())
+            {
+                var action = actionProp.Value as JObject;
+                if (action == null) continue;
+                if (string.Equals(action["type"]?.ToString(), "Until", StringComparison.OrdinalIgnoreCase))
+                {
+                    CheckForNestedTerminate(actionProp.Name, action["actions"] as JObject);
+                }
+            }
+
             // Check for circular dependencies
             ValidateActionDependencies(actions);
+
+            // Check for uninitialized variable references
+            ValidateVariableInitialization(actions);
         }
 
         private void ValidateAction(string actionName, JObject action)
@@ -487,6 +501,127 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             }
                         }
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Recursively checks for Terminate actions nested inside an Until loop's actions.
+        /// Logic Apps forbids Terminate inside Until loops.
+        /// </summary>
+        private void CheckForNestedTerminate(string untilName, JObject actionsObj)
+        {
+            if (actionsObj == null) return;
+
+            foreach (var prop in actionsObj.Properties())
+            {
+                var action = prop.Value as JObject;
+                if (action == null) continue;
+
+                var type = action["type"]?.ToString();
+                if (string.Equals(type, "Terminate", StringComparison.OrdinalIgnoreCase))
+                {
+                    AddError("TERMINATE_IN_UNTIL",
+                        string.Format("Action '{0}' of type 'Terminate' is nested inside Until loop '{1}'. " +
+                                      "Logic Apps does not allow Terminate inside Until loops.",
+                            prop.Name, untilName));
+                }
+                else if (string.Equals(type, "If", StringComparison.OrdinalIgnoreCase))
+                {
+                    CheckForNestedTerminate(untilName, action["actions"] as JObject);
+                    var elseObj = action["else"] as JObject;
+                    if (elseObj != null)
+                    {
+                        CheckForNestedTerminate(untilName, elseObj["actions"] as JObject);
+                    }
+                }
+                else if (string.Equals(type, "Scope", StringComparison.OrdinalIgnoreCase))
+                {
+                    CheckForNestedTerminate(untilName, action["actions"] as JObject);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates that all variables referenced via variables('name') expressions are
+        /// initialized by an InitializeVariable action at the workflow root level.
+        /// Logic Apps requires variables to be initialized before use.
+        /// </summary>
+        private void ValidateVariableInitialization(JObject actions)
+        {
+            // Collect all initialized variable names from InitializeVariable actions
+            var initializedVars = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var actionProp in actions.Properties())
+            {
+                var action = actionProp.Value as JObject;
+                if (action == null) continue;
+
+                var actionType = action["type"]?.Value<string>();
+                if (string.Equals(actionType, "InitializeVariable", StringComparison.OrdinalIgnoreCase))
+                {
+                    var variables = action.SelectToken("inputs.variables") as JArray;
+                    if (variables != null)
+                    {
+                        foreach (var variable in variables)
+                        {
+                            var varName = variable["name"]?.Value<string>();
+                            if (!string.IsNullOrEmpty(varName))
+                            {
+                                initializedVars.Add(varName);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Scan all actions (including nested) for variables('name') references
+            var referencedVars = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            CollectVariableReferences(actions, referencedVars);
+
+            // Report any referenced but uninitialized variables
+            foreach (var varName in referencedVars)
+            {
+                if (!initializedVars.Contains(varName))
+                {
+                    AddError("UNINITIALIZED_VARIABLE",
+                        string.Format("Variable '{0}' is referenced but never initialized. " +
+                                      "Add an InitializeVariable action at the workflow root level.", varName));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Recursively collects variable names from variables('name') expressions in all actions.
+        /// </summary>
+        private void CollectVariableReferences(JToken token, HashSet<string> referencedVars)
+        {
+            if (token == null) return;
+
+            if (token.Type == JTokenType.String)
+            {
+                var str = token.Value<string>();
+                if (str != null && str.Contains("variables("))
+                {
+                    // Extract variable names from variables('name') patterns
+                    var matches = System.Text.RegularExpressions.Regex.Matches(str, @"variables\('([^']+)'\)");
+                    foreach (System.Text.RegularExpressions.Match match in matches)
+                    {
+                        referencedVars.Add(match.Groups[1].Value);
+                    }
+                }
+            }
+            else if (token is JObject obj)
+            {
+                foreach (var prop in obj.Properties())
+                {
+                    CollectVariableReferences(prop.Value, referencedVars);
+                }
+            }
+            else if (token is JArray arr)
+            {
+                foreach (var item in arr)
+                {
+                    CollectVariableReferences(item, referencedVars);
                 }
             }
         }

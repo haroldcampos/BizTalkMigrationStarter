@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using BizTalktoLogicApps.ODXtoWFMigrator;
 
@@ -45,11 +46,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
 
             if (patterns == null || patterns.Count == 0)
             {
-                Console.WriteLine("[WORKFLOW RECONSTRUCTOR] No patterns detected - returning baseline unchanged");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR] No patterns detected - returning baseline unchanged");
                 return baseline;
             }
 
-            Console.WriteLine($"[WORKFLOW RECONSTRUCTOR] Applying pattern optimizations ({options.Strategy} strategy)");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR] Applying pattern optimizations ({0} strategy)", options.Strategy);
 
             // Deep clone the baseline to avoid modifying the original
             var optimized = CloneWorkflow(baseline);
@@ -57,7 +58,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             // Apply pattern-specific transformations
             foreach (var pattern in patterns)
             {
-                Console.WriteLine($"[WORKFLOW RECONSTRUCTOR]   Processing pattern: {pattern.PatternName}");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]   Processing pattern: {0}", pattern.PatternName);
 
                 switch (pattern.PatternName)
                 {
@@ -80,7 +81,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                         break;
 
                     default:
-                        Console.WriteLine($"[WORKFLOW RECONSTRUCTOR]     Pattern '{pattern.PatternName}' optimization not yet implemented");
+                        Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]     Pattern '{0}' optimization not yet implemented", pattern.PatternName);
                         break;
                 }
             }
@@ -91,7 +92,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 ConsolidateNestedScopes(optimized);
             }
 
-            Console.WriteLine("[WORKFLOW RECONSTRUCTOR] Pattern-based optimization complete");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR] Pattern-based optimization complete");
             return optimized;
         }
 
@@ -242,12 +243,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             OrchestrationReportGenerator.IntegrationPattern pattern,
             RefactoringOptions options)
         {
-            Console.WriteLine("[WORKFLOW RECONSTRUCTOR]     Applying Sequential Convoy optimization");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]     Applying Sequential Convoy optimization");
 
             var trigger = workflow.Triggers.FirstOrDefault();
             if (trigger == null)
             {
-                Console.WriteLine("[WORKFLOW RECONSTRUCTOR]       No trigger found - skipping");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       No trigger found - skipping");
                 return;
             }
 
@@ -256,7 +257,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 ? options.PreferredMessagingPlatform
                 : (options.PreferredMessagingPlatform == "ServiceBus" ? "RabbitMQ" : options.PreferredMessagingPlatform);
 
-            Console.WriteLine($"[WORKFLOW RECONSTRUCTOR]       Using {messagingPlatform} for convoy pattern (target: {options.Target})");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       Using {0} for convoy pattern (target: {1})", messagingPlatform, options.Target);
 
             // Update trigger to use session-based messaging
             if (string.Equals(messagingPlatform, "ServiceBus", StringComparison.OrdinalIgnoreCase))
@@ -289,7 +290,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 (a.Details.IndexOf("correlation", StringComparison.OrdinalIgnoreCase) >= 0 ||
                  a.Name.IndexOf("correlation", StringComparison.OrdinalIgnoreCase) >= 0));
 
-            Console.WriteLine("[WORKFLOW RECONSTRUCTOR]       Convoy optimization applied - removed manual correlation logic");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       Convoy optimization applied - removed manual correlation logic");
         }
 
         /// <summary>
@@ -305,7 +306,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             OrchestrationReportGenerator.IntegrationPattern pattern,
             RefactoringOptions options)
         {
-            Console.WriteLine("[WORKFLOW RECONSTRUCTOR]     Applying Scatter-Gather optimization");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]     Applying Scatter-Gather optimization");
 
             // Find ParallelContainer actions with SendConnector children
             var parallelActions = workflow.Actions.Where(a =>
@@ -314,13 +315,13 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
 
             if (!parallelActions.Any())
             {
-                Console.WriteLine("[WORKFLOW RECONSTRUCTOR]       No suitable ParallelContainer found - skipping");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       No suitable ParallelContainer found - skipping");
                 return;
             }
 
             foreach (var parallelAction in parallelActions)
             {
-                Console.WriteLine($"[WORKFLOW RECONSTRUCTOR]       Optimizing parallel action: {parallelAction.Name}");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       Optimizing parallel action: {0}", parallelAction.Name);
 
                 // Enable concurrency for better performance
                 parallelAction.Details = "Parallel branches with automatic join (up to 50 concurrent)";
@@ -345,11 +346,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                     };
 
                     workflow.Actions.Insert(workflow.Actions.IndexOf(parallelAction) + 1, aggregateAction);
-                    Console.WriteLine("[WORKFLOW RECONSTRUCTOR]         Added aggregation step");
+                    Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]         Added aggregation step");
                 }
             }
 
-            Console.WriteLine("[WORKFLOW RECONSTRUCTOR]       Scatter-Gather optimization applied");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       Scatter-Gather optimization applied");
         }
 
         /// <summary>
@@ -365,7 +366,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             OrchestrationReportGenerator.IntegrationPattern pattern,
             RefactoringOptions options)
         {
-            Console.WriteLine("[WORKFLOW RECONSTRUCTOR]     Applying Content-Based Router optimization");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]     Applying Content-Based Router optimization");
 
             // Find Switch actions or If actions that can be converted
             var switchActions = workflow.Actions.Where(a => a.Type == "Switch").ToList();
@@ -373,14 +374,14 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
 
             if (!switchActions.Any() && !nestedIfActions.Any())
             {
-                Console.WriteLine("[WORKFLOW RECONSTRUCTOR]       No Switch or nested If actions found - skipping");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       No Switch or nested If actions found - skipping");
                 return;
             }
 
             // Optimize existing Switch actions
             foreach (var switchAction in switchActions)
             {
-                Console.WriteLine($"[WORKFLOW RECONSTRUCTOR]       Simplifying Switch: {switchAction.Name}");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       Simplifying Switch: {0}", switchAction.Name);
 
                 // Simplify expression if complex
                 if (!string.IsNullOrEmpty(switchAction.Details))
@@ -394,7 +395,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             // Convert nested If actions to Switch
             if (nestedIfActions.Any() && options.Strategy != RefactoringStrategy.Conservative)
             {
-                Console.WriteLine($"[WORKFLOW RECONSTRUCTOR]       Found {nestedIfActions.Count} nested If action(s) - converting to Switch");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       Found {0} nested If action(s) - converting to Switch", nestedIfActions.Count);
                 
                 foreach (var nestedIf in nestedIfActions)
                 {
@@ -402,7 +403,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 }
             }
 
-            Console.WriteLine("[WORKFLOW RECONSTRUCTOR]       Content-Based Router optimization applied");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]       Content-Based Router optimization applied");
         }
 
         /// <summary>
@@ -533,14 +534,14 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
         /// </remarks>
         private static void ConsolidateNestedScopes(LogicAppWorkflowMap workflow)
         {
-            Console.WriteLine("[WORKFLOW RECONSTRUCTOR]   Consolidating nested scopes");
+            Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]   Consolidating nested scopes");
 
             var scopesRemoved = 0;
             scopesRemoved += ConsolidateScopesRecursive(workflow.Actions);
 
             if (scopesRemoved > 0)
             {
-                Console.WriteLine($"[WORKFLOW RECONSTRUCTOR]     Removed {scopesRemoved} unnecessary scope(s)");
+                Trace.TraceInformation("[WORKFLOW RECONSTRUCTOR]     Removed {0} unnecessary scope(s)", scopesRemoved);
             }
         }
 

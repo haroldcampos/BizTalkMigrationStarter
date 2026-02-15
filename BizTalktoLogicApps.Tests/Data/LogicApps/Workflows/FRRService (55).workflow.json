@@ -1,0 +1,2979 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "ackNackRecd": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ackNackRecd",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "dnkRcvd": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "dnkRcvd",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "ackNackRecd": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "terminateString": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "terminateString",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "dnkRcvd": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "correlationToken": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "correlationToken",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "terminateString": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "deadline": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "deadline",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "correlationToken": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "mainMsgSent": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "mainMsgSent",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "deadline": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "bAbort": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "bAbort",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "mainMsgSent": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "bTimeOut": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "bTimeOut",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "bAbort": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "msgOutActivityId": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "msgOutActivityId",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "bTimeOut": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "tempMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "tempMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "msgOutActivityId": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "emptyDoc": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "emptyDoc",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "tempMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "responsesOutstanding": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "responsesOutstanding",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "emptyDoc": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "lastRcvdMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "lastRcvdMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "responsesOutstanding": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "AbortMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "AbortMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "lastRcvdMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "NDWMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "NDWMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "AbortMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SndrAckMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "SndrAckMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "NDWMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DeliveredMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "DeliveredMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "SndrAckMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "IncomingSwiftMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "IncomingSwiftMsg",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "DeliveredMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Global": {
+        "type": "Scope",
+        "actions": {
+          "Update_Incoming_Msg": {
+            "type": "Scope",
+            "actions": {
+              "AddProperties_41557854": {
+                "type": "Compose",
+                "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                "runAfter": {}
+              },
+              "Assign_Updated_Msg": {
+                "type": "Compose",
+                "inputs": "@'IncomingSwiftMsg = tempMsg'",
+                "runAfter": {
+                  "AddProperties_41557854": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "Track_Initiate_MessageOut": {
+            "type": "Compose",
+            "inputs": "@'// store the correlation token into a local var\r\ncorrelationToken = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken);\r\nmsgOutActivityId = Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.FrrTracking.InitiateMessageOutActivity(\r\n\tcorrelationToken,\r\n\tnew Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.MsgWrapper(IncomingSwiftMsg)\r\n)'",
+            "runAfter": {
+              "Update_Incoming_Msg": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Init_Defaults_to_ACKNAK_and_DNK": {
+            "type": "Scope",
+            "actions": {
+              "ConstrDefaultMsgs_22d57b05": {
+                "type": "Compose",
+                "inputs": "@'emptyDoc.LoadXml(\"<root />\");\r\nDNKMessage.DNKMessagePart = emptyDoc;\r\nACKNAKMessage.ACKNAKMessagePart = emptyDoc'",
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "Track_Initiate_MessageOut": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Compute_timeout": {
+            "type": "Compose",
+            "inputs": "@'deadline = System.DateTime.UtcNow.AddSeconds(\r\n\tMicrosoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetTimeoutConfiguration(\"FrrDelay\")\r\n);\r\nSystem.Diagnostics.Trace.WriteLine(System.String.Format(\"Set time out after at {0}.\", deadline))'",
+            "runAfter": {
+              "Init_Defaults_to_ACKNAK_and_DNK": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ReceiveACKNAK": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ReceiveForDNK": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Update_TransportAck_Msg": {
+            "type": "Scope",
+            "actions": {
+              "AddProperties_ac8da205": {
+                "type": "Compose",
+                "inputs": "@'tempMsg = TransportAckNack.part1;\r\ntempMsg(*) = TransportAckNack(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                "runAfter": {}
+              },
+              "Assign_Updated_Msg_d20bb8fd": {
+                "type": "Compose",
+                "inputs": "@'TransportAckNack.part1 = tempMsg;\r\nTransportAckNack(*) = tempMsg(*)'",
+                "runAfter": {
+                  "AddProperties_ac8da205": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "tempMsg_1": {
+            "type": "InitializeVariable",
+            "inputs": {
+              "variables": [
+                {
+                  "name": "tempMsg",
+                  "type": "object",
+                  "value": null
+                }
+              ]
+            },
+            "runAfter": {
+              "Update_TransportAck_Msg": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "AddProperties_ac8da205_1": {
+            "type": "Compose",
+            "inputs": "@'tempMsg = TransportAckNack.part1;\r\ntempMsg(*) = TransportAckNack(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+            "runAfter": {
+              "tempMsg_1": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Assign_Updated_Msg_d20bb8fd_1": {
+            "type": "Compose",
+            "inputs": "@'TransportAckNack.part1 = tempMsg;\r\nTransportAckNack(*) = tempMsg(*)'",
+            "runAfter": {
+              "AddProperties_ac8da205_1": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Set_Terminate_Message": {
+            "type": "Compose",
+            "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Timed out waiting for AckNack or DNK\"'",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "SetFlag_Received": {
+            "type": "Compose",
+            "inputs": "@'ackNackRecd = true'",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "SetFlag_Received_1": {
+            "type": "Compose",
+            "inputs": "@'dnkRcvd = true'",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "DelayTimeout": {
+            "type": "Wait",
+            "inputs": {
+              "interval": {
+                "count": 1,
+                "unit": "Minute"
+              }
+            },
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "SendTransportAckNack": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "IsPositiveTransportAck_03073b0a": {
+            "type": "If",
+            "expression": "@'Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.IsPositiveTransportAck(TransportAckNack(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_AckNak))\r\n//1)'",
+            "actions": {
+              "Received_TAck_6fec6645": {
+                "type": "Compose",
+                "inputs": "@'WriteLine(\"Received T-Ack\")'",
+                "runAfter": {}
+              },
+              "ReceiveACKNAK_1": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ReceiveForDNK_1": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Set_Terminate_Message_1": {
+                "type": "Compose",
+                "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Received a transport-NACK/duplicate transport ACK\";\r\nbTimeOut = true'",
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetFlag_Received_2": {
+                "type": "Compose",
+                "inputs": "@'ackNackRecd = true'",
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetFlag_Received_3": {
+                "type": "Compose",
+                "inputs": "@'dnkRcvd = true'",
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "DelayTimeout_1": {
+                "type": "Wait",
+                "inputs": {
+                  "interval": {
+                    "count": 1,
+                    "unit": "Minute"
+                  }
+                },
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ReceiveACKNAK_2": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetFlag_Received_4": {
+                "type": "Compose",
+                "inputs": "@'ackNackRecd = true'",
+                "runAfter": {
+                  "ReceiveACKNAK_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ReceiveForDNK_2": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetFlag_Received_5": {
+                "type": "Compose",
+                "inputs": "@'dnkRcvd = true'",
+                "runAfter": {
+                  "ReceiveForDNK_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Set_Terminate_Message_2": {
+                "type": "Compose",
+                "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Received a transport-NACK/duplicate transport ACK\";\r\nbTimeOut = true'",
+                "runAfter": {
+                  "Received_TAck_6fec6645": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "DelayTimeout_2": {
+                "type": "Wait",
+                "inputs": {
+                  "interval": {
+                    "count": 1,
+                    "unit": "Minute"
+                  }
+                },
+                "runAfter": {
+                  "Set_Terminate_Message_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ListenForSAAResponse_37dcd5d6_Join": {
+                "type": "Compose",
+                "inputs": {
+                  "parallelBranchesCompleted": true,
+                  "branchCount": 9
+                },
+                "runAfter": {
+                  "ReceiveACKNAK_1": [
+                    "SUCCEEDED"
+                  ],
+                  "ReceiveForDNK_1": [
+                    "SUCCEEDED"
+                  ],
+                  "Set_Terminate_Message_1": [
+                    "SUCCEEDED"
+                  ],
+                  "SetFlag_Received_2": [
+                    "SUCCEEDED"
+                  ],
+                  "SetFlag_Received_3": [
+                    "SUCCEEDED"
+                  ],
+                  "DelayTimeout_1": [
+                    "SUCCEEDED"
+                  ],
+                  "SetFlag_Received_4": [
+                    "SUCCEEDED"
+                  ],
+                  "SetFlag_Received_5": [
+                    "SUCCEEDED"
+                  ],
+                  "DelayTimeout_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Set_Terminate_Message_5b289354": {
+                  "type": "Compose",
+                  "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Received a transport-NACK/duplicate transport ACK\"'",
+                  "runAfter": {}
+                }
+              }
+            },
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ReceiveTransportAckNack": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ReceiveACKNAK_3": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "SetFlag_Received_6": {
+            "type": "Compose",
+            "inputs": "@'ackNackRecd = true'",
+            "runAfter": {
+              "ReceiveACKNAK_3": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ReceiveForDNK_3": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "SetFlag_Received_7": {
+            "type": "Compose",
+            "inputs": "@'dnkRcvd = true'",
+            "runAfter": {
+              "ReceiveForDNK_3": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Update_TransportAck_Msg_1": {
+            "type": "Scope",
+            "actions": {
+              "AddProperties_ac8da205_2": {
+                "type": "Compose",
+                "inputs": "@'tempMsg = TransportAckNack.part1;\r\ntempMsg(*) = TransportAckNack(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                "runAfter": {}
+              },
+              "Assign_Updated_Msg_d20bb8fd_2": {
+                "type": "Compose",
+                "inputs": "@'TransportAckNack.part1 = tempMsg;\r\nTransportAckNack(*) = tempMsg(*)'",
+                "runAfter": {
+                  "AddProperties_ac8da205_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "SendTransportAckNack_1": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "Update_TransportAck_Msg_1": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "IsPositiveTransportAck_03073b0a_1": {
+            "type": "If",
+            "expression": "@'Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.IsPositiveTransportAck(TransportAckNack(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_AckNak))\r\n//1)'",
+            "actions": {
+              "Received_TAck_6fec6645_1": {
+                "type": "Compose",
+                "inputs": "@'WriteLine(\"Received T-Ack\")'",
+                "runAfter": {}
+              },
+              "ReceiveACKNAK_4": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ReceiveForDNK_4": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Set_Terminate_Message_3": {
+                "type": "Compose",
+                "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Received a transport-NACK/duplicate transport ACK\";\r\nbTimeOut = true'",
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetFlag_Received_8": {
+                "type": "Compose",
+                "inputs": "@'ackNackRecd = true'",
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetFlag_Received_9": {
+                "type": "Compose",
+                "inputs": "@'dnkRcvd = true'",
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "DelayTimeout_3": {
+                "type": "Wait",
+                "inputs": {
+                  "interval": {
+                    "count": 1,
+                    "unit": "Minute"
+                  }
+                },
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ReceiveACKNAK_5": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetFlag_Received_10": {
+                "type": "Compose",
+                "inputs": "@'ackNackRecd = true'",
+                "runAfter": {
+                  "ReceiveACKNAK_5": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ReceiveForDNK_5": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetFlag_Received_11": {
+                "type": "Compose",
+                "inputs": "@'dnkRcvd = true'",
+                "runAfter": {
+                  "ReceiveForDNK_5": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Set_Terminate_Message_4": {
+                "type": "Compose",
+                "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Received a transport-NACK/duplicate transport ACK\";\r\nbTimeOut = true'",
+                "runAfter": {
+                  "Received_TAck_6fec6645_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "DelayTimeout_4": {
+                "type": "Wait",
+                "inputs": {
+                  "interval": {
+                    "count": 1,
+                    "unit": "Minute"
+                  }
+                },
+                "runAfter": {
+                  "Set_Terminate_Message_4": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ListenForSAAResponse_37dcd5d6_Join_1": {
+                "type": "Compose",
+                "inputs": {
+                  "parallelBranchesCompleted": true,
+                  "branchCount": 9
+                },
+                "runAfter": {
+                  "ReceiveACKNAK_4": [
+                    "SUCCEEDED"
+                  ],
+                  "ReceiveForDNK_4": [
+                    "SUCCEEDED"
+                  ],
+                  "Set_Terminate_Message_3": [
+                    "SUCCEEDED"
+                  ],
+                  "SetFlag_Received_8": [
+                    "SUCCEEDED"
+                  ],
+                  "SetFlag_Received_9": [
+                    "SUCCEEDED"
+                  ],
+                  "DelayTimeout_3": [
+                    "SUCCEEDED"
+                  ],
+                  "SetFlag_Received_10": [
+                    "SUCCEEDED"
+                  ],
+                  "SetFlag_Received_11": [
+                    "SUCCEEDED"
+                  ],
+                  "DelayTimeout_4": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Set_Terminate_Message_5b289354_1": {
+                  "type": "Compose",
+                  "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Received a transport-NACK/duplicate transport ACK\"'",
+                  "runAfter": {}
+                }
+              }
+            },
+            "runAfter": {
+              "SendTransportAckNack_1": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ReceiveTransportAckNack_1": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {
+              "IsPositiveTransportAck_03073b0a_1": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Set_Terminate_Message_5": {
+            "type": "Compose",
+            "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Timed out waiting for AckNack or DNK\"'",
+            "runAfter": {
+              "Compute_timeout": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "DelayTimeout_5": {
+            "type": "Wait",
+            "inputs": {
+              "interval": {
+                "count": 1,
+                "unit": "Minute"
+              }
+            },
+            "runAfter": {
+              "Set_Terminate_Message_5": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ListenForSAAResponse_Join": {
+            "type": "Compose",
+            "inputs": {
+              "parallelBranchesCompleted": true,
+              "branchCount": 14
+            },
+            "runAfter": {
+              "ReceiveACKNAK": [
+                "SUCCEEDED"
+              ],
+              "ReceiveForDNK": [
+                "SUCCEEDED"
+              ],
+              "Assign_Updated_Msg_d20bb8fd_1": [
+                "SUCCEEDED"
+              ],
+              "Set_Terminate_Message": [
+                "SUCCEEDED"
+              ],
+              "SetFlag_Received": [
+                "SUCCEEDED"
+              ],
+              "SetFlag_Received_1": [
+                "SUCCEEDED"
+              ],
+              "DelayTimeout": [
+                "SUCCEEDED"
+              ],
+              "SendTransportAckNack": [
+                "SUCCEEDED"
+              ],
+              "IsPositiveTransportAck_03073b0a": [
+                "SUCCEEDED"
+              ],
+              "ReceiveTransportAckNack": [
+                "SUCCEEDED"
+              ],
+              "SetFlag_Received_6": [
+                "SUCCEEDED"
+              ],
+              "SetFlag_Received_7": [
+                "SUCCEEDED"
+              ],
+              "ReceiveTransportAckNack_1": [
+                "SUCCEEDED"
+              ],
+              "DelayTimeout_5": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "AckNackOrDnk_2b6510ba": {
+            "type": "If",
+            "expression": "@variables('ackNackRecd')",
+            "actions": {
+              "Track_AckNack_8314acc1": {
+                "type": "Compose",
+                "inputs": "@'Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.FrrTracking.MessageInActivity(\r\n    msgOutActivityId,\r\n\tcorrelationToken,\r\n\tnew Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.MsgWrapper(ACKNAKMessage)\r\n)'",
+                "runAfter": {}
+              },
+              "Update_ACKNAK_Msg_4e26fc5d": {
+                "type": "Scope",
+                "actions": {
+                  "AddProperties_e1dc6ef2": {
+                    "type": "Compose",
+                    "inputs": "@'tempMsg = ACKNAKMessage.ACKNAKMessagePart;\r\ntempMsg(*) = ACKNAKMessage(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                    "runAfter": {}
+                  },
+                  "Assign_Updated_Msg_70a9255c": {
+                    "type": "Compose",
+                    "inputs": "@'ACKNAKMessage.ACKNAKMessagePart = tempMsg;\r\nACKNAKMessage(*) = tempMsg(*)'",
+                    "runAfter": {
+                      "AddProperties_e1dc6ef2": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Track_AckNack_8314acc1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "DecideIfCat0OrNot_02bf9f2f": {
+                "type": "If",
+                "expression": "@'A4SWIFT_MessageType))'",
+                "actions": {
+                  "IsAck_d4aa6a6d": {
+                    "type": "If",
+                    "expression": "@equals('IsAck(ACKNAKMessage)', true)",
+                    "actions": {
+                      "SendACKNAKMsg_4f9b3a44": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "http://localhost/service",
+                          "body": "@triggerBody()",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          }
+                        },
+                        "runAfter": {}
+                      },
+                      "Track_DNK": {
+                        "type": "Compose",
+                        "inputs": "@'Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.FrrTracking.MessageInActivity(\r\n    msgOutActivityId,\r\n\tcorrelationToken,\r\n\tnew Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.MsgWrapper(DNKMessage)\r\n)'",
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "DelayInGettingDNK": {
+                        "type": "Wait",
+                        "inputs": {
+                          "interval": {
+                            "count": 1,
+                            "unit": "Minute"
+                          }
+                        },
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Update_DNK_Msg": {
+                        "type": "Scope",
+                        "actions": {
+                          "AddProperties_7a387ac0": {
+                            "type": "Compose",
+                            "inputs": "@'tempMsg = DNKMessage.DNKMessagePart;\r\ntempMsg(*) = DNKMessage(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                            "runAfter": {}
+                          },
+                          "Assign_Updated_Msg_a025d023": {
+                            "type": "Compose",
+                            "inputs": "@'DNKMessage.DNKMessagePart = tempMsg;\r\nDNKMessage(*) = tempMsg(*)'",
+                            "runAfter": {
+                              "AddProperties_7a387ac0": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "tempMsg_2": {
+                        "type": "InitializeVariable",
+                        "inputs": {
+                          "variables": [
+                            {
+                              "name": "tempMsg",
+                              "type": "object",
+                              "value": null
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "Update_DNK_Msg": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "AddProperties_7a387ac0_1": {
+                        "type": "Compose",
+                        "inputs": "@'tempMsg = DNKMessage.DNKMessagePart;\r\ntempMsg(*) = DNKMessage(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                        "runAfter": {
+                          "tempMsg_2": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Assign_Updated_Msg_a025d023_1": {
+                        "type": "Compose",
+                        "inputs": "@'DNKMessage.DNKMessagePart = tempMsg;\r\nDNKMessage(*) = tempMsg(*)'",
+                        "runAfter": {
+                          "AddProperties_7a387ac0_1": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "UpdateMainMsg": {
+                        "type": "Scope",
+                        "actions": {
+                          "AddProperties_e401af4e": {
+                            "type": "Compose",
+                            "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"TimedOut\"'",
+                            "runAfter": {}
+                          },
+                          "Assign_Updated_Msg_1e8a8913": {
+                            "type": "Compose",
+                            "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                            "runAfter": {
+                              "AddProperties_e401af4e": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "tempMsg_3": {
+                        "type": "InitializeVariable",
+                        "inputs": {
+                          "variables": [
+                            {
+                              "name": "tempMsg",
+                              "type": "object",
+                              "value": null
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "UpdateMainMsg": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "AddProperties_e401af4e_1": {
+                        "type": "Compose",
+                        "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"TimedOut\"'",
+                        "runAfter": {
+                          "tempMsg_3": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Assign_Updated_Msg_1e8a8913_1": {
+                        "type": "Compose",
+                        "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                        "runAfter": {
+                          "AddProperties_e401af4e_1": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Track_DNK_1": {
+                        "type": "Compose",
+                        "inputs": "@'Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.FrrTracking.MessageInActivity(\r\n    msgOutActivityId,\r\n\tcorrelationToken,\r\n\tnew Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.MsgWrapper(DNKMessage)\r\n)'",
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Update_DNK_Msg_1": {
+                        "type": "Scope",
+                        "actions": {
+                          "AddProperties_7a387ac0_2": {
+                            "type": "Compose",
+                            "inputs": "@'tempMsg = DNKMessage.DNKMessagePart;\r\ntempMsg(*) = DNKMessage(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                            "runAfter": {}
+                          },
+                          "Assign_Updated_Msg_a025d023_2": {
+                            "type": "Compose",
+                            "inputs": "@'DNKMessage.DNKMessagePart = tempMsg;\r\nDNKMessage(*) = tempMsg(*)'",
+                            "runAfter": {
+                              "AddProperties_7a387ac0_2": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "Track_DNK_1": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "SendDNKMsg": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "http://localhost/service",
+                          "body": "@triggerBody()",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          }
+                        },
+                        "runAfter": {
+                          "Update_DNK_Msg_1": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "UpdateMainMsg_1": {
+                        "type": "Scope",
+                        "actions": {
+                          "AddProperties_4b264ef6": {
+                            "type": "Compose",
+                            "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"DelayedNAK\"'",
+                            "runAfter": {}
+                          },
+                          "Assign_Updated_Msg_5be9a235": {
+                            "type": "Compose",
+                            "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                            "runAfter": {
+                              "AddProperties_4b264ef6": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "SendDNKMsg": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "SendMainMsg": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "http://localhost/service",
+                          "body": "@triggerBody()",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          }
+                        },
+                        "runAfter": {
+                          "UpdateMainMsg_1": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "MainMessageSent": {
+                        "type": "Compose",
+                        "inputs": "@'mainMsgSent=true'",
+                        "runAfter": {
+                          "SendMainMsg": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "ReceiveForDNK_6": {
+                        "type": "Compose",
+                        "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                        "runAfter": {
+                          "MainMessageSent": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "SendDNKMsg_1": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "http://localhost/service",
+                          "body": "@triggerBody()",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          }
+                        },
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "SendMainMsg_1": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "http://localhost/service",
+                          "body": "@triggerBody()",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          }
+                        },
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "UpdateMainMsg_2": {
+                        "type": "Scope",
+                        "actions": {
+                          "AddProperties_4b264ef6_1": {
+                            "type": "Compose",
+                            "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"DelayedNAK\"'",
+                            "runAfter": {}
+                          },
+                          "Assign_Updated_Msg_5be9a235_1": {
+                            "type": "Compose",
+                            "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                            "runAfter": {
+                              "AddProperties_4b264ef6_1": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "tempMsg_4": {
+                        "type": "InitializeVariable",
+                        "inputs": {
+                          "variables": [
+                            {
+                              "name": "tempMsg",
+                              "type": "object",
+                              "value": null
+                            }
+                          ]
+                        },
+                        "runAfter": {
+                          "UpdateMainMsg_2": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "AddProperties_4b264ef6_2": {
+                        "type": "Compose",
+                        "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"DelayedNAK\"'",
+                        "runAfter": {
+                          "tempMsg_4": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Assign_Updated_Msg_5be9a235_2": {
+                        "type": "Compose",
+                        "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                        "runAfter": {
+                          "AddProperties_4b264ef6_2": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "MainMessageSent_1": {
+                        "type": "Compose",
+                        "inputs": "@'mainMsgSent=true'",
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "SendMainMsg_2": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "http://localhost/service",
+                          "body": "@triggerBody()",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          }
+                        },
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "MainMessageSent_2": {
+                        "type": "Compose",
+                        "inputs": "@'mainMsgSent=true'",
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "ReceiveForDNK_7": {
+                        "type": "Compose",
+                        "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "DelayInGettingDNK_1": {
+                        "type": "Wait",
+                        "inputs": {
+                          "interval": {
+                            "count": 1,
+                            "unit": "Minute"
+                          }
+                        },
+                        "runAfter": {
+                          "SendACKNAKMsg_4f9b3a44": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "UpdateMainMsg_3": {
+                        "type": "Scope",
+                        "actions": {
+                          "AddProperties_e401af4e_2": {
+                            "type": "Compose",
+                            "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"TimedOut\"'",
+                            "runAfter": {}
+                          },
+                          "Assign_Updated_Msg_1e8a8913_2": {
+                            "type": "Compose",
+                            "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                            "runAfter": {
+                              "AddProperties_e401af4e_2": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "DelayInGettingDNK_1": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "SendMainMsg_3": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "http://localhost/service",
+                          "body": "@triggerBody()",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          }
+                        },
+                        "runAfter": {
+                          "UpdateMainMsg_3": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "MainMessageSent_3": {
+                        "type": "Compose",
+                        "inputs": "@'mainMsgSent=true'",
+                        "runAfter": {
+                          "SendMainMsg_3": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "WaitForDNK_0eb45d3a_Join": {
+                        "type": "Compose",
+                        "inputs": {
+                          "parallelBranchesCompleted": true,
+                          "branchCount": 13
+                        },
+                        "runAfter": {
+                          "Track_DNK": [
+                            "SUCCEEDED"
+                          ],
+                          "DelayInGettingDNK": [
+                            "SUCCEEDED"
+                          ],
+                          "Assign_Updated_Msg_a025d023_1": [
+                            "SUCCEEDED"
+                          ],
+                          "Assign_Updated_Msg_1e8a8913_1": [
+                            "SUCCEEDED"
+                          ],
+                          "ReceiveForDNK_6": [
+                            "SUCCEEDED"
+                          ],
+                          "SendDNKMsg_1": [
+                            "SUCCEEDED"
+                          ],
+                          "SendMainMsg_1": [
+                            "SUCCEEDED"
+                          ],
+                          "Assign_Updated_Msg_5be9a235_2": [
+                            "SUCCEEDED"
+                          ],
+                          "MainMessageSent_1": [
+                            "SUCCEEDED"
+                          ],
+                          "SendMainMsg_2": [
+                            "SUCCEEDED"
+                          ],
+                          "MainMessageSent_2": [
+                            "SUCCEEDED"
+                          ],
+                          "ReceiveForDNK_7": [
+                            "SUCCEEDED"
+                          ],
+                          "MainMessageSent_3": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "SendACKNAKMsg_dffe2cb7": {
+                          "type": "Http",
+                          "inputs": {
+                            "method": "POST",
+                            "uri": "http://localhost/service",
+                            "body": "@triggerBody()",
+                            "headers": {
+                              "Content-Type": "application/json"
+                            }
+                          },
+                          "runAfter": {}
+                        },
+                        "UpdateMainMsg_0b295542": {
+                          "type": "Scope",
+                          "actions": {
+                            "AddProperties_e33ecaf9": {
+                              "type": "Compose",
+                              "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetNakErrorCode(ACKNAKMessage)'",
+                              "runAfter": {}
+                            },
+                            "Assign_Updated_Msg_8447aa4c": {
+                              "type": "Compose",
+                              "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                              "runAfter": {
+                                "AddProperties_e33ecaf9": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "SendACKNAKMsg_dffe2cb7": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "SendMainMsg_e9b66560": {
+                          "type": "Http",
+                          "inputs": {
+                            "method": "POST",
+                            "uri": "http://localhost/service",
+                            "body": "@triggerBody()",
+                            "headers": {
+                              "Content-Type": "application/json"
+                            }
+                          },
+                          "runAfter": {
+                            "UpdateMainMsg_0b295542": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "MainMessageSent_c5854125": {
+                          "type": "Compose",
+                          "inputs": "@'mainMsgSent=true'",
+                          "runAfter": {
+                            "SendMainMsg_e9b66560": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "IsAck_e7f8ed40": {
+                      "type": "If",
+                      "expression": "@equals('IsAck(ACKNAKMessage)', true)",
+                      "actions": {
+                        "SendACKNAKMsg_c9cfb1e8": {
+                          "type": "Http",
+                          "inputs": {
+                            "method": "POST",
+                            "uri": "http://localhost/service",
+                            "body": "@triggerBody()",
+                            "headers": {
+                              "Content-Type": "application/json"
+                            }
+                          },
+                          "runAfter": {}
+                        },
+                        "DMO_or_SndrAck_expected_4ee5d78e": {
+                          "type": "If",
+                          "expression": "@'!(Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.IsDMO(IncomingSwiftMsg)) & !(Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.IsSenderAck(IncomingSwiftMsg))'",
+                          "actions": {},
+                          "else": {
+                            "actions": {
+                              "Response_msgs_c44234a7": {
+                                "type": "Scope",
+                                "actions": {
+                                  "Until": {
+                                    "type": "Until",
+                                    "expression": "@'!(responsesOutstanding)'",
+                                    "limit": {
+                                      "count": 60,
+                                      "timeout": "PT1H"
+                                    },
+                                    "actions": {
+                                      "Track_one_response": {
+                                        "type": "Scope",
+                                        "actions": {
+                                          "Initialize_tracked_message": {
+                                            "type": "Compose",
+                                            "inputs": "@'// Nothing received so far\r\nlastRcvdMsg = null'",
+                                            "runAfter": {}
+                                          },
+                                          "Store_msg_for_tracking": {
+                                            "type": "Compose",
+                                            "inputs": "@'// store the last received part here which will be passed to tracking\r\nlastRcvdMsg = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetXmlDocument(SndrAckMsg)'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Store_msg_for_tracking_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'// store the last received part here which will be passed to tracking\r\nlastRcvdMsg = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetXmlDocument(NDWMsg)'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Store_msg_for_tracking_2": {
+                                            "type": "Compose",
+                                            "inputs": "@'// store the last received part here which will be passed to tracking\r\nlastRcvdMsg = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetXmlDocument(DeliveredMsg)'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Store_msg_for_tracking_3": {
+                                            "type": "Compose",
+                                            "inputs": "@'// store the last received part here which will be passed to tracking\r\nlastRcvdMsg = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetXmlDocument(AbortMsg);\r\nbAbort = true'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Set_Terminate_Message_6": {
+                                            "type": "Compose",
+                                            "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Timed out waiting acknowledgment message(s).\";\r\nbTimeOut = true'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Update_SndrAck_Msg": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "AddProperties_b13ee553": {
+                                                "type": "Compose",
+                                                "inputs": "@'tempMsg = SndrAckMsg.SndrACKMessagePart;\r\ntempMsg(*) = SndrAckMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                                "runAfter": {}
+                                              },
+                                              "Assign_Updated_Msg_944644c7": {
+                                                "type": "Compose",
+                                                "inputs": "@'SndrAckMsg.SndrACKMessagePart = tempMsg;\r\nSndrAckMsg(*) = tempMsg(*)'",
+                                                "runAfter": {
+                                                  "AddProperties_b13ee553": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "tempMsg_5": {
+                                            "type": "InitializeVariable",
+                                            "inputs": {
+                                              "variables": [
+                                                {
+                                                  "name": "tempMsg",
+                                                  "type": "object",
+                                                  "value": null
+                                                }
+                                              ]
+                                            },
+                                            "runAfter": {
+                                              "Update_SndrAck_Msg": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "AddProperties_b13ee553_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'tempMsg = SndrAckMsg.SndrACKMessagePart;\r\ntempMsg(*) = SndrAckMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                            "runAfter": {
+                                              "tempMsg_5": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Assign_Updated_Msg_944644c7_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'SndrAckMsg.SndrACKMessagePart = tempMsg;\r\nSndrAckMsg(*) = tempMsg(*)'",
+                                            "runAfter": {
+                                              "AddProperties_b13ee553_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Update_NDW_Msg": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "AddProperties_4bf6d70e": {
+                                                "type": "Compose",
+                                                "inputs": "@'tempMsg = NDWMsg.NDWMessagePart;\r\ntempMsg(*) = NDWMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                                "runAfter": {}
+                                              },
+                                              "Assign_Updated_Msg_8183d637": {
+                                                "type": "Compose",
+                                                "inputs": "@'NDWMsg.NDWMessagePart = tempMsg;\r\nNDWMsg(*) = tempMsg(*)'",
+                                                "runAfter": {
+                                                  "AddProperties_4bf6d70e": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "tempMsg_6": {
+                                            "type": "InitializeVariable",
+                                            "inputs": {
+                                              "variables": [
+                                                {
+                                                  "name": "tempMsg",
+                                                  "type": "object",
+                                                  "value": null
+                                                }
+                                              ]
+                                            },
+                                            "runAfter": {
+                                              "Update_NDW_Msg": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "AddProperties_4bf6d70e_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'tempMsg = NDWMsg.NDWMessagePart;\r\ntempMsg(*) = NDWMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                            "runAfter": {
+                                              "tempMsg_6": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Assign_Updated_Msg_8183d637_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'NDWMsg.NDWMessagePart = tempMsg;\r\nNDWMsg(*) = tempMsg(*)'",
+                                            "runAfter": {
+                                              "AddProperties_4bf6d70e_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Update_Delivered_Msg": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "AddProperties_4c6e1ab3": {
+                                                "type": "Compose",
+                                                "inputs": "@'tempMsg = DeliveredMsg.DeliveredMessagePart;\r\ntempMsg(*) = DeliveredMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                                "runAfter": {}
+                                              },
+                                              "Assign_Updated_Msg_5d78cfa2": {
+                                                "type": "Compose",
+                                                "inputs": "@'DeliveredMsg.DeliveredMessagePart = tempMsg;\r\nDeliveredMsg(*) = tempMsg(*)'",
+                                                "runAfter": {
+                                                  "AddProperties_4c6e1ab3": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "AddProperties_4c6e1ab3_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'tempMsg = DeliveredMsg.DeliveredMessagePart;\r\ntempMsg(*) = DeliveredMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                            "runAfter": {
+                                              "Update_Delivered_Msg": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Assign_Updated_Msg_5d78cfa2_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'DeliveredMsg.DeliveredMessagePart = tempMsg;\r\nDeliveredMsg(*) = tempMsg(*)'",
+                                            "runAfter": {
+                                              "AddProperties_4c6e1ab3_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "tempMsg_7": {
+                                            "type": "InitializeVariable",
+                                            "inputs": {
+                                              "variables": [
+                                                {
+                                                  "name": "tempMsg",
+                                                  "type": "object",
+                                                  "value": null
+                                                }
+                                              ]
+                                            },
+                                            "runAfter": {
+                                              "Assign_Updated_Msg_5d78cfa2_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Update_Abort_Msg": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "AddProperties_1a62fc1d": {
+                                                "type": "Compose",
+                                                "inputs": "@'tempMsg = AbortMsg.AbortMessagePart;\r\ntempMsg(*) = AbortMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                                "runAfter": {}
+                                              },
+                                              "Assign_Updated_Msg_9b04d19c": {
+                                                "type": "Compose",
+                                                "inputs": "@'AbortMsg.AbortMessagePart = tempMsg;\r\nAbortMsg(*) = tempMsg(*)'",
+                                                "runAfter": {
+                                                  "AddProperties_1a62fc1d": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "tempMsg_8": {
+                                            "type": "InitializeVariable",
+                                            "inputs": {
+                                              "variables": [
+                                                {
+                                                  "name": "tempMsg",
+                                                  "type": "object",
+                                                  "value": null
+                                                }
+                                              ]
+                                            },
+                                            "runAfter": {
+                                              "Update_Abort_Msg": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "AddProperties_1a62fc1d_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'tempMsg = AbortMsg.AbortMessagePart;\r\ntempMsg(*) = AbortMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                            "runAfter": {
+                                              "tempMsg_8": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Assign_Updated_Msg_9b04d19c_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'AbortMsg.AbortMessagePart = tempMsg;\r\nAbortMsg(*) = tempMsg(*)'",
+                                            "runAfter": {
+                                              "AddProperties_1a62fc1d_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "No_outstanding_responses": {
+                                            "type": "Compose",
+                                            "inputs": "@'responsesOutstanding = false'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Timeout": {
+                                            "type": "Wait",
+                                            "inputs": {
+                                              "interval": {
+                                                "count": 1,
+                                                "unit": "Minute"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "SendCopyOfSndrACK": {
+                                            "type": "Http",
+                                            "inputs": {
+                                              "method": "POST",
+                                              "uri": "http://localhost/service",
+                                              "body": "@triggerBody()",
+                                              "headers": {
+                                                "Content-Type": "application/json"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "SendCopyOfNdw": {
+                                            "type": "Http",
+                                            "inputs": {
+                                              "method": "POST",
+                                              "uri": "http://localhost/service",
+                                              "body": "@triggerBody()",
+                                              "headers": {
+                                                "Content-Type": "application/json"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "SendDeliveredMsg": {
+                                            "type": "Http",
+                                            "inputs": {
+                                              "method": "POST",
+                                              "uri": "http://localhost/service",
+                                              "body": "@triggerBody()",
+                                              "headers": {
+                                                "Content-Type": "application/json"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "SendAbortMsg": {
+                                            "type": "Http",
+                                            "inputs": {
+                                              "method": "POST",
+                                              "uri": "http://localhost/service",
+                                              "body": "@triggerBody()",
+                                              "headers": {
+                                                "Content-Type": "application/json"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "IsNotDMO_2e6bf15e": {
+                                            "type": "If",
+                                            "expression": "@equals('IsDMO(IncomingSwiftMsg)', false)",
+                                            "actions": {
+                                              "No_outstanding_responses_daba2776": {
+                                                "type": "Compose",
+                                                "inputs": "@'responsesOutstanding = false'",
+                                                "runAfter": {}
+                                              }
+                                            },
+                                            "else": {
+                                              "actions": {}
+                                            },
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ReceiveNDW": {
+                                            "type": "Compose",
+                                            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "No_outstanding_responses_1": {
+                                            "type": "Compose",
+                                            "inputs": "@'responsesOutstanding = false'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "No_outstanding_responses_2": {
+                                            "type": "Compose",
+                                            "inputs": "@'responsesOutstanding = false'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ReceiveSndrAck": {
+                                            "type": "Compose",
+                                            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ReceiveDelivered": {
+                                            "type": "Compose",
+                                            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ReceiveAbortMsg": {
+                                            "type": "Compose",
+                                            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Store_msg_for_tracking_4": {
+                                            "type": "Compose",
+                                            "inputs": "@'// store the last received part here which will be passed to tracking\r\nlastRcvdMsg = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetXmlDocument(SndrAckMsg)'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Update_SndrAck_Msg_1": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "AddProperties_b13ee553_2": {
+                                                "type": "Compose",
+                                                "inputs": "@'tempMsg = SndrAckMsg.SndrACKMessagePart;\r\ntempMsg(*) = SndrAckMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                                "runAfter": {}
+                                              },
+                                              "Assign_Updated_Msg_944644c7_2": {
+                                                "type": "Compose",
+                                                "inputs": "@'SndrAckMsg.SndrACKMessagePart = tempMsg;\r\nSndrAckMsg(*) = tempMsg(*)'",
+                                                "runAfter": {
+                                                  "AddProperties_b13ee553_2": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Store_msg_for_tracking_4": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "SendCopyOfSndrACK_1": {
+                                            "type": "Http",
+                                            "inputs": {
+                                              "method": "POST",
+                                              "uri": "http://localhost/service",
+                                              "body": "@triggerBody()",
+                                              "headers": {
+                                                "Content-Type": "application/json"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Update_SndrAck_Msg_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "IsNotDMO_2e6bf15e_1": {
+                                            "type": "If",
+                                            "expression": "@equals('IsDMO(IncomingSwiftMsg)', false)",
+                                            "actions": {
+                                              "No_outstanding_responses_daba2776_1": {
+                                                "type": "Compose",
+                                                "inputs": "@'responsesOutstanding = false'",
+                                                "runAfter": {}
+                                              }
+                                            },
+                                            "else": {
+                                              "actions": {}
+                                            },
+                                            "runAfter": {
+                                              "SendCopyOfSndrACK_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ReceiveSndrAck_1": {
+                                            "type": "Compose",
+                                            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                                            "runAfter": {
+                                              "IsNotDMO_2e6bf15e_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Store_msg_for_tracking_5": {
+                                            "type": "Compose",
+                                            "inputs": "@'// store the last received part here which will be passed to tracking\r\nlastRcvdMsg = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetXmlDocument(NDWMsg)'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Update_NDW_Msg_1": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "AddProperties_4bf6d70e_2": {
+                                                "type": "Compose",
+                                                "inputs": "@'tempMsg = NDWMsg.NDWMessagePart;\r\ntempMsg(*) = NDWMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                                "runAfter": {}
+                                              },
+                                              "Assign_Updated_Msg_8183d637_2": {
+                                                "type": "Compose",
+                                                "inputs": "@'NDWMsg.NDWMessagePart = tempMsg;\r\nNDWMsg(*) = tempMsg(*)'",
+                                                "runAfter": {
+                                                  "AddProperties_4bf6d70e_2": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Store_msg_for_tracking_5": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "SendCopyOfNdw_1": {
+                                            "type": "Http",
+                                            "inputs": {
+                                              "method": "POST",
+                                              "uri": "http://localhost/service",
+                                              "body": "@triggerBody()",
+                                              "headers": {
+                                                "Content-Type": "application/json"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Update_NDW_Msg_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ReceiveNDW_1": {
+                                            "type": "Compose",
+                                            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                                            "runAfter": {
+                                              "SendCopyOfNdw_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Store_msg_for_tracking_6": {
+                                            "type": "Compose",
+                                            "inputs": "@'// store the last received part here which will be passed to tracking\r\nlastRcvdMsg = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetXmlDocument(DeliveredMsg)'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Update_Delivered_Msg_1": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "AddProperties_4c6e1ab3_2": {
+                                                "type": "Compose",
+                                                "inputs": "@'tempMsg = DeliveredMsg.DeliveredMessagePart;\r\ntempMsg(*) = DeliveredMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                                "runAfter": {}
+                                              },
+                                              "Assign_Updated_Msg_5d78cfa2_2": {
+                                                "type": "Compose",
+                                                "inputs": "@'DeliveredMsg.DeliveredMessagePart = tempMsg;\r\nDeliveredMsg(*) = tempMsg(*)'",
+                                                "runAfter": {
+                                                  "AddProperties_4c6e1ab3_2": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Store_msg_for_tracking_6": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "SendDeliveredMsg_1": {
+                                            "type": "Http",
+                                            "inputs": {
+                                              "method": "POST",
+                                              "uri": "http://localhost/service",
+                                              "body": "@triggerBody()",
+                                              "headers": {
+                                                "Content-Type": "application/json"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Update_Delivered_Msg_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "No_outstanding_responses_3": {
+                                            "type": "Compose",
+                                            "inputs": "@'responsesOutstanding = false'",
+                                            "runAfter": {
+                                              "SendDeliveredMsg_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ReceiveDelivered_1": {
+                                            "type": "Compose",
+                                            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                                            "runAfter": {
+                                              "No_outstanding_responses_3": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Store_msg_for_tracking_7": {
+                                            "type": "Compose",
+                                            "inputs": "@'// store the last received part here which will be passed to tracking\r\nlastRcvdMsg = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetXmlDocument(AbortMsg);\r\nbAbort = true'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Update_Abort_Msg_1": {
+                                            "type": "Scope",
+                                            "actions": {
+                                              "AddProperties_1a62fc1d_2": {
+                                                "type": "Compose",
+                                                "inputs": "@'tempMsg = AbortMsg.AbortMessagePart;\r\ntempMsg(*) = AbortMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                                                "runAfter": {}
+                                              },
+                                              "Assign_Updated_Msg_9b04d19c_2": {
+                                                "type": "Compose",
+                                                "inputs": "@'AbortMsg.AbortMessagePart = tempMsg;\r\nAbortMsg(*) = tempMsg(*)'",
+                                                "runAfter": {
+                                                  "AddProperties_1a62fc1d_2": [
+                                                    "SUCCEEDED"
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Store_msg_for_tracking_7": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "SendAbortMsg_1": {
+                                            "type": "Http",
+                                            "inputs": {
+                                              "method": "POST",
+                                              "uri": "http://localhost/service",
+                                              "body": "@triggerBody()",
+                                              "headers": {
+                                                "Content-Type": "application/json"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "Update_Abort_Msg_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "No_outstanding_responses_4": {
+                                            "type": "Compose",
+                                            "inputs": "@'responsesOutstanding = false'",
+                                            "runAfter": {
+                                              "SendAbortMsg_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ReceiveAbortMsg_1": {
+                                            "type": "Compose",
+                                            "inputs": "// Unmapped: Response Receive response from ReceiveFromMB (BizTalk correlation pattern - requires manual configuration)",
+                                            "runAfter": {
+                                              "No_outstanding_responses_4": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Set_Terminate_Message_7": {
+                                            "type": "Compose",
+                                            "inputs": "@'// we will termiante with this message when we exit\r\nterminateString = \"Timed out waiting acknowledgment message(s).\";\r\nbTimeOut = true'",
+                                            "runAfter": {
+                                              "Initialize_tracked_message": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "No_outstanding_responses_5": {
+                                            "type": "Compose",
+                                            "inputs": "@'responsesOutstanding = false'",
+                                            "runAfter": {
+                                              "Set_Terminate_Message_7": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Timeout_1": {
+                                            "type": "Wait",
+                                            "inputs": {
+                                              "interval": {
+                                                "count": 1,
+                                                "unit": "Minute"
+                                              }
+                                            },
+                                            "runAfter": {
+                                              "No_outstanding_responses_5": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "ListenForResponses_Join": {
+                                            "type": "Compose",
+                                            "inputs": {
+                                              "parallelBranchesCompleted": true,
+                                              "branchCount": 27
+                                            },
+                                            "runAfter": {
+                                              "Store_msg_for_tracking": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Store_msg_for_tracking_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Store_msg_for_tracking_2": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Store_msg_for_tracking_3": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Set_Terminate_Message_6": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Assign_Updated_Msg_944644c7_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Assign_Updated_Msg_8183d637_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "tempMsg_7": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Assign_Updated_Msg_9b04d19c_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "No_outstanding_responses": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Timeout": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "SendCopyOfSndrACK": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "SendCopyOfNdw": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "SendDeliveredMsg": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "SendAbortMsg": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "IsNotDMO_2e6bf15e": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "ReceiveNDW": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "No_outstanding_responses_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "No_outstanding_responses_2": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "ReceiveSndrAck": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "ReceiveDelivered": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "ReceiveAbortMsg": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "ReceiveSndrAck_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "ReceiveNDW_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "ReceiveDelivered_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "ReceiveAbortMsg_1": [
+                                                "SUCCEEDED"
+                                              ],
+                                              "Timeout_1": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          },
+                                          "Check_received_response_58a79860": {
+                                            "type": "If",
+                                            "expression": "@not(equals(variables('lastRcvdMsg'), null))",
+                                            "actions": {
+                                              "Track_response_6cd285d5": {
+                                                "type": "Compose",
+                                                "inputs": "@'Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.FrrTracking.MessageInActivity(\r\n    msgOutActivityId,\r\n\tcorrelationToken,\r\n\tnew Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.MsgWrapper(lastRcvdMsg)\r\n);\r\nlastRcvdMsg = null; // track it only once'",
+                                                "runAfter": {}
+                                              }
+                                            },
+                                            "else": {
+                                              "actions": {}
+                                            },
+                                            "runAfter": {
+                                              "ListenForResponses_Join": [
+                                                "SUCCEEDED"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "runAfter": {}
+                                      }
+                                    },
+                                    "runAfter": {}
+                                  }
+                                },
+                                "runAfter": {}
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "SendACKNAKMsg_c9cfb1e8": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "SendACKNAKMsg_d9bdbb9c": {
+                            "type": "Http",
+                            "inputs": {
+                              "method": "POST",
+                              "uri": "http://localhost/service",
+                              "body": "@triggerBody()",
+                              "headers": {
+                                "Content-Type": "application/json"
+                              }
+                            },
+                            "runAfter": {}
+                          },
+                          "UpdateMainMsg_0ce17fd1": {
+                            "type": "Scope",
+                            "actions": {
+                              "AddProperties_9bcbe746": {
+                                "type": "Compose",
+                                "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = Microsoft.Solutions.FinancialServices.SWIFT.FrrHelper.FrrHelper.GetNakErrorCode(ACKNAKMessage)'",
+                                "runAfter": {}
+                              },
+                              "Assign_Updated_Msg_6902083c": {
+                                "type": "Compose",
+                                "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                                "runAfter": {
+                                  "AddProperties_9bcbe746": [
+                                    "SUCCEEDED"
+                                  ]
+                                }
+                              }
+                            },
+                            "runAfter": {
+                              "SendACKNAKMsg_d9bdbb9c": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          },
+                          "SendMainMsg_56826746": {
+                            "type": "Http",
+                            "inputs": {
+                              "method": "POST",
+                              "uri": "http://localhost/service",
+                              "body": "@triggerBody()",
+                              "headers": {
+                                "Content-Type": "application/json"
+                              }
+                            },
+                            "runAfter": {
+                              "UpdateMainMsg_0ce17fd1": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          },
+                          "MainMessageSent_989fa92d": {
+                            "type": "Compose",
+                            "inputs": "@'mainMsgSent=true'",
+                            "runAfter": {
+                              "SendMainMsg_56826746": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {}
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Update_ACKNAK_Msg_4e26fc5d": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Track_DNK_88e7206a": {
+                  "type": "Compose",
+                  "inputs": "@'Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.FrrTracking.MessageInActivity(\r\n    msgOutActivityId,\r\n\tcorrelationToken,\r\n\tnew Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.MsgWrapper(DNKMessage)\r\n)'",
+                  "runAfter": {}
+                },
+                "Update_DNK_Msg_2c567237": {
+                  "type": "Scope",
+                  "actions": {
+                    "AddProperties_93e6a838": {
+                      "type": "Compose",
+                      "inputs": "@'tempMsg = DNKMessage.DNKMessagePart;\r\ntempMsg(*) = DNKMessage(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\n//tempMsg(Microsoft.BizTalk.XLANGs.BTXEngine.SendingOrchestrationID) = IncomingSwiftMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken)'",
+                      "runAfter": {}
+                    },
+                    "Assign_Updated_Msg_df388a71": {
+                      "type": "Compose",
+                      "inputs": "@'DNKMessage.DNKMessagePart = tempMsg;\r\nDNKMessage(*) = tempMsg(*)'",
+                      "runAfter": {
+                        "AddProperties_93e6a838": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Track_DNK_88e7206a": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SendDNKMsg_824a0c03": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "POST",
+                    "uri": "http://localhost/service",
+                    "body": "@triggerBody()",
+                    "headers": {
+                      "Content-Type": "application/json"
+                    }
+                  },
+                  "runAfter": {
+                    "Update_DNK_Msg_2c567237": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "UpdateMainMsg_22c1f0e8": {
+                  "type": "Scope",
+                  "actions": {
+                    "AddProperties_f9b93a03": {
+                      "type": "Compose",
+                      "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"DelayedNAK\"'",
+                      "runAfter": {}
+                    },
+                    "Assign_Updated_Msg_929616e5": {
+                      "type": "Compose",
+                      "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                      "runAfter": {
+                        "AddProperties_f9b93a03": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "SendDNKMsg_824a0c03": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SendMainMsg_92b15337": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "POST",
+                    "uri": "http://localhost/service",
+                    "body": "@triggerBody()",
+                    "headers": {
+                      "Content-Type": "application/json"
+                    }
+                  },
+                  "runAfter": {
+                    "UpdateMainMsg_22c1f0e8": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "MainMessageSent_7b87cf93": {
+                  "type": "Compose",
+                  "inputs": "@'mainMsgSent=true'",
+                  "runAfter": {
+                    "SendMainMsg_92b15337": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "ListenForSAAResponse_Join": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "DecideIfMainMsgSent_38fe83d8": {
+            "type": "If",
+            "expression": "@variables('mainMsgSent')",
+            "actions": {},
+            "else": {
+              "actions": {
+                "DecideIfAbortedOrTimedOut_6771948c": {
+                  "type": "If",
+                  "expression": "@or(variables('bAbort'), variables('bTimeOut'))",
+                  "actions": {
+                    "Aborted__1c5b5381": {
+                      "type": "If",
+                      "expression": "@variables('bAbort')",
+                      "actions": {
+                        "UpdateMainMsg_2b0dce98": {
+                          "type": "Scope",
+                          "actions": {
+                            "AddProperties_ee3cefcb": {
+                              "type": "Compose",
+                              "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"AbortReceived\"'",
+                              "runAfter": {}
+                            },
+                            "Assign_Updated_Msg_b7e858ca": {
+                              "type": "Compose",
+                              "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                              "runAfter": {
+                                "AddProperties_ee3cefcb": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "runAfter": {}
+                        },
+                        "SendMainMsg_2337dd3c": {
+                          "type": "Http",
+                          "inputs": {
+                            "method": "POST",
+                            "uri": "http://localhost/service",
+                            "body": "@triggerBody()",
+                            "headers": {
+                              "Content-Type": "application/json"
+                            }
+                          },
+                          "runAfter": {
+                            "UpdateMainMsg_2b0dce98": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "UpdateMainMsg_079e5bbe": {
+                            "type": "Scope",
+                            "actions": {
+                              "AddProperties_c508961a": {
+                                "type": "Compose",
+                                "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailed) = true;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken;\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRFailedReason) = \"TimedOut\"'",
+                                "runAfter": {}
+                              },
+                              "Assign_Updated_Msg_ac767a7d": {
+                                "type": "Compose",
+                                "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                                "runAfter": {
+                                  "AddProperties_c508961a": [
+                                    "SUCCEEDED"
+                                  ]
+                                }
+                              }
+                            },
+                            "runAfter": {}
+                          },
+                          "SendMainMsg_74e71a70": {
+                            "type": "Http",
+                            "inputs": {
+                              "method": "POST",
+                              "uri": "http://localhost/service",
+                              "body": "@triggerBody()",
+                              "headers": {
+                                "Content-Type": "application/json"
+                              }
+                            },
+                            "runAfter": {
+                              "UpdateMainMsg_079e5bbe": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {}
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "UpdateMainMsg_1653d5b7": {
+                        "type": "Scope",
+                        "actions": {
+                          "AddProperties_ec7e1a8f": {
+                            "type": "Compose",
+                            "inputs": "@'tempMsg = IncomingSwiftMsg;\r\ntempMsg(*) = IncomingSwiftMsg(*);\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_SendingServiceType) = \"A4SWIFT_FrrService\";\r\ntempMsg(Microsoft.Solutions.A4SWIFT.Property.A4SWIFT_FRRCorrelationToken) = correlationToken'",
+                            "runAfter": {}
+                          },
+                          "Assign_Updated_Msg_f6dcc9c3": {
+                            "type": "Compose",
+                            "inputs": "@'IncomingSwiftMsg = tempMsg;\r\nIncomingSwiftMsg(*) = tempMsg(*)'",
+                            "runAfter": {
+                              "AddProperties_ec7e1a8f": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "runAfter": {}
+                      },
+                      "SendMainMsg_91b77c00": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "http://localhost/service",
+                          "body": "@triggerBody()",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          }
+                        },
+                        "runAfter": {
+                          "UpdateMainMsg_1653d5b7": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {}
+                }
+              }
+            },
+            "runAfter": {
+              "AckNackOrDnk_2b6510ba": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Complete_tracking": {
+            "type": "Compose",
+            "inputs": "@'Microsoft.Solutions.FinancialServices.SWIFT.SwiftBAMTracking.FrrTracking.CompleteMessageOutActivity(\r\n\tmsgOutActivityId\r\n)'",
+            "runAfter": {
+              "DecideIfMainMsgSent_38fe83d8": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Complete_or_terminate_eb4629eb": {
+            "type": "If",
+            "expression": "@not(equals(variables('terminateString'), ''))",
+            "actions": {
+              "Terminate_with_Msg_c799df0e": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": "terminateString;"
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Complete_tracking": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Global_1": {
+            "type": "Scope",
+            "actions": {
+              "Eventlog_code": {
+                "type": "Compose",
+                "inputs": "@'System.Diagnostics.EventLog.WriteEntry(Microsoft.Solutions.FinancialServices.SWIFT.Shared.SwiftEventLog.EventLogSource,\r\n  exception.ToString())'",
+                "runAfter": {}
+              },
+              "Rethrow": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": ""
+                  }
+                },
+                "runAfter": {
+                  "Eventlog_code": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Complete_or_terminate_eb4629eb": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "IncomingSwiftMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Global": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

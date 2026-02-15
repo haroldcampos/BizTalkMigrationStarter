@@ -1,0 +1,301 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "BadOrderReason": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "BadOrderReason",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "IsInvalid": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "IsInvalid",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "BadOrderReason": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ExceptionReason": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ExceptionReason",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "IsInvalid": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "IsNotBadOrder": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "IsNotBadOrder",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "ExceptionReason": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "IsNotBadOrder": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "RoutingInfo": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "RoutingInfo",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "OrderMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "BadXmlOrderMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "BadXmlOrderMsg",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "RoutingInfo": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Until": {
+        "type": "Until",
+        "expression": "@'!(IsInvalid)'",
+        "limit": {
+          "count": 60,
+          "timeout": "PT1H"
+        },
+        "actions": {
+          "Try_Rules_Engine_Scope": {
+            "type": "Scope",
+            "actions": {
+              "Execute_Rules_Engine": {
+                "type": "RuleExecute",
+                "inputs": {
+                  "ruleSet": "",
+                  "ruleStore": "FileFolder"
+                },
+                "runAfter": {}
+              },
+              "Check_Validity": {
+                "type": "Compose",
+                "inputs": "@equals(body('IsInvalid = (OrderMsg')?['OrderType'], variables('\"INVALID\")'))",
+                "runAfter": {
+                  "Execute_Rules_Engine": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Is_Valid_e27ccda9": {
+                "type": "If",
+                "expression": "@variables('IsInvalid')",
+                "actions": {
+                  "Construct_BadXmlOrderMsg_b219fd98": {
+                    "type": "Compose",
+                    "inputs": "@'BadXmlOrderMsg = OrderMsg'",
+                    "runAfter": {}
+                  },
+                  "Call_Error_Handler_d6dbc3ea": {
+                    "type": "Workflow",
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "ErrorHandlerOrch"
+                        }
+                      },
+                      "body": {
+                        "message": "@triggerBody()"
+                      }
+                    },
+                    "runAfter": {
+                      "Construct_BadXmlOrderMsg_b219fd98": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Construct_OrderMsg_d82761b8": {
+                    "type": "Compose",
+                    "inputs": "@'OrderMsg = FixedXmlOrderMsg'",
+                    "runAfter": {
+                      "Call_Error_Handler_d6dbc3ea": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "runAfter": {
+                  "Check_Validity": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Catch_Exception": {
+                "type": "Scope",
+                "actions": {
+                  "Get_Exception": {
+                    "type": "Compose",
+                    "inputs": "@'ExceptionReason = RulesEngineEx.ToString();\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( ExceptionReason )'",
+                    "runAfter": {}
+                  },
+                  "Construct_BadXmlOrderMsg_8f076f89": {
+                    "type": "Compose",
+                    "inputs": "@'BadXmlOrderMsg = OrderMsg'",
+                    "runAfter": {
+                      "Get_Exception": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Call_ErrorHandler": {
+                    "type": "Workflow",
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "ErrorHandlerOrch"
+                        }
+                      },
+                      "body": {
+                        "message": "@triggerBody()"
+                      }
+                    },
+                    "runAfter": {
+                      "Construct_BadXmlOrderMsg_8f076f89": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Construct_OrderMsg_c9eb64fb": {
+                    "type": "Compose",
+                    "inputs": "@'OrderMsg = FixedXmlOrderMsg'",
+                    "runAfter": {
+                      "Call_ErrorHandler": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Is_Valid_e27ccda9": [
+                    "FAILED",
+                    "TIMEDOUT",
+                    "SKIPPED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "BadXmlOrderMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Until": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Exception Handling & Compensation",
+          "description": "Handle errors and perform compensating actions",
+          "recommendation": "Use Scope action with Configure Run After for error handling"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:13.6887808Z"
+    }
+  }
+}

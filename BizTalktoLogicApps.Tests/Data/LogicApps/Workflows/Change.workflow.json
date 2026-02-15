@@ -1,0 +1,447 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "orderHandler": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "orderHandler",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "OrderMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "orderHandler": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "routingInfo": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "routingInfo",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "OrderMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "serviceType": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "serviceType",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "routingInfo": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "currentServiceType": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "currentServiceType",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "serviceType": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ReturnValue": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ReturnValue",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "currentServiceType": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Reason": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Reason",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ReturnValue": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ParameterArray": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ParameterArray",
+              "type": "array",
+              "value": []
+            }
+          ]
+        },
+        "runAfter": {
+          "Reason": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "MethodName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "MethodName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ParameterArray": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CalledObject": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "CalledObject",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "MethodName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ObjectType": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ObjectType",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "CalledObject": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "XmlOrderMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "XmlOrderMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "ObjectType": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderCorrelation": {
+        "type": "Compose",
+        "inputs": "@'// Unhandled shape type: CorrelationDeclaration'",
+        "runAfter": {
+          "XmlOrderMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Change_Scope": {
+        "type": "Scope",
+        "actions": {
+          "Calling_Code_Scope": {
+            "type": "Scope",
+            "actions": {
+              "Current_ServiceType": {
+                "type": "Compose",
+                "inputs": "@'currentServiceType = orderHandler.GetServiceType(OrderMsg.CustNum)'",
+                "runAfter": {}
+              },
+              "Catch_Exception": {
+                "type": "Scope",
+                "actions": {
+                  "Initial_Exception": {
+                    "type": "Compose",
+                    "inputs": "@'Ex = CodeEx;\r\nCalledObject = orderHandler;\r\nObjectType = orderHandler.GetType();\r\nReason = \"GetServiceType Failed\";\r\nMethodName = \"GetServiceType\";\r\nParameterArray = System.Array.CreateInstance(typeof(System.Object), 1);\r\nParameterArray.SetValue(OrderMsg.CustNum, 0);\r\nReturnValue = null'",
+                    "runAfter": {}
+                  },
+                  "Construct_XmlOrderMsg_f7c41fc6": {
+                    "type": "Compose",
+                    "inputs": "@'XmlOrderMsg = OrderMsg'",
+                    "runAfter": {
+                      "Initial_Exception": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Call_Exception_Handler": {
+                    "type": "Workflow",
+                    "inputs": {
+                      "host": {
+                        "workflow": {
+                          "id": "ExceptionHandlerOrch"
+                        }
+                      },
+                      "body": {
+                        "message": "@triggerBody()"
+                      }
+                    },
+                    "runAfter": {
+                      "Construct_XmlOrderMsg_f7c41fc6": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Get_Result": {
+                    "type": "Compose",
+                    "inputs": "@'currentServiceType = (System.String)ReturnValue'",
+                    "runAfter": {
+                      "Call_Exception_Handler": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Current_ServiceType": [
+                    "FAILED",
+                    "TIMEDOUT",
+                    "SKIPPED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "Call_Cancel_Scope": {
+            "type": "Scope",
+            "actions": {
+              "Call__Cancel": {
+                "type": "Workflow",
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "CancelOrch"
+                    }
+                  },
+                  "body": {
+                    "message": "@triggerBody()"
+                  }
+                },
+                "runAfter": {}
+              },
+              "Cancel_Compensation": {
+                "type": "Scope",
+                "actions": {
+                  "Rollback_Cancel": {
+                    "type": "Compose",
+                    "inputs": "@'Compensate:'",
+                    "runAfter": {}
+                  }
+                },
+                "runAfter": {
+                  "Call__Cancel": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Calling_Code_Scope": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Call_Activate_Scope": {
+            "type": "Scope",
+            "actions": {
+              "Call_Activate": {
+                "type": "Workflow",
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "ActivateOrch"
+                    }
+                  },
+                  "body": {
+                    "message": "@triggerBody()"
+                  }
+                },
+                "runAfter": {}
+              },
+              "Catch_Exception_1": {
+                "type": "Scope",
+                "actions": {
+                  "Init_Exception": {
+                    "type": "Compose",
+                    "inputs": "@'innerActivateEx = new Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.ActivateException(\"Activate threw an exception\", Ex)'",
+                    "runAfter": {}
+                  },
+                  "Throw_ActivateEx": {
+                    "type": "Terminate",
+                    "inputs": {
+                      "runStatus": "Failed",
+                      "runError": {
+                        "code": "Terminated",
+                        "message": ""
+                      }
+                    },
+                    "runAfter": {
+                      "Init_Exception": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Call_Activate": [
+                    "FAILED",
+                    "TIMEDOUT",
+                    "SKIPPED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Call_Cancel_Scope": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Catch_Activate_Exception": {
+            "type": "Scope",
+            "actions": {
+              "Rollback_Call_Cancel": {
+                "type": "Compose",
+                "inputs": "@'Compensate:'",
+                "runAfter": {}
+              },
+              "Throw_Exception": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": ""
+                  }
+                },
+                "runAfter": {
+                  "Rollback_Call_Cancel": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Call_Activate_Scope": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Change_Scope": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

@@ -1,0 +1,316 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "retryCount": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "retryCount",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "parnterID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "parnterID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "retryCount": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "parnterIDLink": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "parnterIDLink",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "parnterID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "partner": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "partner",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "parnterIDLink": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ProfileAck": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ProfileAck",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "partner": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "GetPatnerID": {
+        "type": "Compose",
+        "inputs": "@'parnterID = ProfileMessage.PartnerId;\r\npartner = UpdateProfileRoleLink(Microsoft.XLANGs.BaseTypes.SourceParty);\r\nparnterIDLink = partner.Name'",
+        "runAfter": {
+          "ProfileAck": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Check_Partner_ID_126e8ff1": {
+        "type": "If",
+        "expression": "@equals(variables('parnterIDLink'), variables('parnterID'))",
+        "actions": {
+          "ConstructUpdateUserMessage_1a2d0d42": {
+            "type": "Compose",
+            "inputs": "@'UpdateProfileRequest.partnerXml = Microsoft.Samples.BizTalk.Litware.Utilities.XmlHelper.ConvertXmlToString(ProfileMessage)'",
+            "runAfter": {}
+          },
+          "Until_08b62cfa": {
+            "type": "Until",
+            "expression": "@greaterOrEquals(variables('retryCount'), 3)",
+            "limit": {
+              "count": 3,
+              "timeout": "PT1H"
+            },
+            "actions": {
+              "UpdateTPMProfileScope": {
+                "type": "Scope",
+                "actions": {
+                  "SendProfileUpdate": {
+                    "type": "Http",
+                    "inputs": {
+                      "method": "POST",
+                      "uri": "http://localhost/service",
+                      "body": "@triggerBody()",
+                      "headers": {
+                        "Content-Type": "application/json"
+                      }
+                    },
+                    "runAfter": {}
+                  },
+                  "ReceiveStatus": {
+                    "type": "Compose",
+                    "inputs": "// Unmapped: Response Receive response from UpdateProfilePort (BizTalk correlation pattern - requires manual configuration)",
+                    "runAfter": {
+                      "SendProfileUpdate": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Breakloop": {
+                    "type": "Compose",
+                    "inputs": "@'retryCount = 3'",
+                    "runAfter": {
+                      "ReceiveStatus": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "CatchNewProfileException": {
+                    "type": "Scope",
+                    "actions": {
+                      "Count": {
+                        "type": "Compose",
+                        "inputs": "@'retryCount = retryCount + 1'",
+                        "runAfter": {}
+                      },
+                      "Terminate_69be9578": {
+                        "type": "If",
+                        "expression": "@less(variables('retryCount'), 3)",
+                        "actions": {
+                          "LogErrorInEventLog_bc4a9739": {
+                            "type": "Compose",
+                            "inputs": "@'\")'",
+                            "runAfter": {}
+                          },
+                          "Suspend_0a403d6f": {
+                            "type": "Terminate",
+                            "inputs": {
+                              "runStatus": "Failed",
+                              "runError": {
+                                "code": "Terminated",
+                                "message": "\"Please verify why commerce profile adapter failed to create profile. \" + exp.Message;"
+                              }
+                            },
+                            "runAfter": {
+                              "LogErrorInEventLog_bc4a9739": [
+                                "SUCCEEDED"
+                              ]
+                            }
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "ProfileAck_b5c16357": {
+                              "type": "Compose",
+                              "inputs": "@'ProfileAck = Microsoft.Samples.BizTalk.Litware.Utilities.ResourceHelper.GetEmptyProfileAck();\r\nProfileAck.PartnerName = parnterIDLink;\r\nProfileAck.Result = false'",
+                              "runAfter": {}
+                            },
+                            "SendFailedNotification_a53bd2b4": {
+                              "type": "Http",
+                              "inputs": {
+                                "method": "POST",
+                                "uri": "http://localhost/service",
+                                "body": "@triggerBody()",
+                                "headers": {
+                                  "Content-Type": "application/json"
+                                }
+                              },
+                              "runAfter": {
+                                "ProfileAck_b5c16357": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            },
+                            "TerminateUpdate_81e22950": {
+                              "type": "Terminate",
+                              "inputs": {
+                                "runStatus": "Failed",
+                                "runError": {
+                                  "code": "Terminated",
+                                  "message": "exp.Message;"
+                                }
+                              },
+                              "runAfter": {
+                                "SendFailedNotification_a53bd2b4": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "Count": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Breakloop": [
+                        "FAILED",
+                        "TIMEDOUT",
+                        "SKIPPED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "ConstructUpdateUserMessage_1a2d0d42": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ProfileAck_a363d02c": {
+            "type": "Compose",
+            "inputs": "@'ProfileAck = Microsoft.Samples.BizTalk.Litware.Utilities.ResourceHelper.GetEmptyProfileAck();\r\nProfileAck.PartnerName = parnterIDLink;\r\nProfileAck.Result = true'",
+            "runAfter": {
+              "Until_08b62cfa": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "SendSucessNotification_f6ef170b": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "ProfileAck_a363d02c": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Notify_Admin_63b4f8fd": {
+              "type": "Compose",
+              "inputs": "@concat('WriteEntry(\"Litware Scenario\", \"Partner \"', variables('parnterIDLink'), ' trying to update profile of user ', variables('parnterID'), body('\"')?[' Operation is not allowed']?['\", System']?['Diagnostics']?['EventLogEntryType']?['Error)'])",
+              "runAfter": {}
+            }
+          }
+        },
+        "runAfter": {
+          "GetPatnerID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Check_Partner_ID_126e8ff1": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

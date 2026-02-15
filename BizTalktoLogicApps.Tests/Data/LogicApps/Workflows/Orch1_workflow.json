@@ -1,0 +1,220 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "typeName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "typeName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "xd": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "xd",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "typeName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Output": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Output",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "xd": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Version": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Version",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "Output": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Culture": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Culture",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "Version": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "PublicKeyToken": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "PublicKeyToken",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "Culture": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "m1": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "m1",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "PublicKeyToken": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "m2": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "m2",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "m1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "messge": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "messge",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "m2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Expression_1": {
+        "type": "Compose",
+        "inputs": "@'typeName = Microsoft.Samples.BizTalk.MessageFactory.TypeFinder.FindType(m1);\r\nSystem.Diagnostics.Trace.WriteLine(\"TypeFinder.FindType Output = \" + typeName);\r\n\r\ntypeName = Microsoft.Samples.BizTalk.MessageFactory.TypeFinder.FindPartType(m1);\r\nSystem.Diagnostics.Trace.WriteLine(\"TypeFinder.FindPartType Output = \" + typeName);\r\n\r\n\r\ntypeName =  \"Microsoft.Samples.BizTalk.MessageFactory.TestSchema.NoRepeating, Microsoft.Samples.BizTalk.MessageFactory.TestSchemaType, Version=1.0.0.0, Culture=neutral, PublicKeyToken=11647344cc88fda1\";\r\n\r\nSystem.Diagnostics.Trace.WriteLine(\"Part Type of Message m1 = \" + typeName);\r\n\r\n// System.Diagnostics.Trace.WriteLine(\"Type Name of Message m1 = \" + FindTypeHelper.TypeFinder.FindType(m1))'",
+        "runAfter": {
+          "messge": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_1_4ed4e5c5": {
+        "type": "Compose",
+        "inputs": "@'//m2 = Microsoft.Samples.BizTalk.CreateNewMessage.XLangMessageCreator.XLangMessageCreator.NewXLangMessage_NoReflection (typeName, \"1\", \"2\");\r\nm2 = Microsoft.Samples.BizTalk.MessageFactory.MessageFactory.NewMessage(typeName);\r\n\r\nxd =  m2;\r\n\r\nSystem.Diagnostics.Trace.WriteLine(\"Constructed messge = \" + xd.OuterXml)'",
+        "runAfter": {
+          "Expression_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_1_4ed4e5c5": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Send_1": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

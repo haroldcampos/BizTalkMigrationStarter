@@ -3,153 +3,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace BizTalktoLogicApps.ODXtoWFMigrator
 {
-    /// <summary>
-    /// Represents a complete Azure Logic Apps workflow with triggers, actions, and metadata.
-    /// </summary>
-    /// <remarks>
-    /// This is the intermediate model used for mapping BizTalk orchestrations to Logic Apps.
-    /// Contains all workflow elements before JSON serialization.
-    /// </remarks>
-    public sealed class LogicAppWorkflowMap
-    {
-        /// <summary>
-        /// Gets or sets the workflow name (typically the orchestration fully-qualified name).
-        /// </summary>
-        public string Name { get; set; }
-        
-        /// <summary>
-        /// Gets the collection of workflow triggers (typically one per workflow).
-        /// </summary>
-        public List<LogicAppTrigger> Triggers { get; } = new List<LogicAppTrigger>();
-        
-        /// <summary>
-        /// Gets the collection of workflow actions in execution sequence.
-        /// </summary>
-        public List<LogicAppAction> Actions { get; } = new List<LogicAppAction>();
-
-        /// <summary>
-        /// Gets the variable names for expression mapping context.
-        /// </summary>
-        /// <remarks>
-        /// Used by ExpressionMapper to resolve variable references in XLANG expressions.
-        /// </remarks>
-        public List<string> VariableNames { get; } = new List<string>();
-    }
-
-    /// <summary>
-    /// Represents a Logic Apps workflow trigger mapped from a BizTalk receive location.
-    /// </summary>
-    /// <remarks>
-    /// Contains all binding metadata from BizTalk including WCF settings, credentials, and transport-specific properties.
-    /// Preserves configuration for faithful migration to Logic Apps connectors.
-    /// </remarks>
-    public sealed class LogicAppTrigger
-    {
-        public string Name { get; set; }
-        public string Kind { get; set; }
-        public string TransportType { get; set; }
-        public string Address { get; set; }
-        public string FolderPath { get; set; }
-        public string FileMask { get; set; }
-        public int Sequence { get; set; }
-        public int? PollingIntervalSeconds { get; set; }
-        public string UserName { get; set; }
-        public string Password { get; set; }
-        public string ConnectionString { get; set; }
-
-        // Additional bindings properties
-        public string PrimaryTransport { get; set; }
-        public string Endpoint { get; set; }
-        public string SecurityMode { get; set; }
-        
-        // WCF-specific metadata for context preservation
-        public string MessageClientCredentialType { get; set; }
-        public string TransportClientCredentialType { get; set; }
-        public string MessageEncoding { get; set; }
-        public string AlgorithmSuite { get; set; }
-        public int? MaxReceivedMessageSize { get; set; }
-        public int? MaxConcurrentCalls { get; set; }
-        public string OpenTimeout { get; set; }
-        public string CloseTimeout { get; set; }
-        public string SendTimeout { get; set; }
-        public bool? EstablishSecurityContext { get; set; }
-        public bool? NegotiateServiceCredential { get; set; }
-        public bool? IncludeExceptionDetailInFaults { get; set; }
-        public bool? UseSSO { get; set; }
-        public bool? SuspendMessageOnFailure { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a Logic Apps workflow action mapped from a BizTalk orchestration shape.
-    /// </summary>
-    /// <remarks>
-    /// Supports hierarchical structures for If/Else branches, loops, scopes, and parallel execution.
-    /// Contains connector metadata for send operations and expression details for transformations.
-    /// </remarks>
-    public sealed class LogicAppAction
-    {
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public string Details { get; set; }
-        public int Sequence { get; set; }
-        public List<LogicAppAction> Children { get; set; } = new List<LogicAppAction>();
-
-        /// <summary>
-        /// Separate collections for If/Else branches.
-        /// </summary>
-        public List<LogicAppAction> TrueBranch { get; set; } = new List<LogicAppAction>();
-        public List<LogicAppAction> FalseBranch { get; set; } = new List<LogicAppAction>();
-
-        public bool IsBranchContainer { get; set; }
-        public int? LoopThreshold { get; set; }
-        public string ConnectorKind { get; set; }
-        public string TargetAddress { get; set; }
-        public bool IsTopic { get; set; }
-        public bool HasSubscription { get; set; }
-        public string QueueOrTopicName { get; set; }
-        public string SubscriptionName { get; set; }
-        public string UserName { get; set; }
-        public string Password { get; set; }
-        public string ConnectionString { get; set; }
-        public string SoapAction { get; set; }
-        public string HttpMethod { get; set; }
-        public string RelativePath { get; set; }
-
-        // Additional bindings properties
-        public string PrimaryTransport { get; set; }
-        public string Endpoint { get; set; }
-        public string SecurityMode { get; set; }
-        
-        // WCF-specific metadata for send ports
-        public string MessageClientCredentialType { get; set; }
-        public string TransportClientCredentialType { get; set; }
-        public string MessageEncoding { get; set; }
-        public string AlgorithmSuite { get; set; }
-        public int? MaxReceivedMessageSize { get; set; }
-        public int? MaxConcurrentCalls { get; set; }
-        public string OpenTimeout { get; set; }
-        public string CloseTimeout { get; set; }
-        public string SendTimeout { get; set; }
-        public bool? EstablishSecurityContext { get; set; }
-        public bool? NegotiateServiceCredential { get; set; }
-
-        /// <summary>
-        /// Message assignments from Construct blocks.
-        /// </summary>
-        public Dictionary<string, string> MessagePropertyAssignments { get; set; } = new Dictionary<string, string>();
-
-        /// <summary>
-        /// Transform class name for XSLT actions.
-        /// </summary>
-        public string TransformClassName { get; set; }
-    }
-
     /// <summary>
     /// Provides functionality to map BizTalk orchestrations to Azure Logic Apps workflows.
     /// Converts BizTalk shapes, ports, and bindings into Logic Apps triggers and actions.
@@ -158,15 +17,37 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
     {
         /// <summary>
         /// Tracks the current orchestration being processed for self-recursion detection.
-        /// Thread-local storage ensures each thread maintains its own orchestration context,
+        /// Thread-static storage ensures each thread maintains its own orchestration context,
         /// preventing race conditions when processing multiple orchestrations concurrently
         /// (e.g., MCP server handling parallel conversion requests).
         /// Set during MapToLogicApp() and used by IsSelfRecursiveCall() to prevent circular workflow calls.
+        /// Unlike ThreadLocal&lt;T&gt;, [ThreadStatic] fields do not implement IDisposable
+        /// and therefore cannot leak when threads are recycled.
         /// </summary>
-        private static readonly ThreadLocal<string> _currentOrchestrationName = 
-            new ThreadLocal<string>(() => null);
-        private static readonly ThreadLocal<string> _currentOrchestrationFullName = 
-            new ThreadLocal<string>(() => null);
+        [ThreadStatic]
+        private static string _currentOrchestrationName;
+        [ThreadStatic]
+        private static string _currentOrchestrationFullName;
+
+        /// <summary>
+        /// C# keywords and common type names used to filter out false positives
+        /// when extracting variable names from expressions.
+        /// </summary>
+        private static readonly HashSet<string> CSharpKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "new", "null", "true", "false", "var", "if", "else", "while", "for", "foreach",
+            "return", "break", "continue", "switch", "case", "default", "try", "catch",
+            "finally", "throw", "using", "namespace", "class", "struct", "interface",
+            "enum", "public", "private", "protected", "internal", "static", "readonly",
+            "const", "virtual", "override", "abstract", "sealed", "partial", "async",
+            "await", "yield", "base", "this", "typeof", "sizeof", "nameof", "is", "as"
+        };
+
+        private static readonly Regex AssignmentPattern = new Regex(@"(?<!\.)\b(\w+)\s*=\s*[^=]", RegexOptions.Multiline | RegexOptions.Compiled);
+        private static readonly Regex IdentifierPattern = new Regex(@"(?<!\.)\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*\.)", RegexOptions.Compiled);
+        private static readonly Regex PropertyAssignmentPattern = new Regex(@"(\w+)\.(\w+)\s*=\s*(.+?);", RegexOptions.Multiline | RegexOptions.Compiled);
+        private static readonly Regex CommentSingleLinePattern = new Regex(@"//.*?$", RegexOptions.Multiline | RegexOptions.Compiled);
+        private static readonly Regex CommentBlockPattern = new Regex(@"/\*.*?\*/", RegexOptions.Singleline | RegexOptions.Compiled);
         /// <summary>
         /// Maps BizTalk bindings to Logic Apps workflows WITHOUT orchestration files.
         /// Creates one workflow per receive location, using filtered send ports as actions.
@@ -224,7 +105,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             // Create CBR workflows if detected
             if (cbrGroups.Count > 0)
             {
-                Console.WriteLine("Detected " + cbrGroups.Count + " content-based routing pattern(s)");
+                Trace.TraceInformation("Detected {0} content-based routing pattern(s)", cbrGroups.Count);
                 
                 foreach (var cbrGroup in cbrGroups.Values)
                 {
@@ -238,9 +119,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     {
                         var cbrWorkflowName = SafeName("CBR_" + cbrGroup.RoutingProperty.Split('.').Last() + "_Workflow");
                         
-                        Console.WriteLine("  Creating CBR workflow: " + cbrWorkflowName);
-                        Console.WriteLine("    Routing property: " + cbrGroup.RoutingProperty);
-                        Console.WriteLine("    Routes: " + cbrGroup.RoutesByValue.Count);
+                        Trace.TraceInformation("  Creating CBR workflow: {0}", cbrWorkflowName);
+                        Trace.TraceInformation("    Routing property: {0}", cbrGroup.RoutingProperty);
+                        Trace.TraceInformation("    Routes: {0}", cbrGroup.RoutesByValue.Count);
                         
                         var cbrWorkflow = CreateCbrWorkflow(defaultReceiveLocation, cbrGroup, cbrWorkflowName);
                         workflows.Add(cbrWorkflow);
@@ -275,7 +156,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     // If the trigger name matches a CBR-handled receive location, remove this duplicate
                     if (cbrReceiveLocationNames.Contains(triggerName))
                     {
-                        Console.WriteLine("  Suppressing duplicate empty workflow for: " + w.Name + " (already in CBR workflow)");
+                        Trace.TraceInformation("  Suppressing duplicate empty workflow for: {0} (already in CBR workflow)", w.Name);
                         return true;
                     }
                     
@@ -315,8 +196,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     var routingProperty = BindingSnapshot.GetRoutingPropertyFromFilter(sp);
                     if (!string.IsNullOrEmpty(routingProperty))
                     {
-                        // It's CBR but somehow missed - log warning
-                        Console.WriteLine("  Warning: Send port '" + sp.Name + "' looks like CBR but wasn't handled");
+                        Trace.TraceWarning("Send port '{0}' looks like CBR but wasn't handled", sp.Name);
                     }
                     return true;
                 }
@@ -360,7 +240,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         {
             var kind = InferKind(rl.TransportType, rl.Address, rl.HostAppsSubType);
 
-            return new LogicAppTrigger
+            var trigger = new LogicAppTrigger
             {
                 Name = SafeName(rl.Name ?? "Trigger"),
                 Kind = kind,
@@ -374,23 +254,10 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 ConnectionString = rl.ConnectionString,
                 PrimaryTransport = rl.PrimaryTransport,
                 Endpoint = rl.Endpoint,
-                SecurityMode = rl.SecurityMode,
-                MessageClientCredentialType = rl.MessageClientCredentialType,
-                TransportClientCredentialType = rl.TransportClientCredentialType,
-                MessageEncoding = rl.MessageEncoding,
-                AlgorithmSuite = rl.AlgorithmSuite,
-                MaxReceivedMessageSize = rl.MaxReceivedMessageSize,
-                MaxConcurrentCalls = rl.MaxConcurrentCalls,
-                OpenTimeout = rl.OpenTimeout,
-                CloseTimeout = rl.CloseTimeout,
-                SendTimeout = rl.SendTimeout,
-                EstablishSecurityContext = rl.EstablishSecurityContext,
-                NegotiateServiceCredential = rl.NegotiateServiceCredential,
-                IncludeExceptionDetailInFaults = rl.IncludeExceptionDetailInFaults,
-                UseSSO = rl.UseSSO,
-                SuspendMessageOnFailure = rl.SuspendMessageOnFailure,
                 Sequence = 0
             };
+            rl.Wcf?.CopyTo(trigger);
+            return trigger;
         }
 
         /// <summary>
@@ -445,20 +312,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     UserName = sp.UserName,
                     Password = sp.Password,
                     PrimaryTransport = sp.PrimaryTransport,
-                    Endpoint = sp.Endpoint,
-                    SecurityMode = sp.SecurityMode,
-                    MessageClientCredentialType = sp.MessageClientCredentialType,
-                    TransportClientCredentialType = sp.TransportClientCredentialType,
-                    MessageEncoding = sp.MessageEncoding,
-                    AlgorithmSuite = sp.AlgorithmSuite,
-                    MaxReceivedMessageSize = sp.MaxReceivedMessageSize,
-                    MaxConcurrentCalls = sp.MaxConcurrentCalls,
-                    OpenTimeout = sp.OpenTimeout,
-                    CloseTimeout = sp.CloseTimeout,
-                    SendTimeout = sp.SendTimeout,
-                    EstablishSecurityContext = sp.EstablishSecurityContext,
-                    NegotiateServiceCredential = sp.NegotiateServiceCredential
+                    Endpoint = sp.Endpoint
                 };
+                sp.Wcf?.CopyTo(sendAction);
 
                 // Parse Service Bus queue/topic details if applicable
                 if (kind == "ServiceBus")
@@ -482,20 +338,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 UserName = sp.UserName,
                 Password = sp.Password,
                 PrimaryTransport = sp.PrimaryTransport,
-                Endpoint = sp.Endpoint,
-                SecurityMode = sp.SecurityMode,
-                MessageClientCredentialType = sp.MessageClientCredentialType,
-                TransportClientCredentialType = sp.TransportClientCredentialType,
-                MessageEncoding = sp.MessageEncoding,
-                AlgorithmSuite = sp.AlgorithmSuite,
-                MaxReceivedMessageSize = sp.MaxReceivedMessageSize,
-                MaxConcurrentCalls = sp.MaxConcurrentCalls,
-                OpenTimeout = sp.OpenTimeout,
-                CloseTimeout = sp.CloseTimeout,
-                SendTimeout = sp.SendTimeout,
-                EstablishSecurityContext = sp.EstablishSecurityContext,
-                NegotiateServiceCredential = sp.NegotiateServiceCredential
+                Endpoint = sp.Endpoint
             };
+            sp.Wcf?.CopyTo(action);
 
             // Parse Service Bus queue/topic details if applicable
             if (kind == "ServiceBus")
@@ -600,9 +445,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             if (binding == null) throw new ArgumentNullException(nameof(binding));
 
             // Set current orchestration context for self-recursion detection
-            _currentOrchestrationName.Value = orchestration.Name;
-            _currentOrchestrationFullName.Value = orchestration.FullName;
+            _currentOrchestrationName = orchestration.Name;
+            _currentOrchestrationFullName = orchestration.FullName;
 
+            try
+            {
             var map = new LogicAppWorkflowMap { Name = orchestration.FullName };
 
             // Collect variable names from orchestration for expression mapping context
@@ -619,10 +466,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             
             // Check for any variables in VariableNames that don't have declarations (undeclared but used)
             // Create InitializeVariable for all variables found in expressions (loop conditions, assignments, etc.)
+            // Skip exception variables - they are catch block objects, not workflow variables
             var declaredVarNames = new HashSet<string>(variableActions.Select(v => v.Name), StringComparer.OrdinalIgnoreCase);
             foreach (var varName in map.VariableNames)
             {
-                if (!declaredVarNames.Contains(varName))
+                if (!declaredVarNames.Contains(varName) && !IsExceptionVariableName(varName))
                 {
                     // Determine variable type based on naming or context
                     string varType = InferVariableType(varName);
@@ -662,8 +510,31 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 }
             }
 
+            // Enrich existing shape-based SendConnector actions with binding metadata
+            // instead of creating duplicate actions for every binding send port.
+            // Build a lookup of send ports by name for enrichment.
+            var sendPortLookup = new Dictionary<string, BindingSendPort>(StringComparer.OrdinalIgnoreCase);
             foreach (var sp in binding.SendPorts)
             {
+                if (!string.IsNullOrEmpty(sp.Name))
+                    sendPortLookup[sp.Name] = sp;
+            }
+
+            // Collect names of send ports that were already matched to shape-based actions
+            var matchedSendPortNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Enrich shape-based SendConnector actions with binding metadata
+            foreach (var act in map.Actions)
+            {
+                EnrichSendActionsFromBindings(act, sendPortLookup, matchedSendPortNames, orchestration);
+            }
+
+            // Only add binding send ports that were NOT already covered by orchestration shapes
+            foreach (var sp in binding.SendPorts)
+            {
+                if (!string.IsNullOrEmpty(sp.Name) && matchedSendPortNames.Contains(sp.Name))
+                    continue; // Already enriched an existing shape-based action
+
                 // Use HostAppsSubType if available for HostApps transport
                 var kind = InferKind(sp.TransportType, sp.Address, sp.HostAppsSubType);
                 var send = new LogicAppAction
@@ -679,22 +550,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     // Additional bindings properties
                     PrimaryTransport = sp.PrimaryTransport,
-                    Endpoint = sp.Endpoint,
-                    SecurityMode = sp.SecurityMode,
-                    
-                    // WCF-specific metadata for send ports
-                    MessageClientCredentialType = sp.MessageClientCredentialType,
-                    TransportClientCredentialType = sp.TransportClientCredentialType,
-                    MessageEncoding = sp.MessageEncoding,
-                    AlgorithmSuite = sp.AlgorithmSuite,
-                    MaxReceivedMessageSize = sp.MaxReceivedMessageSize,
-                    MaxConcurrentCalls = sp.MaxConcurrentCalls,
-                    OpenTimeout = sp.OpenTimeout,
-                    CloseTimeout = sp.CloseTimeout,
-                    SendTimeout = sp.SendTimeout,
-                    EstablishSecurityContext = sp.EstablishSecurityContext,
-                    NegotiateServiceCredential = sp.NegotiateServiceCredential
+                    Endpoint = sp.Endpoint
                 };
+                sp.Wcf?.CopyTo(send);
                 if (kind == "ServiceBus")
                     PopulateServiceBusParts(send, sp.Address);
                 map.Actions.Add(send);
@@ -704,11 +562,17 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             foreach (var a in map.Actions.OrderBy(a => a.Sequence))
                 a.Sequence = seq++;
 
-            // Clear orchestration context after processing
-            _currentOrchestrationName.Value = null;
-            _currentOrchestrationFullName.Value = null;
+            // Post-process: resolve message flow so actions reference correct upstream outputs
+            ResolveMessageFlow(map, orchestration);
 
             return map;
+            }
+            finally
+            {
+                // Clear orchestration context after processing
+                _currentOrchestrationName = null;
+                _currentOrchestrationFullName = null;
+            }
         }
 
         /// <summary>
@@ -716,39 +580,62 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         /// and converts them to InitializeVariable actions at workflow root level.
         /// This is necessary because Logic Apps requires InitializeVariable actions to be at root,
         /// but BizTalk allows VariableDeclarations to be nested inside Scopes.
+        /// Deduplicates by variable name (case-insensitive) to prevent Logic Apps validation error:
+        /// "A variable must only be initialized once."
+        /// Also filters out exception variables (catch block objects) which are not workflow variables.
         /// </summary>
         private static void CollectVariableDeclarationsRecursive(IEnumerable<ShapeModel> shapes, List<LogicAppAction> actions)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            CollectVariableDeclarationsRecursiveCore(shapes, actions, seen);
+        }
+
+        private static void CollectVariableDeclarationsRecursiveCore(IEnumerable<ShapeModel> shapes, List<LogicAppAction> actions, HashSet<string> seen)
         {
             foreach (var shape in shapes)
             {
                 // Convert VariableDeclaration shapes to InitializeVariable actions
                 if (shape is VariableDeclarationShapeModel varDecl)
                 {
-                    var action = ConvertShape(varDecl);
-                    if (action != null)
+                    var varName = SafeName(varDecl.Name ?? "Variable");
+
+                    // Skip exception variables - they are catch block objects, not workflow variables
+                    if (!string.IsNullOrEmpty(varDecl.Name) && IsExceptionVariableName(varDecl.Name))
                     {
-                        // Add to root-level actions list (flattening)
-                        actions.Add(action);
+                        Trace.TraceInformation("[MAPPER] Skipping exception variable declaration: {0}", varDecl.Name);
+                    }
+                    // Skip duplicates - Logic Apps requires each variable initialized exactly once
+                    else if (seen.Add(varName))
+                    {
+                        var action = ConvertShape(varDecl);
+                        if (action != null)
+                        {
+                            actions.Add(action);
+                        }
+                    }
+                    else
+                    {
+                        Trace.TraceInformation("[MAPPER] Skipping duplicate variable declaration: {0}", varName);
                     }
                 }
 
                 // Recurse into children to find nested VariableDeclarations
                 if (shape.Children.Count > 0)
                 {
-                    CollectVariableDeclarationsRecursive(shape.Children, actions);
+                    CollectVariableDeclarationsRecursiveCore(shape.Children, actions, seen);
                 }
 
                 // Check Decide branches
                 if (shape is DecideShapeModel decide)
                 {
-                    CollectVariableDeclarationsRecursive(decide.TrueBranch, actions);
-                    CollectVariableDeclarationsRecursive(decide.FalseBranch, actions);
+                    CollectVariableDeclarationsRecursiveCore(decide.TrueBranch, actions, seen);
+                    CollectVariableDeclarationsRecursiveCore(decide.FalseBranch, actions, seen);
                 }
 
                 // Check Construct inner shapes
                 if (shape is ConstructShapeModel construct)
                 {
-                    CollectVariableDeclarationsRecursive(construct.InnerShapes, actions);
+                    CollectVariableDeclarationsRecursiveCore(construct.InnerShapes, actions, seen);
                 }
             }
         }
@@ -760,14 +647,21 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         /// </summary>
         private static void CollectVariableNamesRecursive(IEnumerable<ShapeModel> shapes, List<string> variableNames)
         {
+            var seen = new HashSet<string>(variableNames, StringComparer.OrdinalIgnoreCase);
+            CollectVariableNamesRecursiveCore(shapes, variableNames, seen);
+        }
+
+        /// <summary>
+        /// Core implementation that uses a HashSet for O(1) duplicate detection.
+        /// </summary>
+        private static void CollectVariableNamesRecursiveCore(IEnumerable<ShapeModel> shapes, List<string> variableNames, HashSet<string> seen)
+        {
             foreach (var shape in shapes)
             {
                 // Collect from VariableDeclaration shapes
                 if (shape is VariableDeclarationShapeModel varDecl)
                 {
-                    // Case-insensitive duplicate check
-                    if (!string.IsNullOrEmpty(varDecl.Name) &&
-                        !variableNames.Any(v => v.Equals(varDecl.Name, StringComparison.OrdinalIgnoreCase)))
+                    if (!string.IsNullOrEmpty(varDecl.Name) && seen.Add(varDecl.Name))
                     {
                         variableNames.Add(varDecl.Name);
                     }
@@ -779,9 +673,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     var variables = ExtractVariableNamesFromExpression(varAssign.Expression);
                     foreach (var varName in variables)
                     {
-                        // Case-insensitive duplicate check
-                        if (!string.IsNullOrEmpty(varName) &&
-                            !variableNames.Any(v => v.Equals(varName, StringComparison.OrdinalIgnoreCase)))
+                        if (!string.IsNullOrEmpty(varName) && seen.Add(varName))
                         {
                             variableNames.Add(varName);
                         }
@@ -794,9 +686,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     var variables = ExtractVariableNamesFromExpression(msgAssign.Expression);
                     foreach (var varName in variables)
                     {
-                        // Case-insensitive duplicate check
-                        if (!string.IsNullOrEmpty(varName) &&
-                            !variableNames.Any(v => v.Equals(varName, StringComparison.OrdinalIgnoreCase)))
+                        if (!string.IsNullOrEmpty(varName) && seen.Add(varName))
                         {
                             variableNames.Add(varName);
                         }
@@ -806,13 +696,25 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 // Extract variable names from Decide condition expressions (catch undeclared variables)
                 if (shape is DecideShapeModel decide && !string.IsNullOrWhiteSpace(decide.Expression))
                 {
-                    // Extract variables from the condition expression (e.g., "lbCifrasGeneradoOk == false")
                     var variables = ExtractVariableNamesFromCondition(decide.Expression);
                     foreach (var varName in variables)
                     {
-                        // Case-insensitive duplicate check
-                        if (!string.IsNullOrEmpty(varName) &&
-                            !variableNames.Any(v => v.Equals(varName, StringComparison.OrdinalIgnoreCase)))
+                        if (!string.IsNullOrEmpty(varName) && seen.Add(varName))
+                        {
+                            variableNames.Add(varName);
+                        }
+                    }
+                }
+
+                // Extract variable/message names from While loop conditions
+                // BizTalk promoted property access like ship_history(ShippingSchemas.Ship_Completed) == false
+                // references message names that must be declared as variables in Logic Apps
+                if (shape is WhileShapeModel whileShape && !string.IsNullOrWhiteSpace(whileShape.Expression))
+                {
+                    var variables = ExtractVariableNamesFromCondition(whileShape.Expression);
+                    foreach (var varName in variables)
+                    {
+                        if (!string.IsNullOrEmpty(varName) && seen.Add(varName))
                         {
                             variableNames.Add(varName);
                         }
@@ -822,20 +724,20 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 // Check direct children
                 if (shape.Children.Count > 0)
                 {
-                    CollectVariableNamesRecursive(shape.Children, variableNames);
+                    CollectVariableNamesRecursiveCore(shape.Children, variableNames, seen);
                 }
 
                 // Check Decide branches
                 if (shape is DecideShapeModel decide2)
                 {
-                    CollectVariableNamesRecursive(decide2.TrueBranch, variableNames);
-                    CollectVariableNamesRecursive(decide2.FalseBranch, variableNames);
+                    CollectVariableNamesRecursiveCore(decide2.TrueBranch, variableNames, seen);
+                    CollectVariableNamesRecursiveCore(decide2.FalseBranch, variableNames, seen);
                 }
 
                 // Check Construct inner shapes
                 if (shape is ConstructShapeModel construct)
                 {
-                    CollectVariableNamesRecursive(construct.InnerShapes, variableNames);
+                    CollectVariableNamesRecursiveCore(construct.InnerShapes, variableNames, seen);
                 }
             }
         }
@@ -858,8 +760,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return variables;
 
             // Pattern: variable_name = anything; (captures assignment targets)
-            var assignmentPattern = new Regex(@"(\w+)\s*=\s*[^=]", RegexOptions.Multiline);
-            var matches = assignmentPattern.Matches(expression);
+            var matches = AssignmentPattern.Matches(expression);
 
             foreach (Match match in matches)
             {
@@ -901,13 +802,28 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return variables;
 
             // Remove comments first (// ... and /* ... */)
-            var cleaned = Regex.Replace(condition, @"//.*?$", "", RegexOptions.Multiline);
-            cleaned = Regex.Replace(cleaned, @"/\*.*?\*/", "", RegexOptions.Singleline);
+            var cleaned = CommentSingleLinePattern.Replace(condition, "");
+            cleaned = CommentBlockPattern.Replace(cleaned, "");
+
+            // Extract message names from BizTalk promoted property access patterns:
+            // message(Schema.Property) — e.g., ship_history(ShippingSchemas.Ship_Completed)
+            // The message name must be declared as a variable in Logic Apps.
+            var promotedMatches = Regex.Matches(cleaned, @"(\w+)\(\w+\.\w+\)");
+            foreach (Match pm in promotedMatches)
+            {
+                var msgName = pm.Groups[1].Value;
+                if (!IsKeywordOrTypeName(msgName) && msgName.Length > 2)
+                {
+                    if (!variables.Any(v => v.Equals(msgName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        variables.Add(msgName);
+                    }
+                }
+            }
 
             // Pattern: identifier (alphanumeric + underscore, starting with letter or underscore)
             // But NOT preceded by '.' and NOT followed by '.' (to exclude property accesses)
-            var identifierPattern = new Regex(@"(?<!\.)(\b[a-zA-Z_][a-zA-Z0-9_]*\b)(?!\s*\.)");
-            var matches = identifierPattern.Matches(cleaned);
+            var matches = IdentifierPattern.Matches(cleaned);
 
             foreach (Match match in matches)
             {
@@ -943,19 +859,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         /// <returns>True if the identifier is a keyword or type name; false if it appears to be a variable.</returns>
         private static bool IsKeywordOrTypeName(string identifier)
         {
-            // C# keywords - Create HashSet with comparer in constructor
-            var keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "new", "null", "true", "false", "var", "if", "else", "while", "for", "foreach",
-                "return", "break", "continue", "switch", "case", "default", "try", "catch",
-                "finally", "throw", "using", "namespace", "class", "struct", "interface",
-                "enum", "public", "private", "protected", "internal", "static", "readonly",
-                "const", "virtual", "override", "abstract", "sealed", "partial", "async",
-                "await", "yield", "base", "this", "typeof", "sizeof", "nameof", "is", "as"
-            };
-
-            // Use Contains with only one argument - comparer is already set in constructor
-            if (keywords.Contains(identifier))
+            if (CSharpKeywords.Contains(identifier))
                 return true;
 
             // Filter out PascalCase type names (likely classes, not variables)
@@ -1048,8 +952,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return assignments;
 
             // Pattern: MessageName.PropertyName = "value" or MessageName.PropertyName = value
-            var pattern = new Regex(@"(\w+)\.(\w+)\s*=\s*(.+?);", RegexOptions.Multiline);
-            var matches = pattern.Matches(expression);
+            var matches = PropertyAssignmentPattern.Matches(expression);
 
             foreach (Match match in matches)
             {
@@ -1103,45 +1006,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 };
             }
 
-            // Use HostAppsSubType if available for HostApps transport
-            var kind = InferKind(rl.TransportType, rl.Address, rl.HostAppsSubType);
-            
-            return new LogicAppTrigger
-            {
-                Name = SafeName(rl.Name),
-                Kind = kind,
-                TransportType = rl.TransportType,
-                Address = rl.Address,
-                FolderPath = rl.FolderPath,
-                FileMask = rl.FileMask,
-                PollingIntervalSeconds = rl.PollingIntervalSeconds,
-                UserName = rl.UserName,
-                Password = rl.Password,
-                ConnectionString = rl.ConnectionString,
-
-                // Additional bindings properties
-                PrimaryTransport = rl.PrimaryTransport,
-                Endpoint = rl.Endpoint,
-                SecurityMode = rl.SecurityMode,
-                
-                // WCF-specific metadata
-                MessageClientCredentialType = rl.MessageClientCredentialType,
-                TransportClientCredentialType = rl.TransportClientCredentialType,
-                MessageEncoding = rl.MessageEncoding,
-                AlgorithmSuite = rl.AlgorithmSuite,
-                MaxReceivedMessageSize = rl.MaxReceivedMessageSize,
-                MaxConcurrentCalls = rl.MaxConcurrentCalls,
-                OpenTimeout = rl.OpenTimeout,
-                CloseTimeout = rl.CloseTimeout,
-                SendTimeout = rl.SendTimeout,
-                EstablishSecurityContext = rl.EstablishSecurityContext,
-                NegotiateServiceCredential = rl.NegotiateServiceCredential,
-                IncludeExceptionDetailInFaults = rl.IncludeExceptionDetailInFaults,
-                UseSSO = rl.UseSSO,
-                SuspendMessageOnFailure = rl.SuspendMessageOnFailure,
-
-                Sequence = 0
-            };
+            return CreateTriggerFromReceiveLocation(rl);
         }
 
         /// <summary>
@@ -1259,8 +1124,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 action = new LogicAppAction
                 {
                     Name = SafeName(listen.Name ?? "Listen"),
-                    Type = "ParallelContainer",
-                    Details = "Listen - first branch to complete wins",
+                    Type = "ListenContainer",
+                    Details = "// WARNING: BizTalk Listen shape (first-branch-wins race pattern).\n" +
+                              "// Logic Apps has no native first-one-wins construct.\n" +
+                              "// This is generated as parallel branches but MANUAL REVIEW is required:\n" +
+                              "// Consider using Switch on status/timeout, or terminate losing branches.",
                     Sequence = listen.Sequence
                 };
 
@@ -1317,9 +1185,8 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 // Detect unmigrateable exception type-checking expressions
                 // Logic Apps doesn't support typeof() comparisons or exception introspection
                 bool isExceptionTypeCheck = !string.IsNullOrWhiteSpace(decide.Expression) &&
-                    (decide.Expression.Contains("typeof(") || 
-                     decide.Expression.Contains(".GetType()") &&
-                     (decide.Expression.Contains("Exception") || decide.Expression.Contains("exception")));
+                    (decide.Expression.Contains("typeof(") || decide.Expression.Contains(".GetType()")) &&
+                    (decide.Expression.Contains("Exception") || decide.Expression.Contains("exception"));
 
                 if (isExceptionTypeCheck)
                 {
@@ -1405,6 +1272,78 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 }
 
                 return ifAction;
+            }
+
+            // Handle Switch shape
+            if (shape is SwitchShapeModel switchModel)
+            {
+                var switchAction = new LogicAppAction
+                {
+                    Type = "Switch",
+                    Name = SafeName(switchModel.Name + "_" + (switchModel.UniqueId ?? switchModel.Sequence.ToString()).Substring(0, Math.Min(8, (switchModel.UniqueId ?? switchModel.Sequence.ToString()).Length))),
+                    Details = switchModel.Expression,
+                    Sequence = switchModel.Sequence
+                };
+
+                // Process each case branch
+                foreach (var caseEntry in switchModel.Cases)
+                {
+                    var caseScope = new LogicAppAction
+                    {
+                        Name = "Case_" + SafeName(caseEntry.Key),
+                        Type = "Scope",
+                        Details = "Case: " + caseEntry.Key,
+                        Sequence = switchAction.Children.Count,
+                        IsBranchContainer = true
+                    };
+
+                    foreach (var caseShape in caseEntry.Value)
+                    {
+                        if (string.IsNullOrEmpty(caseShape.UniqueId))
+                        {
+                            caseShape.UniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+                        }
+
+                        var mapped = ConvertShape(caseShape);
+                        if (mapped != null)
+                        {
+                            caseScope.Children.Add(mapped);
+                        }
+                    }
+
+                    switchAction.Children.Add(caseScope);
+                }
+
+                // Process default case
+                if (switchModel.DefaultCase.Count > 0)
+                {
+                    var defaultScope = new LogicAppAction
+                    {
+                        Name = "Default_Case",
+                        Type = "Scope",
+                        Details = "Default case",
+                        Sequence = switchAction.Children.Count,
+                        IsBranchContainer = true
+                    };
+
+                    foreach (var defaultShape in switchModel.DefaultCase)
+                    {
+                        if (string.IsNullOrEmpty(defaultShape.UniqueId))
+                        {
+                            defaultShape.UniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+                        }
+
+                        var mapped = ConvertShape(defaultShape);
+                        if (mapped != null)
+                        {
+                            defaultScope.Children.Add(mapped);
+                        }
+                    }
+
+                    switchAction.Children.Add(defaultScope);
+                }
+
+                return switchAction;
             }
 
             switch (shape.ShapeType)
@@ -1546,7 +1485,8 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         Type = "Xslt",
                         Details = transformShape?.ClassName,
                         TransformClassName = transformShape?.ClassName,  // Store for JSON generator
-                        Sequence = shape.Sequence
+                        Sequence = shape.Sequence,
+                        OutputMessageName = transformShape?.OutputMessages?.FirstOrDefault()
                     };
                     break;
 
@@ -1680,7 +1620,8 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         Type = "SendConnector",
                         ConnectorKind = "Http",
                         Details = "Send to " + (sendShape?.PortName ?? "Port"),
-                        Sequence = shape.Sequence
+                        Sequence = shape.Sequence,
+                        OutputMessageName = sendShape?.MessageName
                     };
                     break;
 
@@ -1695,6 +1636,13 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         LoopThreshold = ExtractThreshold(whileExpr),
                         Sequence = shape.Sequence
                     };
+
+                    foreach (var child in shape.Children.OrderBy(c => c.Sequence))
+                    {
+                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        var mapped = ConvertShape(child);
+                        if (mapped != null) action.Children.Add(mapped);
+                    }
                     break;
 
                 case "Terminate":
@@ -1735,6 +1683,13 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         LoopThreshold = ExtractThreshold(untilExpr),
                         Sequence = shape.Sequence
                     };
+
+                    foreach (var child in shape.Children.OrderBy(c => c.Sequence))
+                    {
+                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        var mapped = ConvertShape(child);
+                        if (mapped != null) action.Children.Add(mapped);
+                    }
                     break;
 
                 case "Call":
@@ -1964,19 +1919,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     // Previously, this logic was in the fallback code at lines ~2050-2100,
                     // but that code only ran if Children.Count == 0, which was false after
                     // compensation blocks were added, causing Parallel shapes to be skipped.
-                    var normalChildren = shape.Children
-                        .Where(c => !(c is CatchShapeModel) &&
-                                   !(c is VariableDeclarationShapeModel) &&
-                                   !c.ShapeType.Equals("Catch", StringComparison.OrdinalIgnoreCase) &&
-                                   !c.ShapeType.Equals("CatchException", StringComparison.OrdinalIgnoreCase) &&
-                                   !c.ShapeType.Equals("Compensation", StringComparison.OrdinalIgnoreCase) &&
-                                   !c.ShapeType.Equals("Compensate", StringComparison.OrdinalIgnoreCase) &&
-                                   // Only filter empty transaction markers, keep scopes with children
-                                   !(c.ShapeType.Equals("LongRunningTransaction", StringComparison.OrdinalIgnoreCase) && c.Children.Count == 0) &&
-                                   !(c.ShapeType.Equals("AtomicTransaction", StringComparison.OrdinalIgnoreCase) && c.Children.Count == 0))
-                        .OrderBy(c => c.Sequence);
-
-                    foreach (var child in normalChildren)
+                    foreach (var child in GetNormalChildren(shape))
                     {
                         if (child is ReceiveShapeModel r && r.Activate) continue;
                         var mapped = ConvertShape(child);
@@ -1984,13 +1927,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     }
 
                     // Process catch blocks last
-                    var catchBlocks = shape.Children
-                        .Where(c => c is CatchShapeModel ||
-                                   c.ShapeType.Equals("Catch", StringComparison.OrdinalIgnoreCase) ||
-                                   c.ShapeType.Equals("CatchException", StringComparison.OrdinalIgnoreCase))
-                        .OrderBy(c => c.Sequence);
-
-                    foreach (var catchBlock in catchBlocks)
+                    foreach (var catchBlock in GetCatchChildren(shape))
                     {
                         var mapped = ConvertShape(catchBlock);
                         if (mapped != null) action.Children.Add(mapped);
@@ -2048,88 +1985,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 }
             }
 
-            if (action != null && (action.Type == "Scope" || action.Type == "Until" || action.Type == "Foreach"))
-            {
-                if (action.Children.Count == 0)
-                {
-                    var normalChildren = shape.Children
-                        .Where(c => !(c is CatchShapeModel) &&
-                                   !(c is VariableDeclarationShapeModel) &&
-                                   !c.ShapeType.Equals("Catch", StringComparison.OrdinalIgnoreCase) &&
-                                   !c.ShapeType.Equals("CatchException", StringComparison.OrdinalIgnoreCase) &&
-                                   !c.ShapeType.Equals("Compensation", StringComparison.OrdinalIgnoreCase) &&
-                                   // Only filter empty transaction markers, keep scopes with children
-                                   !(c.ShapeType.Equals("LongRunningTransaction", StringComparison.OrdinalIgnoreCase) && c.Children.Count == 0) &&
-                                   !(c.ShapeType.Equals("AtomicTransaction", StringComparison.OrdinalIgnoreCase) && c.Children.Count == 0))
-                        .OrderBy(c => c.Sequence);
-
-                    var catchBlocks = shape.Children
-                        .Where(c => c is CatchShapeModel ||
-                                   c.ShapeType.Equals("Catch", StringComparison.OrdinalIgnoreCase) ||
-                                   c.ShapeType.Equals("CatchException", StringComparison.OrdinalIgnoreCase))
-                        .OrderBy(c => c.Sequence);
-
-                    var compensationBlocks = shape.Children
-                        .Where(c => c.ShapeType != null && c.ShapeType.Equals("Compensation", StringComparison.OrdinalIgnoreCase))
-                        .OrderBy(c => c.Sequence);
-
-                    foreach (var child in normalChildren)
-                    {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
-                        var mapped = ConvertShape(child);
-                        if (mapped != null) action.Children.Add(mapped);
-                    }
-
-                    foreach (var catchBlock in catchBlocks)
-                    {
-                        var mapped = ConvertShape(catchBlock);
-                        if (mapped != null) action.Children.Add(mapped);
-                    }
-
-                    // Process compensation blocks properly
-                    foreach (var compBlock in compensationBlocks)
-                    {
-                        var compScope = new LogicAppAction
-                        {
-                            Name = SafeName(compBlock.Name ?? "Compensation_" + compBlock.Sequence),
-                            Type = "Scope",
-                            Details = "Compensation logic",
-                            Sequence = compBlock.Sequence
-                        };
-
-                        // Recursively process compensation children
-                        foreach (var compChild in compBlock.Children.OrderBy(c => c.Sequence))
-                        {
-                            if (compChild is ReceiveShapeModel r && r.Activate) continue;
-
-                            var mapped = ConvertShape(compChild);
-                            if (mapped != null) 
-                            {
-                                compScope.Children.Add(mapped);
-                            }
-                        }
-
-                        // Only add if there are actual actions
-                        if (compScope.Children.Count > 0)
-                        {
-                            action.Children.Add(compScope);
-                        }
-                        else
-                        {
-                            // Add placeholder note
-                            var compensationNote = new LogicAppAction
-                            {
-                                Name = SafeName("CompensationNote_" + compBlock.Sequence),
-                                Type = "Compose",
-                                Details = "// Note: BizTalk compensation logic requires manual implementation in Logic Apps",
-                                Sequence = compBlock.Sequence
-                            };
-                            action.Children.Add(compensationNote);
-                        }
-                    }
-                }
-            }
-
             // Catch-all: Handle unhandled shapes as Compose
             if (action == null)
             {
@@ -2174,40 +2029,252 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             if (string.IsNullOrEmpty(invokee))
                 return false;
 
-            if (string.IsNullOrEmpty(_currentOrchestrationName.Value) && string.IsNullOrEmpty(_currentOrchestrationFullName.Value))
+            if (string.IsNullOrEmpty(_currentOrchestrationName) && string.IsNullOrEmpty(_currentOrchestrationFullName))
                 return false;
 
             // Compare with simple name (case-insensitive)
-            if (!string.IsNullOrEmpty(_currentOrchestrationName.Value) &&
-                invokee.Equals(_currentOrchestrationName.Value, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(_currentOrchestrationName) &&
+                invokee.Equals(_currentOrchestrationName, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
             // Compare with fully-qualified name (case-insensitive)
-            if (!string.IsNullOrEmpty(_currentOrchestrationFullName.Value) &&
-                invokee.Equals(_currentOrchestrationFullName.Value, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(_currentOrchestrationFullName) &&
+                invokee.Equals(_currentOrchestrationFullName, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
             // Check if invokee is the last segment of fully-qualified name
             // (e.g., "Reprocesamiento" matches "Sat.Scade.PagosCore.Procesos.Reprocesamiento")
-            if (!string.IsNullOrEmpty(_currentOrchestrationFullName.Value) &&
-                _currentOrchestrationFullName.Value.EndsWith("." + invokee, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(_currentOrchestrationFullName) &&
+                _currentOrchestrationFullName.EndsWith("." + invokee, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
             // Check if current orchestration simple name is the last segment of invokee
             // (e.g., current="Reprocesamiento", invokee="Sat.Scade.PagosCore.Procesos.Reprocesamiento")
-            if (!string.IsNullOrEmpty(_currentOrchestrationName.Value) &&
-                invokee.EndsWith("." + _currentOrchestrationName.Value, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(_currentOrchestrationName) &&
+                invokee.EndsWith("." + _currentOrchestrationName, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Resolves message flow across workflow actions so each action references the correct upstream output.
+        /// Builds a lookup of which action produced which BizTalk message, then sets InputMessageSourceAction
+        /// on consuming actions. The activation receive message maps to triggerBody() (null source action).
+        /// </summary>
+        /// <param name="map">The workflow map containing all actions.</param>
+        /// <param name="orchestration">The orchestration model with shape and message metadata.</param>
+        private static void ResolveMessageFlow(LogicAppWorkflowMap map, OrchestrationModel orchestration)
+        {
+            // Build lookup: BizTalk message name -> action name that produces it
+            var messageProducers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            // The activation receive's message is triggerBody() (null = trigger)
+            var activatingReceive = orchestration.Shapes
+                .OfType<ReceiveShapeModel>()
+                .FirstOrDefault(r => r.Activate);
+            if (activatingReceive != null && !string.IsNullOrEmpty(activatingReceive.MessageName))
+            {
+                messageProducers[activatingReceive.MessageName] = null; // null = @triggerBody()
+            }
+
+            // Walk actions in sequence order to build producer map
+            foreach (var act in map.Actions.OrderBy(a => a.Sequence))
+            {
+                RegisterProducers(act, messageProducers);
+            }
+
+            // Second pass: resolve InputMessageSourceAction for consuming actions
+            foreach (var act in map.Actions.OrderBy(a => a.Sequence))
+            {
+                WireUpConsumers(act, messageProducers, orchestration);
+            }
+        }
+
+        /// <summary>
+        /// Recursively registers actions that produce messages into the producer lookup.
+        /// Only registers Transform (Xslt) actions as producers. Send actions consume messages
+        /// and must not overwrite the producer entry.
+        /// </summary>
+        private static void RegisterProducers(LogicAppAction act, Dictionary<string, string> messageProducers)
+        {
+            // Only Xslt (Transform) actions produce new messages.
+            // SendConnector actions consume messages — their OutputMessageName tracks
+            // the message being sent, not produced, so they must not be registered.
+            if (!string.IsNullOrEmpty(act.OutputMessageName) && act.Type == "Xslt")
+            {
+                messageProducers[act.OutputMessageName] = act.Name;
+            }
+
+            // Recurse into children (Scope, If branches, etc.)
+            if (act.Children != null)
+            {
+                foreach (var child in act.Children)
+                    RegisterProducers(child, messageProducers);
+            }
+            if (act.TrueBranch != null)
+            {
+                foreach (var child in act.TrueBranch)
+                    RegisterProducers(child, messageProducers);
+            }
+            if (act.FalseBranch != null)
+            {
+                foreach (var child in act.FalseBranch)
+                    RegisterProducers(child, messageProducers);
+            }
+        }
+
+        /// <summary>
+        /// Recursively wires up consuming actions with their InputMessageSourceAction.
+        /// For Transform actions, resolves the first input message.
+        /// For Send actions, resolves the message being sent.
+        /// </summary>
+        private static void WireUpConsumers(LogicAppAction act, Dictionary<string, string> messageProducers, OrchestrationModel orchestration)
+        {
+            // For Xslt (Transform) actions: find the input message
+            if (act.Type == "Xslt" && act.InputMessageSourceAction == null)
+            {
+                // Find the TransformShape that matches this action's TransformClassName
+                var transformShape = orchestration.Shapes
+                    .OfType<TransformShapeModel>()
+                    .FirstOrDefault(t => t.ClassName != null &&
+                        act.TransformClassName != null &&
+                        t.ClassName.Equals(act.TransformClassName, StringComparison.OrdinalIgnoreCase));
+
+                if (transformShape != null && transformShape.InputMessages != null)
+                {
+                    var inputMsg = transformShape.InputMessages.FirstOrDefault();
+                    if (!string.IsNullOrEmpty(inputMsg) && messageProducers.TryGetValue(inputMsg, out var producer))
+                    {
+                        act.InputMessageSourceAction = producer; // null means triggerBody()
+                    }
+                }
+            }
+
+            // For Send actions: find which message this send uses
+            if (act.Type == "SendConnector" && act.InputMessageSourceAction == null && !string.IsNullOrEmpty(act.OutputMessageName))
+            {
+                if (messageProducers.TryGetValue(act.OutputMessageName, out var producer))
+                {
+                    act.InputMessageSourceAction = producer;
+                }
+            }
+
+            // For Workflow (Call) actions: wire up similarly
+            if (act.Type == "Workflow" && act.InputMessageSourceAction == null && !string.IsNullOrEmpty(act.OutputMessageName))
+            {
+                if (messageProducers.TryGetValue(act.OutputMessageName, out var producer))
+                {
+                    act.InputMessageSourceAction = producer;
+                }
+            }
+
+            // Recurse into children
+            if (act.Children != null)
+            {
+                foreach (var child in act.Children)
+                    WireUpConsumers(child, messageProducers, orchestration);
+            }
+            if (act.TrueBranch != null)
+            {
+                foreach (var child in act.TrueBranch)
+                    WireUpConsumers(child, messageProducers, orchestration);
+            }
+            if (act.FalseBranch != null)
+            {
+                foreach (var child in act.FalseBranch)
+                    WireUpConsumers(child, messageProducers, orchestration);
+            }
+        }
+
+        /// <summary>
+        /// Recursively enriches shape-based SendConnector actions with binding metadata.
+        /// Matches send shapes to binding send ports by port name (from the Send shape's Details field)
+        /// and updates the connector kind, address, and WCF properties from the binding.
+        /// </summary>
+        /// <param name="act">The action to inspect (may be a container with children).</param>
+        /// <param name="sendPortLookup">Lookup of binding send ports by name.</param>
+        /// <param name="matchedNames">Set to track which binding send ports were already matched.</param>
+        /// <param name="orchestration">The orchestration model for resolving port-to-send-port mappings.</param>
+        private static void EnrichSendActionsFromBindings(
+            LogicAppAction act,
+            Dictionary<string, BindingSendPort> sendPortLookup,
+            HashSet<string> matchedNames,
+            OrchestrationModel orchestration)
+        {
+            if (act.Type == "SendConnector" && act.ConnectorKind == "Http")
+            {
+                // Try to match by port name extracted from Details ("Send to PortName")
+                string portName = null;
+                if (!string.IsNullOrEmpty(act.Details) && act.Details.StartsWith("Send to "))
+                {
+                    portName = act.Details.Substring("Send to ".Length).Trim();
+                }
+
+                // Try direct name match against binding send ports
+                BindingSendPort matchedPort = null;
+                if (!string.IsNullOrEmpty(portName) && sendPortLookup.ContainsKey(portName))
+                {
+                    matchedPort = sendPortLookup[portName];
+                }
+                // Also try matching by action name against send port names
+                if (matchedPort == null)
+                {
+                    foreach (var kvp in sendPortLookup)
+                    {
+                        if (act.Name.IndexOf(kvp.Key.Replace(" ", "_"), StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            matchedPort = kvp.Value;
+                            break;
+                        }
+                    }
+                }
+
+                // Enrich with binding metadata
+                if (matchedPort != null)
+                {
+                    var kind = InferKind(matchedPort.TransportType, matchedPort.Address, matchedPort.HostAppsSubType);
+                    act.ConnectorKind = kind;
+                    act.TargetAddress = matchedPort.Address;
+                    act.ConnectionString = matchedPort.ConnectionString;
+                    act.UserName = matchedPort.UserName;
+                    act.Password = matchedPort.Password;
+                    act.PrimaryTransport = matchedPort.PrimaryTransport;
+                    act.Endpoint = matchedPort.Endpoint;
+                    matchedPort.Wcf?.CopyTo(act);
+
+                    if (kind == "ServiceBus")
+                        PopulateServiceBusParts(act, matchedPort.Address);
+
+                    if (!string.IsNullOrEmpty(matchedPort.Name))
+                        matchedNames.Add(matchedPort.Name);
+                }
+            }
+
+            // Recurse into children
+            if (act.Children != null)
+            {
+                foreach (var child in act.Children)
+                    EnrichSendActionsFromBindings(child, sendPortLookup, matchedNames, orchestration);
+            }
+            if (act.TrueBranch != null)
+            {
+                foreach (var child in act.TrueBranch)
+                    EnrichSendActionsFromBindings(child, sendPortLookup, matchedNames, orchestration);
+            }
+            if (act.FalseBranch != null)
+            {
+                foreach (var child in act.FalseBranch)
+                    EnrichSendActionsFromBindings(child, sendPortLookup, matchedNames, orchestration);
+            }
         }
 
         /// <summary>
@@ -2271,6 +2338,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         /// Logic Apps only has Until (runs UNTIL condition is true), so While (runs WHILE true) requires inversion.
         /// Examples: "&lt;" becomes "&gt;=", "==" becomes "!=", complex expressions wrapped with "!()".
         /// ✅ FIXED: Now strips outer parentheses BEFORE operator inversion to avoid malformed variable names.
+        /// ✅ FIXED: De Morgan's law splits respect parenthesized grouping so that
+        ///    "(a &lt; 5 &amp;&amp; b &gt; 3) || c == 1" is correctly handled as two operands
+        ///    around the top-level "||", not three.
         /// </summary>
         /// <param name="expression">The While condition expression to invert.</param>
         /// <returns>The inverted expression suitable for Logic Apps Until action.</returns>
@@ -2315,9 +2385,33 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 }
             }
 
-            // Handle compound conditions by wrapping with NOT
-            if (expr.Contains("&&") || expr.Contains("||"))
-                return "!(" + expr + ")";
+            // Handle compound conditions using De Morgan's law.
+            // Split only on TOP-LEVEL operators (not inside parentheses) so that
+            // "(a < 5 && b > 3) || c == 1" splits into ["(a < 5 && b > 3)", "c == 1"]
+            // instead of incorrectly splitting the inner "&&" first.
+            var andParts = SplitAtTopLevel(expr, "&&");
+            if (andParts.Count > 1)
+            {
+                // De Morgan: !(A && B && C) == (!A || !B || !C)
+                var invertedParts = new List<string>();
+                foreach (var part in andParts)
+                {
+                    invertedParts.Add(InvertCondition(part.Trim()));
+                }
+                return string.Join(" || ", invertedParts);
+            }
+
+            var orParts = SplitAtTopLevel(expr, "||");
+            if (orParts.Count > 1)
+            {
+                // De Morgan: !(A || B || C) == (!A && !B && !C)
+                var invertedParts = new List<string>();
+                foreach (var part in orParts)
+                {
+                    invertedParts.Add(InvertCondition(part.Trim()));
+                }
+                return string.Join(" && ", invertedParts);
+            }
 
             // Simple inversions for comparison operators
             // Order matters - check longer operators first to avoid partial replacements
@@ -2336,6 +2430,37 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
             // Fallback: wrap with NOT for complex expressions
             return "!(" + expr + ")";
+        }
+
+        /// <summary>
+        /// Splits an expression on a logical operator ("&amp;&amp;" or "||") only at
+        /// the top level — i.e., ignoring occurrences that are nested inside parentheses.
+        /// Returns a single-element list containing the original expression when the
+        /// operator does not appear at the top level.
+        /// </summary>
+        private static List<string> SplitAtTopLevel(string expr, string op)
+        {
+            var parts = new List<string>();
+            int depth = 0;
+            int start = 0;
+
+            for (int i = 0; i <= expr.Length - op.Length; i++)
+            {
+                char c = expr[i];
+                if (c == '(') depth++;
+                else if (c == ')') depth--;
+                else if (depth == 0 && expr.Substring(i, op.Length) == op)
+                {
+                    parts.Add(expr.Substring(start, i - start));
+                    i += op.Length - 1; // -1 because the for loop will i++
+                    start = i + 1;
+                }
+            }
+
+            parts.Add(expr.Substring(start));
+
+            // If we found no splits, return single-element list
+            return parts;
         }
 
         /// <summary>
@@ -2390,11 +2515,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             if (t.Contains("hostfile") || t.Contains("host-files")) return "HostFile";
             if (t.Contains("sap") || a.Contains("sap://")) return "SapEcc";
 
+            // Oracle Database adapter (WCF-OracleDB, WCF-OracleEBS, or address-based detection)
+            // Must be checked BEFORE the generic WCF catch-all below
+            if (t.Contains("oracle") || a.Contains("oracledb://") || a.Contains("oracleebs://")) return "OracleDb";
+
             if (t.Contains("smtp") || t.Contains("pop3") || a.Contains("gmail.com") || a.Contains("outlook") || a.Contains("office365") || a.Contains("exchange"))
             {
-                //if (a.Contains("gmail.com")) return "Smtp";
-                //if (a.Contains("exchange")) return "Smtp";
-                //if (t.Contains("smtp")) return "Smtp";
                 return "Smtp";
             }
 
@@ -2405,11 +2531,64 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         }
 
         /// <summary>
-        /// Parses a Service Bus address to extract queue/topic name and subscription information.
-        /// Populates the action with IsTopic, QueueOrTopicName, HasSubscription, and SubscriptionName.
+        /// Filters shape children to exclude catch blocks, variable declarations, compensation, 
+        /// and empty transaction markers. Used by ConvertShape to get processable children.
         /// </summary>
-        /// <param name="action">The Logic Apps action to populate with Service Bus details.</param>
-        /// <param name="address">The Service Bus address to parse (e.g., "sb://namespace.servicebus.windows.net/mytopic/subscriptions/mysub").</param>
+        private static IEnumerable<ShapeModel> GetNormalChildren(ShapeModel shape)
+        {
+            return shape.Children
+                .Where(c => !(c is CatchShapeModel) &&
+                           !(c is VariableDeclarationShapeModel) &&
+                           !c.ShapeType.Equals("Catch", StringComparison.OrdinalIgnoreCase) &&
+                           !c.ShapeType.Equals("CatchException", StringComparison.OrdinalIgnoreCase) &&
+                           !c.ShapeType.Equals("Compensation", StringComparison.OrdinalIgnoreCase) &&
+                           !c.ShapeType.Equals("Compensate", StringComparison.OrdinalIgnoreCase) &&
+                           !(c.ShapeType.Equals("LongRunningTransaction", StringComparison.OrdinalIgnoreCase) && c.Children.Count == 0) &&
+                           !(c.ShapeType.Equals("AtomicTransaction", StringComparison.OrdinalIgnoreCase) && c.Children.Count == 0))
+                .OrderBy(c => c.Sequence);
+        }
+
+        /// <summary>
+        /// Filters shape children to get only catch/exception handler blocks.
+        /// </summary>
+        private static IEnumerable<ShapeModel> GetCatchChildren(ShapeModel shape)
+        {
+            return shape.Children
+                .Where(c => c is CatchShapeModel ||
+                           c.ShapeType.Equals("Catch", StringComparison.OrdinalIgnoreCase) ||
+                           c.ShapeType.Equals("CatchException", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(c => c.Sequence);
+        }
+
+        /// <summary>
+        /// Determines if a variable name represents a BizTalk catch block exception variable.
+        /// Mirrors the logic in ExpressionMapper.IsExceptionVariable to ensure consistency.
+        /// Exception variables should NOT be emitted as InitializeVariable actions in Logic Apps.
+        /// </summary>
+        private static bool IsExceptionVariableName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name) || name.Length < 2)
+                return false;
+
+            // Starts with 'e' followed by uppercase (eBreakLoop, eAbortException)
+            if (name[0] == 'e' && char.IsUpper(name[1]))
+                return true;
+
+            // Ends with 'Ex' (globalEx, CodeEx, pEx, interruptEx, interruptFacilitiesEx)
+            if (name.EndsWith("Ex", StringComparison.Ordinal) && name.Length > 2)
+                return true;
+
+            // Ends with 'Exception' (globalException, myException)
+            if (name.EndsWith("Exception", StringComparison.Ordinal) && name.Length > 9)
+                return true;
+
+            // Common short name 'ex' (case-insensitive)
+            if (string.Equals(name, "ex", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return false;
+        }
+
         private static void PopulateServiceBusParts(LogicAppAction action, string address)
         {
             if (string.IsNullOrWhiteSpace(address)) return;

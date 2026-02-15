@@ -1,0 +1,83 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "ConstructMQSeriesRequestSendMessageModified_442d79e6": {
+        "type": "Compose",
+        "inputs": "@'MQSeriesRequestSendMessageModified = MQSeriesRequestSendMessage;\r\nMQSeriesRequestSendMessageModified(MQSeries.MQMD_MsgId) = \"111213141516171819202122232425262728293031323334\";\r\nMQSeriesRequestSendMessageModified(MQSeries.MQMD_CorrelId) = \"111213141516171819202122232425262728293031323334\"'",
+        "runAfter": {}
+      },
+      "MQSeriesRequestSendModifiedAction": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMQSeriesRequestSendMessageModified_442d79e6": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "MQSeriesResponseReceiveAction": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from MQSeriesReponseReceivePort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "MQSeriesRequestSendModifiedAction": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "FileSendAction": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "MQSeriesResponseReceiveAction": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "FileSendAction": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

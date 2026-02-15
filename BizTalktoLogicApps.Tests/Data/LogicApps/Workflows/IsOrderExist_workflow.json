@@ -1,0 +1,232 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "orderID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "orderID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "partnerID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "partnerID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "orderID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "result": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "result",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "partnerID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SystemFaultMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "SystemFaultMessage",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "result": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ResponseMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ResponseMsg",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "SystemFaultMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Get_Params": {
+        "type": "Compose",
+        "inputs": "@'orderID = InquiryMsg.Request.OrderGroupId;\r\npartnerID = InquiryMsg.Request.SoldToName'",
+        "runAfter": {
+          "ResponseMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CheckExsitScope": {
+        "type": "Scope",
+        "actions": {
+          "Check_Existance": {
+            "type": "Compose",
+            "inputs": "@'result = Microsoft.Samples.BizTalk.Litware.Utilities.DBHelper.IsOrderExist(partnerID, orderID)'",
+            "runAfter": {}
+          },
+          "CatchAllException": {
+            "type": "Scope",
+            "actions": {
+              "SystemFaultMessage_abae8112": {
+                "type": "Compose",
+                "inputs": "@'SystemFaultMessage = Microsoft.Samples.BizTalk.Litware.Utilities.ResourceHelper.GetEmptySystemFault();\r\nSystemFaultMessage.Message = e.Message;\r\nSystemFaultMessage.Trace = e.StackTrace'",
+                "runAfter": {}
+              },
+              "Send_System_Fault": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "http://localhost/service",
+                  "body": "@triggerBody()",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  }
+                },
+                "runAfter": {
+                  "SystemFaultMessage_abae8112": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "End_Orch": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": "e.Message;"
+                  }
+                },
+                "runAfter": {
+                  "Send_System_Fault": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Check_Existance": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Get_Params": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Construct_Result_19a53819": {
+        "type": "Compose",
+        "inputs": "@'ResponseMsg = InquiryMsg;\r\nResponseMsg.Response.OrderExist = result'",
+        "runAfter": {
+          "CheckExsitScope": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_Result": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Construct_Result_19a53819": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Send_Result": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Request-Reply (Synchronous)",
+          "description": "Synchronous request-response pattern",
+          "recommendation": "Use Request trigger with Response action (built-in pattern)"
+        },
+        {
+          "name": "Exception Handling & Compensation",
+          "description": "Handle errors and perform compensating actions",
+          "recommendation": "Use Scope action with Configure Run After for error handling"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:12.8538036Z"
+    }
+  }
+}

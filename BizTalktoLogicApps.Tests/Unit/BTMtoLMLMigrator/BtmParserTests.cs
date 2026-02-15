@@ -251,6 +251,157 @@ namespace BizTalktoLogicApps.Tests.Unit.BTMtoLMLMigrator
 
         #endregion
 
+        #region Functoid Parameter Ordering Tests
+
+        [TestMethod]
+        public void ResolveRelationships_InputLinksWithParameters_SortedByParameterOrder()
+        {
+            // Arrange - Create a functoid with parameters referencing links in non-document order
+            // Simulates a subtract functoid where param 0=link2 (minuend), param 1=link1 (subtrahend)
+            var mapData = new BtmMapData();
+
+            var link1 = new BtmLink { LinkId = "link1", LinkFrom = "source1", LinkTo = "func1" };
+            var link2 = new BtmLink { LinkId = "link2", LinkFrom = "source2", LinkTo = "func1" };
+            var linkOut = new BtmLink { LinkId = "linkOut", LinkFrom = "func1", LinkTo = "target1" };
+
+            mapData.Links.Add(link1);
+            mapData.Links.Add(link2);
+            mapData.Links.Add(linkOut);
+
+            var functoid = new BtmFunctoid
+            {
+                FunctoidId = "func1",
+                FunctoidType = "MathSubtract",
+                FunctoidFid = "119"
+            };
+            // Parameters specify: link2 is param 0 (minuend), link1 is param 1 (subtrahend)
+            functoid.InputParameters.Add(new BtmParameter { Type = "link", Value = "link2", LinkIndex = 0 });
+            functoid.InputParameters.Add(new BtmParameter { Type = "link", Value = "link1", LinkIndex = 1 });
+
+            mapData.Functoids.Add(functoid);
+
+            // Act
+            var resolver = new FunctoidRelationshipResolver(mapData);
+            resolver.ResolveRelationships();
+
+            // Assert - InputLinks should be sorted: link2 first (param 0), then link1 (param 1)
+            Assert.AreEqual(expected: 2, actual: functoid.InputLinks.Count, message: "Should have 2 input links");
+            Assert.AreEqual(expected: "link2", actual: functoid.InputLinks[0].LinkId, message: "First input link should be link2 (param 0)");
+            Assert.AreEqual(expected: "link1", actual: functoid.InputLinks[1].LinkId, message: "Second input link should be link1 (param 1)");
+        }
+
+        [TestMethod]
+        public void ResolveRelationships_ParametersWithConstants_PreservesOrder()
+        {
+            // Arrange - Functoid with mixed link and constant parameters
+            // Simulates substring(link1=input, constant="3", link2=length)
+            var mapData = new BtmMapData();
+
+            var link1 = new BtmLink { LinkId = "link1", LinkFrom = "source1", LinkTo = "func1" };
+            var link2 = new BtmLink { LinkId = "link2", LinkFrom = "source2", LinkTo = "func1" };
+            var linkOut = new BtmLink { LinkId = "linkOut", LinkFrom = "func1", LinkTo = "target1" };
+
+            mapData.Links.Add(link1);
+            mapData.Links.Add(link2);
+            mapData.Links.Add(linkOut);
+
+            var functoid = new BtmFunctoid
+            {
+                FunctoidId = "func1",
+                FunctoidType = "StringSubstring",
+                FunctoidFid = "106"
+            };
+            // Parameters: link1 at position 0, constant at position 1, link2 at position 2
+            functoid.InputParameters.Add(new BtmParameter { Type = "link", Value = "link1", LinkIndex = 0 });
+            functoid.InputParameters.Add(new BtmParameter { Type = "constant", Value = "3", LinkIndex = 1 });
+            functoid.InputParameters.Add(new BtmParameter { Type = "link", Value = "link2", LinkIndex = 2 });
+
+            mapData.Functoids.Add(functoid);
+
+            // Act
+            var resolver = new FunctoidRelationshipResolver(mapData);
+            resolver.ResolveRelationships();
+
+            // Assert - InputLinks should maintain parameter order (link1 first, link2 second)
+            Assert.AreEqual(expected: 2, actual: functoid.InputLinks.Count, message: "Should have 2 input links (constants excluded)");
+            Assert.AreEqual(expected: "link1", actual: functoid.InputLinks[0].LinkId, message: "First input link should be link1 (param 0)");
+            Assert.AreEqual(expected: "link2", actual: functoid.InputLinks[1].LinkId, message: "Second input link should be link2 (param 2)");
+        }
+
+        [TestMethod]
+        public void ResolveRelationships_SingleInputLink_NoSortNeeded()
+        {
+            // Arrange
+            var mapData = new BtmMapData();
+
+            var link1 = new BtmLink { LinkId = "link1", LinkFrom = "source1", LinkTo = "func1" };
+            var linkOut = new BtmLink { LinkId = "linkOut", LinkFrom = "func1", LinkTo = "target1" };
+
+            mapData.Links.Add(link1);
+            mapData.Links.Add(linkOut);
+
+            var functoid = new BtmFunctoid
+            {
+                FunctoidId = "func1",
+                FunctoidType = "StringUpperCase",
+                FunctoidFid = "110"
+            };
+            functoid.InputParameters.Add(new BtmParameter { Type = "link", Value = "link1", LinkIndex = 0 });
+
+            mapData.Functoids.Add(functoid);
+
+            // Act
+            var resolver = new FunctoidRelationshipResolver(mapData);
+            resolver.ResolveRelationships();
+
+            // Assert
+            Assert.AreEqual(expected: 1, actual: functoid.InputLinks.Count, message: "Should have 1 input link");
+            Assert.AreEqual(expected: "link1", actual: functoid.InputLinks[0].LinkId, message: "Single link should be preserved");
+        }
+
+        [TestMethod]
+        public void ParameterOrdering_DocumentOrderFallback_AssignsSequentialIndices()
+        {
+            // Arrange - Simulate what the parser does when no Order attribute exists
+            var parameters = new List<BtmParameter>();
+
+            // Add in document order (no explicit Order attribute — fallback to Count)
+            parameters.Add(new BtmParameter { Type = "link", Value = "linkA", LinkIndex = 0 });
+            parameters.Add(new BtmParameter { Type = "link", Value = "linkB", LinkIndex = 1 });
+            parameters.Add(new BtmParameter { Type = "link", Value = "linkC", LinkIndex = 2 });
+
+            // Act - Sort by LinkIndex (mimicking what the parser does)
+            parameters.Sort((a, b) => a.LinkIndex.CompareTo(b.LinkIndex));
+
+            // Assert - Document order should be preserved
+            Assert.AreEqual(expected: "linkA", actual: parameters[0].Value, message: "First param should be linkA");
+            Assert.AreEqual(expected: "linkB", actual: parameters[1].Value, message: "Second param should be linkB");
+            Assert.AreEqual(expected: "linkC", actual: parameters[2].Value, message: "Third param should be linkC");
+        }
+
+        [TestMethod]
+        public void ParameterOrdering_ExplicitOrderDiffersFromDocumentOrder_SortsByExplicitOrder()
+        {
+            // Arrange - Simulate what the parser does when Order attributes differ from document order
+            // Document order: linkC, linkA, linkB
+            // Explicit order: linkA=0, linkB=1, linkC=2
+            var parameters = new List<BtmParameter>();
+
+            parameters.Add(new BtmParameter { Type = "link", Value = "linkC", LinkIndex = 2 });
+            parameters.Add(new BtmParameter { Type = "link", Value = "linkA", LinkIndex = 0 });
+            parameters.Add(new BtmParameter { Type = "link", Value = "linkB", LinkIndex = 1 });
+
+            // Act - Sort by LinkIndex
+            parameters.Sort((a, b) => a.LinkIndex.CompareTo(b.LinkIndex));
+
+            // Assert - Should be sorted by explicit order, not document order
+            Assert.AreEqual(expected: "linkA", actual: parameters[0].Value, message: "First param should be linkA (Order=0)");
+            Assert.AreEqual(expected: "linkB", actual: parameters[1].Value, message: "Second param should be linkB (Order=1)");
+            Assert.AreEqual(expected: "linkC", actual: parameters[2].Value, message: "Third param should be linkC (Order=2)");
+        }
+
+        #endregion
+
         #region Helper Class for Testing Private Methods
 
         /// <summary>

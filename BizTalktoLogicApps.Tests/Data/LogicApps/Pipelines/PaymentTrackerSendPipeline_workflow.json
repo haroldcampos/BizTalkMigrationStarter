@@ -1,0 +1,51 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "pipelinesend": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "Assemble": {
+        "type": "Scope",
+        "actions": {
+          "XMLassembler": {
+            "type": "XmlCompose",
+            "inputs": {
+              "schema": {
+                "source": "LogicApp",
+                "name": "SCHEMA_NAME_HERE"
+              },
+              "content": "@triggerBody()"
+            },
+            "metadata": {
+              "comment": "// Component: XML Assembler\r\n// Description: Converts XML messages to appropriate format, adds envelopes, moves properties from context to body\r\n// Behavior: Serializes message, wraps in envelope, adds headers/trailers, moves context properties to document\r\n// Message Flow: 1 message in ? 1 message out\r\n// Properties:\r\n//   EnvelopeDocSpecNames = \r\n//   EnvelopeSpecTargetNamespaces = \r\n//   DocumentSpecNames = \r\n//   DocumentSpecTargetNamespaces = \r\n//   ProcessingInstructionsOptions = 0\r\n//   AddXmlDeclaration = true\r\n//   TargetCharset = \r\n//   TargetCodePage = 0\n// Use 'Compose XML with schema' action\n// ACTION REQUIRED:\n// 1. Upload XSD schema to Logic App artifacts\n// 2. Select schema in Compose XML action\n// 3. Map input data to schema structure (as JSON object)\n// 4. Configure envelope if needed\n// Stage: Assemble (All)"
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {}
+      },
+      "Encode": {
+        "type": "Scope",
+        "actions": {
+          "MQSeriesHeaderSetterPipelineComponent": {
+            "type": "Compose",
+            "inputs": "// Component: Microsoft.Samples.BizTalk.WoodgroveBank.PaymentTrackerPipelineComponents.MQSeriesHeaderSetter\r\n// Description: Unknown component type\r\n// Behavior: Behavior not documented\r\n// Message Flow: Unknown\n// Stage: Encode (All)",
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Assemble": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

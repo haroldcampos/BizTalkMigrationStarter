@@ -1,9 +1,9 @@
-# BizTalk Migration Starter
+﻿# BizTalk Migration Starter
 
 [![.NET Framework](https://img.shields.io/badge/.NET%20Framework-4.7.2-blue)](https://dotnet.microsoft.com/download/dotnet-framework)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A migration toolkit to start your Microsoft BizTalk Server artifacts (orchestrations, maps, and pipelines) migration to Azure Logic Apps Standard (and Hybrid deployment model). Includes specialized CLI tools for each artifact type plus a Model Context Protocol (MCP) server for intelligent, assisted migration. I built this tool and has undergone basic testing. If you run into issues, you can use GHCP to troubleshoot/customize this solution with your own artifacts.
+A migration toolkit for converting Microsoft BizTalk Server artifacts (orchestrations, maps, and pipelines) to Azure Logic Apps Standard (and Hybrid deployment model). Includes specialized CLI tools for each artifact type plus a Model Context Protocol (MCP) server for intelligent, AI-assisted migration. This tool has undergone basic testing. If you run into issues, you can use GitHub Copilot to troubleshoot and customize this solution with your own artifacts.
 
 ## Quick Start
 
@@ -26,8 +26,9 @@ ODXtoWFMigrator.exe package MyOrchestration.odx bindings.xml
 # ORCHESTRATIONS: Batch convert all orchestrations in a directory
 ODXtoWFMigrator.exe batch convert --directory C:\BizTalk --bindings bindings.xml
 
-# MAPS: Convert BizTalk map to LA template (LML)
-BTMtoLMLMigrator.exe OrderToInvoice.btm Order.xsd Invoice.xsd. LMLs are required today to open maps in the data mapper.
+# MAPS: Convert BizTalk map to Logic Apps Mapping Language template (.lml)
+# LMLs are required to open maps in the Logic Apps Data Mapper
+BTMtoLMLMigrator.exe OrderToInvoice.btm Order.xsd Invoice.xsd
 
 # PIPELINES: Convert BizTalk pipeline to Logic Apps workflow
 BTPtoLA.exe XMLReceive.btp C:\Output
@@ -43,17 +44,17 @@ BizTalkToLogicApps.MCP.exe
 - [Architecture](#architecture)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Project Structure](#project-structure)
 - [Migration Approach](#migration-approach)
 - [Examples](#examples)
 - [Testing](#testing)
+- [Project Status](#project-status)
 - [License](#license)
 
 ## Overview
 
-This toolkit automates the assists in the process of migrating BizTalk Server artifacts to Azure Logic Apps Standard. It consists of three specialized migration tools plus a MCP server:
+This toolkit assists in the process of migrating BizTalk Server artifacts to Azure Logic Apps Standard. It consists of three specialized migration tools plus an MCP server:
 
-### **ODXtoWFMigrator** - Orchestration Migration
+### **ODXtoWFMigrator** — Orchestration Migration
 - **Orchestration Parsing**: Extracts shapes, ports, messages, and logic from ODX files
 - **Binding Analysis**: Processes BizTalk bindings to configure Logic Apps connections
 - **Expression Conversion**: Translates BizTalk XLANG expressions to Logic Apps expressions
@@ -66,21 +67,21 @@ This toolkit automates the assists in the process of migrating BizTalk Server ar
 - **Callable Workflow Detection**: Automatically configures child workflows with Request triggers
 - **Self-Recursion Handling**: Converts recursive calls to Until loops
 
-### **BTMtoLMLMigrator** - Map Migration
+### **BTMtoLMLMigrator** — Map Migration
 - **BTM Parsing**: Extracts functoids, links, and transformations from BizTalk maps
 - **Schema Analysis**: Processes source and target XSD schemas for namespace extraction
-- **Functoid Translation**: Converts BizTalk functoids to Logic Apps Mapping Language template equivalents
-- **logic Apps Mapping Language Generation**: Creates Azure Logic Apps Data Mapper compatible templates
+- **Functoid Translation**: Converts BizTalk functoids to Logic Apps Mapping Language equivalents
+- **LML Generation**: Creates Azure Logic Apps Data Mapper compatible templates
 - **Batch Conversion**: Process multiple maps simultaneously
 
-### **BTPtoLA** - Pipeline Migration
+### **BTPtoLA** — Pipeline Migration
 - **Pipeline Parsing**: Extracts stages, components, and configurations from BTP files
 - **Component Mapping**: Maps BizTalk pipeline components to Logic Apps actions
 - **Default Pipeline Detection**: Identifies PassThru, XMLReceive, XMLTransmit patterns
 - **Workflow Generation**: Creates Logic Apps workflows with component equivalents
 - **Stage Analysis**: Preserves pipeline stage semantics in workflows
 
-### **BizTalkToLogicApps.MCP** - AI-Assisted Migration
+### **BizTalkToLogicApps.MCP** — AI-Assisted Migration
 - **Model Context Protocol Server**: Exposes migration tools to AI assistants
 - **25+ AI Tools**: Analysis, conversion, validation, and configuration tools
 - **Multi-Artifact Support**: Handles orchestrations, maps, and pipelines
@@ -207,7 +208,7 @@ This toolkit automates the assists in the process of migrating BizTalk Server ar
 ### Solution Structure
 
 ```
-BizTalkMigrator/
+BizTalkMigrationStarter/
 |
 +-- ODXtoWFMigrator/                 # Orchestration to Workflow migration tool
 |   +-- Program.cs                   # CLI entry point
@@ -221,7 +222,14 @@ BizTalkMigrator/
 |   +-- WorkflowValidator.cs         # Validation logic
 |   +-- OrchestrationReportGenerator.cs # Report generation
 |   +-- OdxAnalyzer.cs               # Gap analysis
+|   +-- ReceivePatternAnalysis.cs    # Receive pattern detection
 |   +-- ExceptionExtensions.cs       # Exception handling helpers
+|   +-- Models/                      # Data models
+|   |   +-- OrchestrationModels.cs   # Orchestration domain models
+|   |   +-- WorkflowModels.cs        # Workflow domain models
+|   |   +-- WcfMetadata.cs           # WCF adapter metadata
+|   +-- Diagnostics/                 # Diagnostic utilities
+|   |   +-- OrchestrationDiagnostics.cs # Orchestration diagnostics
 |   +-- Refactoring/                 # Pattern-based optimization
 |       +-- RefactoredWorkflowGenerator.cs # Refactoring orchestrator
 |       +-- RefactoringOptions.cs    # Configuration options
@@ -229,12 +237,12 @@ BizTalkMigrator/
 |       +-- ConnectorOptimizer.cs    # Connector upgrades
 |       +-- JsonPostProcessor.cs     # JSON post-processing
 |
-+-- BTMtoLMLMigrator/                # BizTalk Maps to Logic Apps Mapping Language Mapper
++-- BTMtoLMLMigrator/                # BizTalk Maps to Logic Apps Mapping Language
 |   +-- Program.cs                   # CLI entry point
 |   +-- BtmParser.cs                 # BTM file parser
 |   +-- BtmMigrator.cs               # Migration orchestrator
-|   +-- FunctoidTranslator.cs        # Functoid to logic Apps Mapping Language conversion
-|   +-- LmlGenerator.cs              # Logic Apps Mapping Language template generator
+|   +-- FunctoidTranslator.cs        # Functoid to LML conversion
+|   +-- LmlGenerator.cs              # LML template generator
 |   +-- Models.cs                    # Data models
 |
 +-- BTPtoLA/                         # Pipeline to Logic Apps conversion
@@ -274,7 +282,6 @@ BizTalkMigrator/
 +-- BizTalktoLogicApps.Tests/        # Comprehensive test suite
     +-- Unit/                        # Unit tests (isolated components)
     +-- Integration/                 # Integration tests (end-to-end)
-    +-- Data/                        # Test data (ODX, BTM, BTP files)
     +-- Properties/
         +-- AssemblyInfo.cs
 ```
@@ -300,7 +307,7 @@ BizTalkMigrator/
              |                         |                      |
              v                         v                      v
     +----------------+        +----------------+      +----------------+
-    |  Workflow.json |        | LA Map. L.(.lml)|      |  Workflow.json |
+    |  Workflow.json |        |  Template.lml  |      |  Workflow.json |
     +----------------+        +----------------+      +----------------+
              |                         |                      |
              +-------------------------|----------------------+
@@ -312,7 +319,7 @@ BizTalkMigrator/
              |                                                       |
              |  +----------------+  +------------------+             |
              |  | Workflows      |  | Data Mapper      |             |
-             |  | (Orchestrations|  | (LA Maps)    |             |
+             |  | (Orchestrations|  | (LML Maps)       |             |
              |  |  + Pipelines)  |  |                  |             |
              |  +----------------+  +------------------+             |
              |                                                       |
@@ -419,7 +426,7 @@ BizTalkMigrator/
             v
 +---------------------------------------+
 | FunctoidTranslator                    |
-| - Convert functoids to LA syntax  |
+| - Convert functoids to LML syntax     |
 | - Map string/math/logical operations  |
 | - Handle scripting functoids          |
 +---------------------------------------+
@@ -427,13 +434,13 @@ BizTalkMigrator/
             v
 +---------------------------------------+
 | LmlGenerator                          |
-| - Generate LA template            |
+| - Generate LML template              |
 | - Format output for readability       |
 +---------------------------------------+
             |
             v
 +---------------------------------------+
-| LA Template (.lml)                |
+| LML Template (.lml)                   |
 | For Logic Apps Data Mapper            |
 +---------------------------------------+
 ```
@@ -509,9 +516,9 @@ msbuild BizTalkMigrationStarter.sln /t:Rebuild /p:Configuration=Release
 # - BizTalkToLogicApps.MCP\bin\Release\BizTalkToLogicApps.MCP.exe
 ```
 
-### Download Pre-Built Binary
+### Download Pre-Built Binaries
 
-[Link to releases page]
+[Download from GitHub Releases](https://github.com/haroldcampos/BizTalkMigrationStarter/releases)
 
 ## Usage
 
@@ -628,7 +635,7 @@ ODXtoWFMigrator.exe batch convert -d C:\Orchestrations -b bindings.xml --refacto
 **Refactoring Benefits:**
 - Uses native Logic Apps patterns (sessions for convoy, parallel branches for scatter-gather)
 - Optimizes connector selection based on deployment target
-- Simplifies complex BizTalk constructs (nested scopes ? flat)
+- Simplifies complex BizTalk constructs (nested scopes → flat)
 - Generates parameters.json for externalized configuration
 
 #### 3. Batch Orchestration Migration
@@ -829,7 +836,7 @@ ODXtoWFMigrator.exe batch convert `
 BTMtoLMLMigrator.exe OrderToInvoice.btm Order.xsd Invoice.xsd
 ```
 
-**Output**: LA template (.lml) with:
+**Output**: LML template (.lml) with:
 - Source to target field mappings
 - Functoid equivalents (string, math, logical operations)
 - Schema namespace references
@@ -894,7 +901,7 @@ See [BizTalkToLogicApps.Tests/README.md](https://github.com/haroldcampos/BizTalk
 | Gap Analysis | Complete | Pattern detection |
 | Report Generation | Complete | HTML/Markdown |
 | Deployment Packages | Complete | CI/CD integration |
-| Map Migration | Complete | BTM to logic Apps Mapping Language conversion |
+| Map Migration | Complete | BTM to Logic Apps Mapping Language conversion |
 | Pipeline Migration | Complete | BTP to workflow conversion |
 | MCP AI Tools | Complete | 25+ tools for AI assistants |
 
@@ -929,11 +936,14 @@ git clone https://github.com/haroldcampos/BizTalkMigrationStarter.git
 # Create a feature branch
 git checkout -b feature/your-feature-name
 
-# Make changes and commit
-git commit -am "Add your feature"
+# Build the solution
+msbuild BizTalkMigrationStarter.sln /t:Rebuild /p:Configuration=Debug
 
 # Run tests
-dotnet test
+vstest.console.exe BizTalktoLogicApps.Tests\bin\Debug\BizTalktoLogicApps.Tests.dll
+
+# Make changes and commit
+git commit -am "Add your feature"
 
 # Push and create pull request
 git push origin feature/your-feature-name
@@ -968,7 +978,6 @@ For issues, questions, or feature requests:
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: January 2026  
-
+**Last Updated**: February 2026.  
 
 This is an independent project and is not affiliated with or endorsed by Microsoft Corporation.

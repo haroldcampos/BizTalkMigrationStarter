@@ -1,0 +1,214 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "ConstructMessage_1_a0533ec5": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "ShipRequest2Ack",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {}
+      },
+      "Send_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_1_a0533ec5": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_2_d313b352": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Order2PickupNotification",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Send_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_2": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_2_d313b352": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_5_3c30670e": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Request2ShippingDone",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Send_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_5": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_5_3c30670e": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_3_1424aac3": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Order2Invoice",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Send_5": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_3": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_3_1424aac3": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Receive_2": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from ReceiveInvoiceAck (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Send_3": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_4_0efda81d": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "Invoice2PaymentConfirmation",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Receive_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_4": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_4_0efda81d": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Send_4": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Message Translator",
+          "description": "Transform message format from one schema to another",
+          "recommendation": "Use Data Mapper for visual transformations, Parse XML/Compose XML for schema validation, or Liquid templates for complex mapping"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:13.5654641Z"
+    }
+  }
+}

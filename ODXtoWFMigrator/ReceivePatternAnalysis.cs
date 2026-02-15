@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace BizTalktoLogicApps.ODXtoWFMigrator
@@ -145,14 +146,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             var allReceives = allShapes.OfType<ReceiveShapeModel>().ToList();
             var activatingReceives = allReceives.Where(r => r.Activate).ToList();
 
-            Console.WriteLine($"[RECEIVE-ANALYSIS] Orchestration: {model.FullName}");
-            Console.WriteLine($"[RECEIVE-ANALYSIS]   Total receives: {allReceives.Count}");
-            Console.WriteLine($"[RECEIVE-ANALYSIS]   Activating receives: {activatingReceives.Count}");
+            Trace.TraceInformation("[RECEIVE-ANALYSIS] Orchestration: {0}, Total receives: {1}, Activating: {2}",
+                model.FullName, allReceives.Count, activatingReceives.Count);
 
             // Case 1: No activating receives ? Callable workflow
             if (activatingReceives.Count == 0)
             {
-                Console.WriteLine($"[RECEIVE-ANALYSIS] Pattern: Callable (no activating receives)");
                 return new ReceivePatternAnalysis
                 {
                     Pattern = ReceivePattern.Callable,
@@ -178,9 +177,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     
                     if (followingReceives.Any())
                     {
-                        Console.WriteLine($"[RECEIVE-ANALYSIS] Pattern: Convoy (1 initializing + {followingReceives.Count} following)");
-                        Console.WriteLine($"[RECEIVE-ANALYSIS]   Correlation sets: {string.Join(", ", receive.InitializesCorrelationSets)}");
-                        
                         return new ReceivePatternAnalysis
                         {
                             Pattern = ReceivePattern.Convoy,
@@ -197,7 +193,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 }
                 
                 // Simple single receive
-                Console.WriteLine($"[RECEIVE-ANALYSIS] Pattern: SingleTrigger (no correlation)");
                 return new ReceivePatternAnalysis
                 {
                     Pattern = ReceivePattern.SingleTrigger,
@@ -206,7 +201,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             }
 
             // Case 3: Multiple activating receives - analyze context
-            Console.WriteLine($"[RECEIVE-ANALYSIS] Multiple activating receives detected - analyzing context...");
 
             // Check if all are in Listen shape (first-to-complete)
             var listenParents = new List<ListenShapeModel>();
@@ -222,8 +216,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             if (listenParents.Count == activatingReceives.Count &&
                 listenParents.Distinct().Count() == 1)
             {
-                Console.WriteLine($"[RECEIVE-ANALYSIS] Pattern: ListenFirstToComplete ({activatingReceives.Count} receives in Listen)");
-                
                 return new ReceivePatternAnalysis
                 {
                     Pattern = ReceivePattern.ListenFirstToComplete,
@@ -252,8 +244,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
             if (parallelParents.Count == activatingReceives.Count)
             {
-                Console.WriteLine($"[RECEIVE-ANALYSIS] Pattern: ParallelAllMustComplete (INVALID - {activatingReceives.Count} activating receives)");
-                
                 return new ReceivePatternAnalysis
                 {
                     Pattern = ReceivePattern.ParallelAllMustComplete,
@@ -266,8 +256,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             }
 
             // Case 4: Multiple sequential activating receives - INVALID
-            Console.WriteLine($"[RECEIVE-ANALYSIS] Pattern: Invalid (sequential activating receives)");
-            
             return new ReceivePatternAnalysis
             {
                 Pattern = ReceivePattern.Invalid,

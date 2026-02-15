@@ -1,0 +1,248 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "objQueryShipmentCatalog": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "objQueryShipmentCatalog",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "strShipmentName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "strShipmentName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "objQueryShipmentCatalog": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "objResolvePartyName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "objResolvePartyName",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "strShipmentName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Expression_1": {
+        "type": "Compose",
+        "inputs": "@variables('objResolvePartyName')?['GetPartName(Buyer_Supplier(Microsoft']?['XLANGs']?['BaseTypes']?['SourceParty))']",
+        "runAfter": {
+          "objResolvePartyName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Construct_PO_Acknowledgement_1c97b9fe": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "PO_POAck",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Expression_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_PO_Acknowledgement": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('Construct_PO_Acknowledgement_1c97b9fe')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Construct_PO_Acknowledgement_1c97b9fe": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Construct_Shipping_Order_Request_989fe52f": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "PO_ShipmentOrderRequest",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Send_PO_Acknowledgement": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Decide_on_Shipment": {
+        "type": "Compose",
+        "inputs": "@'strShipmentName= objQueryShipmentCatalog.GetShipmentDetails(POMessage.MessagePart_1.POHeader.Address.Country);\r\nSupplier_Shipment(Microsoft.XLANGs.BaseTypes.DestinationParty) = new Microsoft.XLANGs.BaseTypes.Party(strShipmentName,\"OrganizationName\")'",
+        "runAfter": {
+          "Construct_Shipping_Order_Request_989fe52f": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_Shipment_Order_Request": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('Construct_Shipping_Order_Request_989fe52f')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Decide_on_Shipment": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Receive_Shipment_Order_Ack": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from  (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Send_Shipment_Order_Request": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Construct_Shipping_Advice_Message_d789bedb": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "ShipmentOrder_ShipmentAdvice",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Receive_Shipment_Order_Ack": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_Shipping_Advice": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('Construct_Shipping_Advice_Message_d789bedb')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Construct_Shipping_Advice_Message_d789bedb": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Receive_Shipping_Advice_Ack": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from  (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Send_Shipping_Advice": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Construct_PO_Delivery_Message_37ee14dc": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "ShipmentAdviceAck_PODeliveryReceipt",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "Receive_Shipping_Advice_Ack": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_PO_Delivery_Message": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('Construct_PO_Delivery_Message_37ee14dc')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Construct_PO_Delivery_Message_37ee14dc": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Send_PO_Delivery_Message": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

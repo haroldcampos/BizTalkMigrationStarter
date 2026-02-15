@@ -1,0 +1,38 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: AdvancedShipNotice.xsd
+$targetSchema: AdvancedShipNotice.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+'*[local-name()='''' and namespace-uri()=''http:':
+  'ExposeWebService.CompanyRequest'']':
+    '*[local-name()=''CompanyRequest'' and namespace-uri()=''http:':
+      'ExposeWebService.CompanyRequest'']':
+        '*[local-name()=''AppraisalValue'' and namespace-uri()=''http:':
+          'ExposeWebService.CompanyRequest'']': /*[local-name()='' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='ClientRequest' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='AppraisalValue' and namespace-uri()='http://ExposeWebService.ClientRequest']
+        '*[local-name()=''Address'' and namespace-uri()=''http:':
+          'ExposeWebService.CompanyRequest'']':
+            '*[local-name()=''Street'' and namespace-uri()=''http:':
+              'ExposeWebService.CompanyRequest'']': /*[local-name()='' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='ClientRequest' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Address' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Street' and namespace-uri()='http://ExposeWebService.ClientRequest']
+            '*[local-name()=''City'' and namespace-uri()=''http:':
+              'ExposeWebService.CompanyRequest'']': /*[local-name()='' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='ClientRequest' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Address' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='City' and namespace-uri()='http://ExposeWebService.ClientRequest']
+            '*[local-name()=''State'' and namespace-uri()=''http:':
+              'ExposeWebService.CompanyRequest'']': /*[local-name()='' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='ClientRequest' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Address' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='State' and namespace-uri()='http://ExposeWebService.ClientRequest']
+            '*[local-name()=''Zip'' and namespace-uri()=''http:':
+              'ExposeWebService.CompanyRequest'']': /*[local-name()='' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='ClientRequest' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Address' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Zip' and namespace-uri()='http://ExposeWebService.ClientRequest']
+        '*[local-name()=''Name'' and namespace-uri()=''http:':
+          'ExposeWebService.CompanyRequest'']': /*[local-name()='' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='ClientRequest' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Name' and namespace-uri()='http://ExposeWebService.ClientRequest']
+        '*[local-name()=''CoverageRequested'' and namespace-uri()=''http:':
+          'ExposeWebService.CompanyRequest'']': /*[local-name()='' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='ClientRequest' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='CoverageRequested' and namespace-uri()='http://ExposeWebService.ClientRequest']
+        '*[local-name()=''LocationCode'' and namespace-uri()=''http:':
+          'ExposeWebService.CompanyRequest'']': /*[local-name()='' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='ClientRequest' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Address' and namespace-uri()='http://ExposeWebService.ClientRequest']/*[local-name()='Zip' and namespace-uri()='http://ExposeWebService.ClientRequest']

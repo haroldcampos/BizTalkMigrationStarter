@@ -1,0 +1,1238 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "stop": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "stop",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "orderStatus": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "orderStatus",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "stop": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "error": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "error",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "orderStatus": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ActivityID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ActivityID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "error": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ServiceOrderActivityID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ServiceOrderActivityID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ActivityID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "stage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "stage",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "ServiceOrderActivityID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "numStages": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "numStages",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "stage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "currentStage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "currentStage",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "numStages": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "configData": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "configData",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "currentStage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderAck": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderAck",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "configData": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "TerminatedMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "TerminatedMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "OrderAck": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ErrorMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ErrorMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "TerminatedMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderMgrMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderMgrMsg",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ErrorMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CompletionMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "CompletionMsg",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "OrderMgrMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderManagerMainScope": {
+        "type": "Scope",
+        "actions": {
+          "TRACE": {
+            "type": "Compose",
+            "inputs": "@'System.Diagnostics.Debug.WriteLine( \"\\n<ORDERMANAGER>\\n\" );\r\nSystem.Diagnostics.Debug.WriteLine( \"   Req ID   : \" + NewOrderMgrMsg.RoutingPart.RequestID );\r\nSystem.Diagnostics.Debug.WriteLine( \"   Customer : \" + NewOrderMgrMsg.RoutingPart.CustomerID );\r\nSystem.Diagnostics.Debug.WriteLine( \"   Order    : \" + NewOrderMgrMsg.RoutingPart.OrderID );\r\nSystem.Diagnostics.Debug.WriteLine( \"   Sequence : \" + System.Convert.ToString( NewOrderMgrMsg.RoutingPart.SeqNum ) );\r\nSystem.Diagnostics.Debug.WriteLine( \"\\n</ORDERMANAGER>\\n\" )'",
+            "runAfter": {}
+          },
+          "BAM_Start": {
+            "type": "Compose",
+            "inputs": "@'// [BAM] Start collecting BAM data [OrderManager]\r\n\r\nActivityID = Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.StartCollecting( NewOrderMgrMsg.RoutingPart.RequestID )'",
+            "runAfter": {
+              "TRACE": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "BAM_Order_Started": {
+            "type": "Compose",
+            "inputs": "@'// [BAM] Update activity [OrderManager] with [StageStarted]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.OrderStarted(\r\n    ActivityID,                             // Activity ID\r\n    NewOrderMgrMsg.RoutingPart.CustomerID,  // Customer ID\r\n    NewOrderMgrMsg.RoutingPart.OrderID,     // Order ID\r\n    NewOrderMgrMsg.RoutingPart.SeqNum);     // Order Sequence #'",
+            "runAfter": {
+              "BAM_Start": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Request_Type_0d94ff91": {
+            "type": "If",
+            "expression": "@equals('RequestType', 'TERMINATE')",
+            "actions": {
+              "BAM_Terminated_f018d2e0": {
+                "type": "Compose",
+                "inputs": "@'// [BAM] Update activity [OrderManager] with [TerminateReceived]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.TerminateReceived(ActivityID)'",
+                "runAfter": {}
+              },
+              "End_Order_364c6401": {
+                "type": "Compose",
+                "inputs": "@'stage = numStages + 1;\r\norderStatus = \"TERMINATED\";\r\nerror = \"Order terminated by user\";\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostWarning( error )'",
+                "runAfter": {
+                  "BAM_Terminated_f018d2e0": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "BAM_Relationship_18030054": {
+                  "type": "Compose",
+                  "inputs": "@'// [BAM] create relationship with [ServiceOrderRequest]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.ActivateRelationship(ActivityID, NewOrderMgrMsg.RoutingPart.RequestID)'",
+                  "runAfter": {}
+                },
+                "Calling_Code_Scope_030b50c0": {
+                  "type": "Scope",
+                  "actions": {
+                    "Get_Config_Data": {
+                      "type": "Compose",
+                      "inputs": "@'configData = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.SsoConfigHelper.Singleton'",
+                      "runAfter": {}
+                    },
+                    "Initialize_Stages": {
+                      "type": "Compose",
+                      "inputs": "@'numStages = configData.TotalStages;\r\nstage = 1;\r\nstop = numStages + 1;\r\norderStatus = \"STARTED\"'",
+                      "runAfter": {
+                        "Get_Config_Data": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "Catch_Exception": {
+                      "type": "Scope",
+                      "actions": {
+                        "Initial_Exception": {
+                          "type": "Compose",
+                          "inputs": "@'SSOConfigEx = new Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.SsoConfigException( \"Read SSO failed\", CodeEx )'",
+                          "runAfter": {}
+                        },
+                        "Throw_Exception": {
+                          "type": "Terminate",
+                          "inputs": {
+                            "runStatus": "Failed",
+                            "runError": {
+                              "code": "Terminated",
+                              "message": ""
+                            }
+                          },
+                          "runAfter": {
+                            "Initial_Exception": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Initialize_Stages": [
+                          "FAILED",
+                          "TIMEDOUT",
+                          "SKIPPED"
+                        ]
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "BAM_Relationship_18030054": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "Until_d24ab2c0": {
+                  "type": "Until",
+                  "expression": "@greater(variables('stage'), variables('numStages'))",
+                  "limit": {
+                    "count": 60,
+                    "timeout": "PT1H"
+                  },
+                  "actions": {
+                    "Construct_OrderMgrMsg_586b8431": {
+                      "type": "Scope",
+                      "actions": {
+                        "Assign_Fields": {
+                          "type": "Compose",
+                          "inputs": "@'Set message properties'",
+                          "runAfter": {}
+                        },
+                        "Assign_Port_Address": {
+                          "type": "Compose",
+                          "inputs": "@'Set message properties'",
+                          "runAfter": {
+                            "Assign_Fields": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {}
+                    },
+                    "Start_Stage_Scope": {
+                      "type": "Scope",
+                      "actions": {
+                        "Start_Stage": {
+                          "type": "Http",
+                          "inputs": {
+                            "method": "POST",
+                            "uri": "http://localhost/service",
+                            "body": "@triggerBody()",
+                            "headers": {
+                              "Content-Type": "application/json"
+                            }
+                          },
+                          "runAfter": {}
+                        },
+                        "Stage_Started": {
+                          "type": "Compose",
+                          "inputs": "// Unmapped: Response Receive response from StagePort (BizTalk correlation pattern - requires manual configuration)",
+                          "runAfter": {
+                            "Start_Stage": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "Catch_Multiple_Stages_Exception": {
+                          "type": "Scope",
+                          "actions": {
+                            "Assign_Error_Info": {
+                              "type": "Compose",
+                              "inputs": "@'orderStatus = \"ORDERMANAGER-EXCEPTION\";\r\nStageEx = new Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.OrderManagerException(\"Persistence Exception: Check to see that there is a stage  \" + stage.ToString() + \" and that only one orchestration is configured for stage \" + stage.ToString() + \".\\n\", PersistenceEx);\r\n//Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( error )'",
+                              "runAfter": {}
+                            },
+                            "Rethrow": {
+                              "type": "Terminate",
+                              "inputs": {
+                                "runStatus": "Failed",
+                                "runError": {
+                                  "code": "Terminated",
+                                  "message": ""
+                                }
+                              },
+                              "runAfter": {
+                                "Assign_Error_Info": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Stage_Started": [
+                              "FAILED",
+                              "TIMEDOUT",
+                              "SKIPPED"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Construct_OrderMgrMsg_586b8431": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "Set_Current_Stage": {
+                      "type": "Compose",
+                      "inputs": "@'currentStage = stage'",
+                      "runAfter": {
+                        "Start_Stage_Scope": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "Until": {
+                      "type": "Until",
+                      "expression": "@not(equals(variables('currentStage'), variables('stage')))",
+                      "limit": {
+                        "count": 60,
+                        "timeout": "PT1H"
+                      },
+                      "actions": {
+                        "Request_Type_238b3126": {
+                          "type": "If",
+                          "expression": "@equals('RequestType', 'TERMINATE')",
+                          "actions": {
+                            "BAM_Terminated_144246c4": {
+                              "type": "Compose",
+                              "inputs": "@'// [BAM] Update activity [OrderManager] with [TerminateReceived]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.TerminateReceived(ActivityID)'",
+                              "runAfter": {}
+                            },
+                            "Call_Interrupter_ff31d20a": {
+                              "type": "Workflow",
+                              "inputs": {
+                                "host": {
+                                  "workflow": {
+                                    "id": "InterrupterOrch"
+                                  }
+                                },
+                                "body": {
+                                  "message": "@triggerBody()"
+                                }
+                              },
+                              "runAfter": {
+                                "BAM_Terminated_144246c4": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            },
+                            "End_Order_4a07f6c7": {
+                              "type": "Compose",
+                              "inputs": "@'stage = stop;\r\norderStatus = \"TERMINATED\";\r\nerror = \"Order terminated by user\";\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostWarning( error )'",
+                              "runAfter": {
+                                "Call_Interrupter_ff31d20a": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Handle_Supplemental_Request_35c16cb6": {
+                                "type": "Scope",
+                                "actions": {
+                                  "Check_Sequence_ff84a11e": {
+                                    "type": "If",
+                                    "expression": "@greater('SeqNum', 'SeqNum')",
+                                    "actions": {
+                                      "BAM_Updated_4691d613": {
+                                        "type": "Compose",
+                                        "inputs": "@'// [BAM] Update activity [OrderManager] with [UpdateReceived]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.UpdateReceived(ActivityID)'",
+                                        "runAfter": {}
+                                      },
+                                      "Call_Interrupter_54c7a4ad": {
+                                        "type": "Workflow",
+                                        "inputs": {
+                                          "host": {
+                                            "workflow": {
+                                              "id": "InterrupterOrch"
+                                            }
+                                          },
+                                          "body": {
+                                            "message": "@triggerBody()"
+                                          }
+                                        },
+                                        "runAfter": {
+                                          "BAM_Updated_4691d613": [
+                                            "SUCCEEDED"
+                                          ]
+                                        }
+                                      },
+                                      "Start_Again_7b9e42fb": {
+                                        "type": "Compose",
+                                        "inputs": "@'orderStatus = \"STARTED\";\r\ncurrentStage = 0;\r\nstage = 1'",
+                                        "runAfter": {
+                                          "Call_Interrupter_54c7a4ad": [
+                                            "SUCCEEDED"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "else": {
+                                      "actions": {
+                                        "Out_of_Sequence_d1553ada": {
+                                          "type": "If",
+                                          "expression": "@equals('SeqNum', 'SeqNum')",
+                                          "actions": {
+                                            "Log_Error_6616bb28": {
+                                              "type": "Compose",
+                                              "inputs": "@'error = \"Duplicate message received\";\r\norderStatus = \"ERROR\";\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( error )'",
+                                              "runAfter": {}
+                                            }
+                                          },
+                                          "else": {
+                                            "actions": {
+                                              "Log_Error_5b6fa6ff": {
+                                                "type": "Compose",
+                                                "inputs": "@'error = \"Message out of sequence\";\r\norderStatus = \"ERROR\";\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( error )'",
+                                                "runAfter": {}
+                                              }
+                                            }
+                                          },
+                                          "runAfter": {}
+                                        },
+                                        "Construct_ErrorMsg_6884141d": {
+                                          "type": "Compose",
+                                          "inputs": "@'ErrorMsg = NewOrderMgrMsg;\r\nErrorMsg.RoutingPart.Status = orderStatus;\r\nErrorMsg.RoutingPart.Error = error'",
+                                          "runAfter": {
+                                            "Out_of_Sequence_d1553ada": [
+                                              "SUCCEEDED"
+                                            ]
+                                          }
+                                        },
+                                        "Notify_Ops_e96c8109": {
+                                          "type": "Http",
+                                          "inputs": {
+                                            "method": "POST",
+                                            "uri": "http://localhost/service",
+                                            "body": "@triggerBody()",
+                                            "headers": {
+                                              "Content-Type": "application/json"
+                                            }
+                                          },
+                                          "runAfter": {
+                                            "Construct_ErrorMsg_6884141d": [
+                                              "SUCCEEDED"
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "runAfter": {}
+                                  }
+                                },
+                                "runAfter": {}
+                              }
+                            }
+                          },
+                          "runAfter": {}
+                        },
+                        "Stage_Completed": {
+                          "type": "Compose",
+                          "inputs": "// Unmapped: Response Receive response from StageCompletionPort (BizTalk correlation pattern - requires manual configuration)",
+                          "runAfter": {}
+                        },
+                        "Is_Current_Order_b7b3ea0f": {
+                          "type": "If",
+                          "expression": "@equals('RequestID', 'RequestID')",
+                          "actions": {
+                            "Initialize_Exception_f7ba83ba": {
+                              "type": "Compose",
+                              "inputs": "@'stageTerminatedEx = new Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.CableOrderException(\"Stage Terminated because: \" + TerminatedMsg.Status)'",
+                              "runAfter": {}
+                            },
+                            "Throw_Exception_d811b8b9": {
+                              "type": "Terminate",
+                              "inputs": {
+                                "runStatus": "Failed",
+                                "runError": {
+                                  "code": "Terminated",
+                                  "message": ""
+                                }
+                              },
+                              "runAfter": {
+                                "Initialize_Exception_f7ba83ba": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "runAfter": {}
+                        },
+                        "Order_Update": {
+                          "type": "Compose",
+                          "inputs": "// Unmapped: Response Receive response from FromBrokerPort (BizTalk correlation pattern - requires manual configuration)",
+                          "runAfter": {}
+                        },
+                        "Is_Current_Order_a8d869d8": {
+                          "type": "If",
+                          "expression": "@equals('RequestID', 'RequestID')",
+                          "actions": {
+                            "Next_Stage_a9f8e389": {
+                              "type": "Compose",
+                              "inputs": "@'stage = stage + 1'",
+                              "runAfter": {}
+                            },
+                            "Send_to_next_stage_d4849a68": {
+                              "type": "If",
+                              "expression": "@lessOrEquals(variables('stage'), variables('numStages'))",
+                              "actions": {
+                                "In_Progress_586d67d9": {
+                                  "type": "Compose",
+                                  "inputs": "@'orderStatus = \"STAGE_\" + currentStage.ToString() + \"_COMPLETED\"'",
+                                  "runAfter": {}
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "BAM_Completed_84b04162": {
+                                    "type": "Compose",
+                                    "inputs": "@'// [BAM] Update activity [OrderManager] with [OrderCompleted]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.OrderCompleted(ActivityID)'",
+                                    "runAfter": {}
+                                  },
+                                  "Completed_a6f07d8b": {
+                                    "type": "Compose",
+                                    "inputs": "@'orderStatus = \"COMPLETED\";\r\nerror = NewOrderMgrMsg.RoutingPart.Error'",
+                                    "runAfter": {
+                                      "BAM_Completed_84b04162": [
+                                        "SUCCEEDED"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "Next_Stage_a9f8e389": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "BAM_End_e578ed80": {
+                                "type": "Compose",
+                                "inputs": "@'// There was a race condition where the stage completed request was already enqueued\r\n// when we attempted to interrupt the stage so we have to end the BAM activity here\r\n\r\n// [BAM] Stop collecting BAM data [ServiceOrderReqeust]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.ServiceOrderRequest.CreateActivityId(Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.ServiceOrderRequest.ReferenceRoot, NewOrderMgrMsg.RoutingPart.RequestID);\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.ServiceOrderRequest.EndCollecting(ActivityID)'",
+                                "runAfter": {}
+                              }
+                            }
+                          },
+                          "runAfter": {}
+                        },
+                        "Stage_Terminated": {
+                          "type": "Compose",
+                          "inputs": "// Unmapped: Response Receive response from StageCompletionPort (BizTalk correlation pattern - requires manual configuration)",
+                          "runAfter": {}
+                        },
+                        "Request_Type_238b3126_1": {
+                          "type": "If",
+                          "expression": "@equals('RequestType', 'TERMINATE')",
+                          "actions": {
+                            "BAM_Terminated_144246c4_1": {
+                              "type": "Compose",
+                              "inputs": "@'// [BAM] Update activity [OrderManager] with [TerminateReceived]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.TerminateReceived(ActivityID)'",
+                              "runAfter": {}
+                            },
+                            "Call_Interrupter_ff31d20a_1": {
+                              "type": "Workflow",
+                              "inputs": {
+                                "host": {
+                                  "workflow": {
+                                    "id": "InterrupterOrch"
+                                  }
+                                },
+                                "body": {
+                                  "message": "@triggerBody()"
+                                }
+                              },
+                              "runAfter": {
+                                "BAM_Terminated_144246c4_1": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            },
+                            "End_Order_4a07f6c7_1": {
+                              "type": "Compose",
+                              "inputs": "@'stage = stop;\r\norderStatus = \"TERMINATED\";\r\nerror = \"Order terminated by user\";\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostWarning( error )'",
+                              "runAfter": {
+                                "Call_Interrupter_ff31d20a_1": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Handle_Supplemental_Request_35c16cb6_1": {
+                                "type": "Scope",
+                                "actions": {
+                                  "Check_Sequence_ff84a11e_1": {
+                                    "type": "If",
+                                    "expression": "@greater('SeqNum', 'SeqNum')",
+                                    "actions": {
+                                      "BAM_Updated_4691d613_1": {
+                                        "type": "Compose",
+                                        "inputs": "@'// [BAM] Update activity [OrderManager] with [UpdateReceived]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.UpdateReceived(ActivityID)'",
+                                        "runAfter": {}
+                                      },
+                                      "Call_Interrupter_54c7a4ad_1": {
+                                        "type": "Workflow",
+                                        "inputs": {
+                                          "host": {
+                                            "workflow": {
+                                              "id": "InterrupterOrch"
+                                            }
+                                          },
+                                          "body": {
+                                            "message": "@triggerBody()"
+                                          }
+                                        },
+                                        "runAfter": {
+                                          "BAM_Updated_4691d613_1": [
+                                            "SUCCEEDED"
+                                          ]
+                                        }
+                                      },
+                                      "Start_Again_7b9e42fb_1": {
+                                        "type": "Compose",
+                                        "inputs": "@'orderStatus = \"STARTED\";\r\ncurrentStage = 0;\r\nstage = 1'",
+                                        "runAfter": {
+                                          "Call_Interrupter_54c7a4ad_1": [
+                                            "SUCCEEDED"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "else": {
+                                      "actions": {
+                                        "Out_of_Sequence_d1553ada_1": {
+                                          "type": "If",
+                                          "expression": "@equals('SeqNum', 'SeqNum')",
+                                          "actions": {
+                                            "Log_Error_6616bb28_1": {
+                                              "type": "Compose",
+                                              "inputs": "@'error = \"Duplicate message received\";\r\norderStatus = \"ERROR\";\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( error )'",
+                                              "runAfter": {}
+                                            }
+                                          },
+                                          "else": {
+                                            "actions": {
+                                              "Log_Error_5b6fa6ff_1": {
+                                                "type": "Compose",
+                                                "inputs": "@'error = \"Message out of sequence\";\r\norderStatus = \"ERROR\";\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( error )'",
+                                                "runAfter": {}
+                                              }
+                                            }
+                                          },
+                                          "runAfter": {}
+                                        },
+                                        "Construct_ErrorMsg_6884141d_1": {
+                                          "type": "Compose",
+                                          "inputs": "@'ErrorMsg = NewOrderMgrMsg;\r\nErrorMsg.RoutingPart.Status = orderStatus;\r\nErrorMsg.RoutingPart.Error = error'",
+                                          "runAfter": {
+                                            "Out_of_Sequence_d1553ada_1": [
+                                              "SUCCEEDED"
+                                            ]
+                                          }
+                                        },
+                                        "Notify_Ops_e96c8109_1": {
+                                          "type": "Http",
+                                          "inputs": {
+                                            "method": "POST",
+                                            "uri": "http://localhost/service",
+                                            "body": "@triggerBody()",
+                                            "headers": {
+                                              "Content-Type": "application/json"
+                                            }
+                                          },
+                                          "runAfter": {
+                                            "Construct_ErrorMsg_6884141d_1": [
+                                              "SUCCEEDED"
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "runAfter": {}
+                                  }
+                                },
+                                "runAfter": {}
+                              }
+                            }
+                          },
+                          "runAfter": {}
+                        },
+                        "Order_Update_1": {
+                          "type": "Compose",
+                          "inputs": "// Unmapped: Response Receive response from FromBrokerPort (BizTalk correlation pattern - requires manual configuration)",
+                          "runAfter": {
+                            "Request_Type_238b3126_1": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "Stage_Completed_1": {
+                          "type": "Compose",
+                          "inputs": "// Unmapped: Response Receive response from StageCompletionPort (BizTalk correlation pattern - requires manual configuration)",
+                          "runAfter": {}
+                        },
+                        "Is_Current_Order_a8d869d8_1": {
+                          "type": "If",
+                          "expression": "@equals('RequestID', 'RequestID')",
+                          "actions": {
+                            "Next_Stage_a9f8e389_1": {
+                              "type": "Compose",
+                              "inputs": "@'stage = stage + 1'",
+                              "runAfter": {}
+                            },
+                            "Send_to_next_stage_d4849a68_1": {
+                              "type": "If",
+                              "expression": "@lessOrEquals(variables('stage'), variables('numStages'))",
+                              "actions": {
+                                "In_Progress_586d67d9_1": {
+                                  "type": "Compose",
+                                  "inputs": "@'orderStatus = \"STAGE_\" + currentStage.ToString() + \"_COMPLETED\"'",
+                                  "runAfter": {}
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "BAM_Completed_84b04162_1": {
+                                    "type": "Compose",
+                                    "inputs": "@'// [BAM] Update activity [OrderManager] with [OrderCompleted]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.OrderCompleted(ActivityID)'",
+                                    "runAfter": {}
+                                  },
+                                  "Completed_a6f07d8b_1": {
+                                    "type": "Compose",
+                                    "inputs": "@'orderStatus = \"COMPLETED\";\r\nerror = NewOrderMgrMsg.RoutingPart.Error'",
+                                    "runAfter": {
+                                      "BAM_Completed_84b04162_1": [
+                                        "SUCCEEDED"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "Next_Stage_a9f8e389_1": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "BAM_End_e578ed80_1": {
+                                "type": "Compose",
+                                "inputs": "@'// There was a race condition where the stage completed request was already enqueued\r\n// when we attempted to interrupt the stage so we have to end the BAM activity here\r\n\r\n// [BAM] Stop collecting BAM data [ServiceOrderReqeust]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.ServiceOrderRequest.CreateActivityId(Microsoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.ServiceOrderRequest.ReferenceRoot, NewOrderMgrMsg.RoutingPart.RequestID);\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.ServiceOrderRequest.EndCollecting(ActivityID)'",
+                                "runAfter": {}
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Stage_Completed_1": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "Is_Current_Order_b7b3ea0f_1": {
+                          "type": "If",
+                          "expression": "@equals('RequestID', 'RequestID')",
+                          "actions": {
+                            "Initialize_Exception_f7ba83ba_1": {
+                              "type": "Compose",
+                              "inputs": "@'stageTerminatedEx = new Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.CableOrderException(\"Stage Terminated because: \" + TerminatedMsg.Status)'",
+                              "runAfter": {}
+                            },
+                            "Throw_Exception_d811b8b9_1": {
+                              "type": "Terminate",
+                              "inputs": {
+                                "runStatus": "Failed",
+                                "runError": {
+                                  "code": "Terminated",
+                                  "message": ""
+                                }
+                              },
+                              "runAfter": {
+                                "Initialize_Exception_f7ba83ba_1": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "runAfter": {}
+                        },
+                        "Stage_Terminated_1": {
+                          "type": "Compose",
+                          "inputs": "// Unmapped: Response Receive response from StageCompletionPort (BizTalk correlation pattern - requires manual configuration)",
+                          "runAfter": {
+                            "Is_Current_Order_b7b3ea0f_1": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "Wait_for_completion_or_updated_order_Join": {
+                          "type": "Compose",
+                          "inputs": {
+                            "parallelBranchesCompleted": true,
+                            "branchCount": 9
+                          },
+                          "runAfter": {
+                            "Request_Type_238b3126": [
+                              "SUCCEEDED"
+                            ],
+                            "Stage_Completed": [
+                              "SUCCEEDED"
+                            ],
+                            "Is_Current_Order_b7b3ea0f": [
+                              "SUCCEEDED"
+                            ],
+                            "Order_Update": [
+                              "SUCCEEDED"
+                            ],
+                            "Is_Current_Order_a8d869d8": [
+                              "SUCCEEDED"
+                            ],
+                            "Stage_Terminated": [
+                              "SUCCEEDED"
+                            ],
+                            "Order_Update_1": [
+                              "SUCCEEDED"
+                            ],
+                            "Is_Current_Order_a8d869d8_1": [
+                              "SUCCEEDED"
+                            ],
+                            "Stage_Terminated_1": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Set_Current_Stage": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Calling_Code_Scope_030b50c0": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "BAM_Order_Started": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Catch_Exception_1": {
+            "type": "Scope",
+            "actions": {
+              "Send_Error_Scope": {
+                "type": "Scope",
+                "actions": {
+                  "Assign_Error_Info_1": {
+                    "type": "Compose",
+                    "inputs": "@'orderStatus = \"ORDERMANAGER-EXCEPTION\";\r\nerror = OrderManagerException.ToString();\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( error )'",
+                    "runAfter": {}
+                  },
+                  "Construct_OrderMgrMsg_f09d4be7": {
+                    "type": "Compose",
+                    "inputs": "@'OrderMgrMsg = NewOrderMgrMsg;\r\nOrderMgrMsg.RoutingPart.Status = orderStatus;\r\nOrderMgrMsg.RoutingPart.Stage = stop;\r\nOrderMgrMsg.RoutingPart.Error = error'",
+                    "runAfter": {
+                      "Assign_Error_Info_1": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Send_Error": {
+                    "type": "Http",
+                    "inputs": {
+                      "method": "POST",
+                      "uri": "http://localhost/service",
+                      "body": "@triggerBody()",
+                      "headers": {
+                        "Content-Type": "application/json"
+                      }
+                    },
+                    "runAfter": {
+                      "Construct_OrderMgrMsg_f09d4be7": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Catch_Exception_2": {
+                    "type": "Scope",
+                    "actions": {
+                      "Assign_Error_Info_2": {
+                        "type": "Compose",
+                        "inputs": "@'Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( \"Error sending error message: \" + SendErrorEx.Message );\r\nerror = SendErrorEx.Message + \"Inner error:\\n\" + error'",
+                        "runAfter": {}
+                      }
+                    },
+                    "runAfter": {
+                      "Send_Error": [
+                        "FAILED",
+                        "TIMEDOUT",
+                        "SKIPPED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "Request_Type_0d94ff91": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "CompletionMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_Completion_Scope": {
+        "type": "Scope",
+        "actions": {
+          "Assign_Destination": {
+            "type": "Compose",
+            "inputs": "@'CSRCompletionPort(Microsoft.XLANGs.BaseTypes.Address) = NewOrderMgrMsg.RoutingPart.SourceSystem'",
+            "runAfter": {}
+          },
+          "Construct_OrderStatus_d4b607f5": {
+            "type": "Compose",
+            "inputs": "@'CompletionMsg = new Microsoft.Samples.BizTalk.SouthridgeVideo.SchemaClasses.OrderStatus();\r\nCompletionMsg.CustomerID = NewOrderMgrMsg.RoutingPart.CustomerID;\r\nCompletionMsg.OrderID = NewOrderMgrMsg.RoutingPart.OrderID;\r\nCompletionMsg.SeqNum = NewOrderMgrMsg.RoutingPart.SeqNum;\r\nCompletionMsg.OriginalOrder = NewOrderMgrMsg.OrderPart.OuterXml;\r\nCompletionMsg.Status = orderStatus;\r\n// Error is a promoted property and should be less than 256 characters\r\nCompletionMsg.Error = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.HelperMethods.Truncate(error);\r\n// if there error doesn''t fit into the Error property then copy it to the ErrorComplete field\r\nCompletionMsg.ErrorComplete = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.HelperMethods.GetIfLarge(error)'",
+            "runAfter": {
+              "Assign_Destination": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Send_CSR_Completion": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "Construct_OrderStatus_d4b607f5": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Catch_Exception_3": {
+            "type": "Scope",
+            "actions": {
+              "Assign_Error_Info_3": {
+                "type": "Compose",
+                "inputs": "@'Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.ErrorHandler.PostError( \"Error sending completion message: \" + SendCompletionEx.Message );\r\nerror = SendCompletionEx.Message + \"Inner error:\\n\" + error'",
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "Send_CSR_Completion": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "OrderManagerMainScope": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Check_Error_Status_2450d8d9": {
+        "type": "If",
+        "expression": "@'!System.String.IsNullOrEmpty(error)'",
+        "actions": {
+          "BAM_Error_fdd97050": {
+            "type": "Compose",
+            "inputs": "@'// [BAM] Update Activity [Order Manager] with [Error]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.ErrorOccurred( ActivityID, error )'",
+            "runAfter": {}
+          },
+          "BAM_End_3e634f10": {
+            "type": "Compose",
+            "inputs": "@'// [BAM] Stop collecting BAM data [OrderManager]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.EndCollecting(ActivityID)'",
+            "runAfter": {
+              "BAM_Error_fdd97050": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Terminate_efd2956d": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "Terminated",
+                "message": "error;"
+              }
+            },
+            "runAfter": {
+              "BAM_End_3e634f10": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "BAM_End_330e40f4": {
+              "type": "Compose",
+              "inputs": "@'// [BAM] Stop collecting BAM data [OrderManager]\r\n\r\nMicrosoft.Samples.BizTalk.SouthridgeVideo.ServiceLevelTracking.OrderManager.EndCollecting(ActivityID)'",
+              "runAfter": {}
+            }
+          }
+        },
+        "runAfter": {
+          "Send_Completion_Scope": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Check_Error_Status_2450d8d9": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Aggregator",
+          "description": "Collect and combine multiple messages into a single message",
+          "recommendation": "Use Batch trigger (Service Bus/RabbitMQ/Kafka) or stateful workflow with Until loop"
+        },
+        {
+          "name": "Content-Based Router",
+          "description": "Route messages to different destinations based on content",
+          "recommendation": "Use Switch action or simplified If conditions with dynamic connectors"
+        },
+        {
+          "name": "Splitter",
+          "description": "Split a single message into multiple messages",
+          "recommendation": "Use For-Each loop with dynamic array from message"
+        },
+        {
+          "name": "Exception Handling & Compensation",
+          "description": "Handle errors and perform compensating actions",
+          "recommendation": "Use Scope action with Configure Run After for error handling"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:13.1158832Z"
+    }
+  }
+}

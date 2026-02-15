@@ -1,0 +1,360 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "OriginalMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OriginalMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "Reason": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Reason",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "OriginalMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ReturnedMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ReturnedMsg",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "Reason": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "IsBadOrder": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "IsBadOrder",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "ReturnedMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "RoutingInfo": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "RoutingInfo",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "IsBadOrder": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderStatusMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderStatusMsg",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "RoutingInfo": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Operator_or_CSR_c107538b": {
+        "type": "If",
+        "expression": "@variables('IsBadOrder')",
+        "actions": {
+          "Construct_OrderStatusMsg_966ee0cc": {
+            "type": "Compose",
+            "inputs": "@'OrderStatusMsg = new Microsoft.Samples.BizTalk.SouthridgeVideo.SchemaClasses.OrderStatus();\r\nOrderStatusMsg.CustomerID = RoutingInfo.CustomerID;\r\nOrderStatusMsg.OrderID = RoutingInfo.OrderID;\r\nOrderStatusMsg.SeqNum = RoutingInfo.SeqNum;\r\nOrderStatusMsg.OriginalOrder = OriginalMsg.OuterXml;\r\nOrderStatusMsg.Status = \"BADORDER\";\r\n// Error is a promoted property and should be less than 256 characters\r\nOrderStatusMsg.Error = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.HelperMethods.Truncate(Reason);\r\n// if there error doesn''t fit into the Error property then copy it to the ErrorComplete field\r\nOrderStatusMsg.ErrorComplete = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.HelperMethods.GetIfLarge(Reason)'",
+            "runAfter": {}
+          },
+          "Assign_Destination_35b2ddbd": {
+            "type": "Compose",
+            "inputs": "@'BadOrderPort(Microsoft.XLANGs.BaseTypes.Address) = RoutingInfo.SourceSystem'",
+            "runAfter": {
+              "Construct_OrderStatusMsg_966ee0cc": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "To_CSR_d1627557": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "Assign_Destination_35b2ddbd": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Construct_OrderStatusMsg_3fd7a734": {
+              "type": "Compose",
+              "inputs": "@'OrderStatusMsg = new Microsoft.Samples.BizTalk.SouthridgeVideo.SchemaClasses.OrderStatus();\r\nOrderStatusMsg.CustomerID = RoutingInfo.CustomerID;\r\nOrderStatusMsg.OrderID = RoutingInfo.OrderID;\r\nOrderStatusMsg.SeqNum = RoutingInfo.SeqNum;\r\nOrderStatusMsg.OriginalOrder = OriginalMsg.OuterXml;\r\nOrderStatusMsg.Status = \"BADORDER\";\r\n// Error is a promoted property and should be less than 256 characters\r\nOrderStatusMsg.Error = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.HelperMethods.Truncate(Reason);\r\n// if there error doesn''t fit into the Error property then copy it to the ErrorComplete field\r\nOrderStatusMsg.ErrorComplete = Microsoft.Samples.BizTalk.SouthridgeVideo.Utilities.HelperMethods.GetIfLarge(Reason)'",
+              "runAfter": {}
+            },
+            "To_Operator_66269cde": {
+              "type": "Http",
+              "inputs": {
+                "method": "POST",
+                "uri": "http://localhost/service",
+                "body": "@triggerBody()",
+                "headers": {
+                  "Content-Type": "application/json"
+                }
+              },
+              "runAfter": {
+                "Construct_OrderStatusMsg_3fd7a734": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "OrderStatusMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Response": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from ErrorResponsePort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Operator_or_CSR_c107538b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Interrupted": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Operator_or_CSR_c107538b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Construct_ReturnedMsg_69a68011": {
+        "type": "Compose",
+        "inputs": "@'// Using XmlDocument here is OK for small messages\r\n// if you have large messages you should write a more efficient helper class to create the message using streams\r\nReturnedMsg = new System.Xml.XmlDocument();\r\nReturnedMsg.LoadXml(ResponseMsg.OriginalOrder)'",
+        "runAfter": {
+          "Operator_or_CSR_c107538b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Throw_InterruptEx": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "Terminated",
+            "message": ""
+          }
+        },
+        "runAfter": {
+          "Operator_or_CSR_c107538b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Interrupt": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from InterruptPort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Operator_or_CSR_c107538b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Response_1": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from ErrorResponsePort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Operator_or_CSR_c107538b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Construct_ReturnedMsg_69a68011_1": {
+        "type": "Compose",
+        "inputs": "@'// Using XmlDocument here is OK for small messages\r\n// if you have large messages you should write a more efficient helper class to create the message using streams\r\nReturnedMsg = new System.Xml.XmlDocument();\r\nReturnedMsg.LoadXml(ResponseMsg.OriginalOrder)'",
+        "runAfter": {
+          "Response_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Interrupted_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Operator_or_CSR_c107538b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Throw_InterruptEx_1": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "Terminated",
+            "message": ""
+          }
+        },
+        "runAfter": {
+          "Interrupted_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Interrupt_1": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from InterruptPort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Throw_InterruptEx_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Listen_for_Response_or_Terminate_Join": {
+        "type": "Compose",
+        "inputs": {
+          "migrationWarning": "BizTalk Listen shape: only the FIRST branch should execute (race pattern). Logic Apps runs ALL branches in parallel. Manual review required.",
+          "originalBizTalkShape": "Listen",
+          "requiredAction": "Convert to Switch on status/timeout, or add Terminate actions to losing branches."
+        },
+        "runAfter": {
+          "Response": [
+            "SUCCEEDED"
+          ],
+          "Interrupted": [
+            "SUCCEEDED"
+          ],
+          "Construct_ReturnedMsg_69a68011": [
+            "SUCCEEDED"
+          ],
+          "Throw_InterruptEx": [
+            "SUCCEEDED"
+          ],
+          "Interrupt": [
+            "SUCCEEDED"
+          ],
+          "Construct_ReturnedMsg_69a68011_1": [
+            "SUCCEEDED"
+          ],
+          "Interrupt_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Listen_for_Response_or_Terminate_Join": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Content-Based Router",
+          "description": "Route messages to different destinations based on content",
+          "recommendation": "Use Switch action or simplified If conditions with dynamic connectors"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:11.9340196Z"
+    }
+  }
+}

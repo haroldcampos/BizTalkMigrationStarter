@@ -1,0 +1,669 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "componentCode": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "componentCode",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "exceptionCode": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "exceptionCode",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "componentCode": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "errorDescription": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "errorDescription",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "exceptionCode": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "sourcePartyName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "sourcePartyName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "errorDescription": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "pipVersion": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "pipVersion",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "sourcePartyName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "pipInstanceID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "pipInstanceID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "pipVersion": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "pipCode": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "pipCode",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "pipInstanceID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "destinationPartyName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "destinationPartyName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "pipCode": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "isExceptionReceived": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "isExceptionReceived",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "destinationPartyName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "IsSynchronous": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "IsSynchronous",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "isExceptionReceived": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "scMessageCategory": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "scMessageCategory",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "IsSynchronous": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "rnConfig": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "rnConfig",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "scMessageCategory": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "correlationInfo": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "correlationInfo",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "rnConfig": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "isAcceptanceAckRequired": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "isAcceptanceAckRequired",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "correlationInfo": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "rnConfigV11": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "rnConfigV11",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "isAcceptanceAckRequired": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "activityID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "activityID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "rnConfigV11": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ActionMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ActionMessage",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "activityID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "outSCMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "outSCMessage",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "ActionMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "InitializeRNCfg": {
+        "type": "Compose",
+        "inputs": "@'rnConfig = null'",
+        "runAfter": {
+          "outSCMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ProcessAction_Scope": {
+        "type": "Scope",
+        "actions": {
+          "InitializeVariables": {
+            "type": "Compose",
+            "inputs": "@'sourcePartyName = inSCMessage(Microsoft.Solutions.BTARN.GlobalSchemas.SourcePartyName);\r\ndestinationPartyName = inSCMessage(Microsoft.Solutions.BTARN.GlobalSchemas.DestinationPartyName);\r\npipCode = inSCMessage(Microsoft.Solutions.BTARN.GlobalSchemas.PIPCode);\r\npipVersion = inSCMessage(Microsoft.Solutions.BTARN.GlobalSchemas.PIPVersion);\r\npipInstanceID = inSCMessage(Microsoft.Solutions.BTARN.GlobalSchemas.PIPInstanceID)'",
+            "runAfter": {}
+          },
+          "RegisterActivity": {
+            "type": "Compose",
+            "inputs": "@'rnConfig = Microsoft.Solutions.BTARN.ConfigurationManager.RuntimeConfigGenerator.GetRuntimeConfig(\r\n     sourcePartyName, destinationPartyName, \r\n     pipCode, pipVersion,  true, false\r\n );\r\nrnConfig.PIPInstanceID = pipInstanceID;\r\nactivityID = Microsoft.Solutions.BTARN.Shared.ActivityTracking.RegisterActivity \r\n  (pipCode, pipVersion, pipInstanceID, \r\n      rnConfig.HomeProfileName, rnConfig.TradingPartnerName,true);\r\n\r\nMicrosoft.Solutions.BTARN.ConfigurationManager.BAMTracking.CreateProcessActivity\r\n  (pipInstanceID, rnConfig.PIPName, pipCode, pipVersion, \r\n   rnConfig.HomeProfileDUNS, rnConfig.TradingPartnerDUNS, true, \r\n   Microsoft.Solutions.BTARN.Shared.ActivityTrackingStatusCodes.RegisteredActivity)'",
+            "runAfter": {
+              "InitializeVariables": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ConstructActionMessageForPublicProcess_bd9f4afc": {
+            "type": "Compose",
+            "inputs": "@'// Container conversion is done inside ConstructSCPart\r\nActionMessage = null;\r\nrnConfig.ConstructSCMessageToPublicProcess( inSCMessage,  ActionMessage);\r\nActionMessage(Microsoft.Solutions.BTARN.GlobalSchemas.ProcessActivityKey) = activityID'",
+            "runAfter": {
+              "RegisterActivity": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "SendToPublicProcess": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "ConstructActionMessageForPublicProcess_bd9f4afc": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "CatchAll1": {
+            "type": "Scope",
+            "actions": {
+              "ReportException": {
+                "type": "Compose",
+                "inputs": "@'correlationInfo = Microsoft.Solutions.BTARN.ConfigurationManager.RuntimeHelper.FormatCorrelationInfo(\r\n     pipCode, pipVersion, pipInstanceID, sourcePartyName, destinationPartyName);\r\n\r\nMicrosoft.Solutions.BTARN.Shared.ExceptionManager.Publish(\r\n     systemEx,\r\n     correlationInfo, out errorDescription,\r\n     Microsoft.Solutions.BTARN.Shared.ExceptionManager.CategoryIdentifier.PrivateInitiatorProcess);\r\n\r\nexceptionCode = Microsoft.Solutions.BTARN.ConfigurationManager.GlobalMessageExceptionCode.InitializationError'",
+                "runAfter": {}
+              },
+              "UpdateStatus": {
+                "type": "Compose",
+                "inputs": "@'if(activityID == System.String.Empty)\r\n{\r\n    activityID = Microsoft.Solutions.BTARN.Shared.ActivityTracking.RegisterActivity \r\n        (pipCode, pipVersion, pipInstanceID, \r\n         sourcePartyName, destinationPartyName, true);\r\n\r\n    Microsoft.Solutions.BTARN.ConfigurationManager.BAMTracking.CreateProcessActivity\r\n        (pipInstanceID, System.String.Empty, pipCode, pipVersion, \r\n        sourcePartyName, destinationPartyName, true, \r\n        Microsoft.Solutions.BTARN.Shared.ActivityTrackingStatusCodes.RegisteredActivity);\r\n\r\n    Microsoft.Solutions.BTARN.Shared.ActivityTracking.UpdateStatusOfActivity\r\n    (activityID, Microsoft.Solutions.BTARN.Shared.ActivityTrackingStatusCodes.UnexpectedFatalError);\r\n                           \r\n  Microsoft.Solutions.BTARN.ConfigurationManager.BAMTracking.UpdateProcessStatus\r\n    (pipInstanceID, sourcePartyName, \r\n     destinationPartyName, true, \r\n     Microsoft.Solutions.BTARN.Shared.ActivityTrackingStatusCodes.UnexpectedFatalError);\r\n                             \r\n  Microsoft.Solutions.BTARN.ConfigurationManager.BAMTracking.TerminateProcessActivity\r\n    (pipInstanceID, sourcePartyName, destinationPartyName, true);\r\n}\r\nelse if(rnConfig != null)\r\n{\r\n   Microsoft.Solutions.BTARN.Shared.ActivityTracking.UpdateStatusOfActivity\r\n    (activityID, Microsoft.Solutions.BTARN.Shared.ActivityTrackingStatusCodes.UnexpectedFatalError);\r\n                           \r\n  Microsoft.Solutions.BTARN.ConfigurationManager.BAMTracking.UpdateProcessStatus\r\n    (pipInstanceID, rnConfig.HomeProfileDUNS, \r\n     rnConfig.TradingPartnerDUNS, true, \r\n     Microsoft.Solutions.BTARN.Shared.ActivityTrackingStatusCodes.UnexpectedFatalError);\r\n                             \r\n  Microsoft.Solutions.BTARN.ConfigurationManager.BAMTracking.TerminateProcessActivity\r\n    (pipInstanceID, rnConfig.HomeProfileDUNS, rnConfig.TradingPartnerDUNS, true);\r\n}'",
+                "runAfter": {
+                  "ReportException": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "CallOrchestration_1": {
+                "type": "Workflow",
+                "inputs": {
+                  "host": {
+                    "workflow": {
+                      "id": "SendExceptionToLOB"
+                    }
+                  },
+                  "body": {
+                    "message": "@triggerBody()"
+                  }
+                },
+                "runAfter": {
+                  "UpdateStatus": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "TerminateProcess": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "Terminated",
+                    "message": "Microsoft.Solutions.BTARN.ConfigurationManager.RuntimeHelper.GetString(\r\n  Microsoft.Solutions.BTARN.ConfigurationManager.StringResourceIDNames.PriTerimatedOnSendingAction );\r\n\r\n\r\n"
+                  }
+                },
+                "runAfter": {
+                  "CallOrchestration_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "SendToPublicProcess": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "InitializeRNCfg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ReceiveSignal": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from FromPublicProcess (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "ProcessAction_Scope": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SetSignalMessageForLOB": {
+        "type": "Compose",
+        "inputs": "@'scMessageCategory = ResponseMessage(Microsoft.Solutions.BTARN.GlobalSchemas.SCCategory);\r\nIsSynchronous = rnConfig.IsSynchronous;\r\nisExceptionReceived = Microsoft.Solutions.BTARN.Shared.MessageCategory.IsExceptionMessage( scMessageCategory )'",
+        "runAfter": {
+          "ReceiveSignal": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructLOBMessage_48b0a094": {
+        "type": "Compose",
+        "inputs": "@'outSCMessage = null;\r\n\r\nMicrosoft.Solutions.BTARN.ConfigurationManager.RuntimeHelper.ConstructLOBMessage\r\n  (outSCMessage, ResponseMessage);\r\n\r\nSystem.Diagnostics.Debug.WriteLine(\"Sending to LOB message of type: \" + \r\n   Microsoft.Solutions.BTARN.ConfigurationManager.RuntimeHelper.GetToStringOf(\r\n     outSCMessage(Microsoft.Solutions.BTARN.GlobalSchemas.MessageCategory) ) )'",
+        "runAfter": {
+          "SetSignalMessageForLOB": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_SignalToLOB": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructLOBMessage_48b0a094": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "NotifyApp": {
+        "type": "Compose",
+        "inputs": "@variables('rnConfig')?['InvokeNotify( scMessageCategory )']",
+        "runAfter": {
+          "Send_SignalToLOB": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Decide_OnException_33dfdc98": {
+        "type": "If",
+        "expression": "@equals(variables('isExceptionReceived'), true)",
+        "actions": {
+          "Terminate_OnException_d340abf0": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "Terminated",
+                "message": "Microsoft.Solutions.BTARN.ConfigurationManager.RuntimeHelper.GetString(\r\n Microsoft.Solutions.BTARN.ConfigurationManager.StringResourceIDNames.PriTerminateOnException );\r\n\r\n"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "else": {
+          "actions": {
+            "CheckRNVersion_4480bfc4": {
+              "type": "Compose",
+              "inputs": "@'if (rnConfig.xRNVersion == Microsoft.Solutions.BTARN.ConfigurationManager.ConfigurationConstants.rnifv11VersionID)\r\n{\r\n   rnConfigV11 = (Microsoft.Solutions.BTARN.ConfigurationManager.RuntimeConfigV11 )rnConfig;\r\n   isAcceptanceAckRequired = rnConfigV11.IsAcceptanceAckRequired;\r\n}'",
+              "runAfter": {}
+            },
+            "Decide_OnRNIFVersion_cb83f665": {
+              "type": "If",
+              "expression": "@variables('isAcceptanceAckRequired')",
+              "actions": {
+                "ReceiveAcceptanceSignal_abef1925": {
+                  "type": "Compose",
+                  "inputs": "// Unmapped: Response Receive response from FromPublicProcess (BizTalk correlation pattern - requires manual configuration)",
+                  "runAfter": {}
+                },
+                "ConstructLOBMessage_69ffeacc": {
+                  "type": "Compose",
+                  "inputs": "@'outSCMessage = null;\r\n\r\nMicrosoft.Solutions.BTARN.ConfigurationManager.RuntimeHelper.ConstructLOBMessage\r\n  (outSCMessage, ResponseMessage)'",
+                  "runAfter": {
+                    "ReceiveAcceptanceSignal_abef1925": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SendLOBMessage_7a2cabe5": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "POST",
+                    "uri": "http://localhost/service",
+                    "body": "@triggerBody()",
+                    "headers": {
+                      "Content-Type": "application/json"
+                    }
+                  },
+                  "runAfter": {
+                    "ConstructLOBMessage_69ffeacc": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "NotifyApp_bae70cba": {
+                  "type": "Compose",
+                  "inputs": "@'scMessageCategory = ResponseMessage(Microsoft.Solutions.BTARN.GlobalSchemas.SCCategory);\r\nrnConfig.InvokeNotify( scMessageCategory )'",
+                  "runAfter": {
+                    "SendLOBMessage_7a2cabe5": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SetProcessCompleted_07834234": {
+                  "type": "Compose",
+                  "inputs": "@''",
+                  "runAfter": {
+                    "NotifyApp_bae70cba": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "CheckRNVersion_4480bfc4": [
+                  "SUCCEEDED"
+                ]
+              }
+            },
+            "DecideActivityType_1fa041c9": {
+              "type": "If",
+              "expression": "@or(variables('rnConfig')?['IsSingleAction'], variables('IsSynchronous'))",
+              "actions": {
+                "SetProcessCompleted_8fa8006d": {
+                  "type": "Compose",
+                  "inputs": "@''",
+                  "runAfter": {}
+                }
+              },
+              "else": {
+                "actions": {
+                  "ReceiveResponse_8c90cada": {
+                    "type": "Compose",
+                    "inputs": "// Unmapped: Response Receive response from FromPublicProcess (BizTalk correlation pattern - requires manual configuration)",
+                    "runAfter": {}
+                  },
+                  "ConstructLOBMessage_5ef2a29b": {
+                    "type": "Compose",
+                    "inputs": "@'outSCMessage = null;\r\n\r\nMicrosoft.Solutions.BTARN.ConfigurationManager.RuntimeHelper.ConstructLOBMessage\r\n  (outSCMessage, ResponseMessage)'",
+                    "runAfter": {
+                      "ReceiveResponse_8c90cada": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "SendLOBMessage_e3b59493": {
+                    "type": "Http",
+                    "inputs": {
+                      "method": "POST",
+                      "uri": "http://localhost/service",
+                      "body": "@triggerBody()",
+                      "headers": {
+                        "Content-Type": "application/json"
+                      }
+                    },
+                    "runAfter": {
+                      "ConstructLOBMessage_5ef2a29b": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "NotifyApp_2a757207": {
+                    "type": "Compose",
+                    "inputs": "@'scMessageCategory = ResponseMessage(Microsoft.Solutions.BTARN.GlobalSchemas.SCCategory);\r\nrnConfig.InvokeNotify( scMessageCategory )'",
+                    "runAfter": {
+                      "SendLOBMessage_e3b59493": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "SetProcessCompleted_1e8a1939": {
+                    "type": "Compose",
+                    "inputs": "@''",
+                    "runAfter": {
+                      "NotifyApp_2a757207": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Decide_OnRNIFVersion_cb83f665": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "NotifyApp": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Decide_OnException_33dfdc98": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

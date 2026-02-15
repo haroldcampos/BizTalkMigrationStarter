@@ -1,0 +1,176 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "intervention": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "intervention",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "userID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "userID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "intervention": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "partner": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "partner",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "userID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ProfileAck": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ProfileAck",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "partner": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "GetPartnerId": {
+        "type": "Compose",
+        "inputs": "@'partner = GetProfileRoleLink(Microsoft.XLANGs.BaseTypes.SourceParty);\r\nuserID = partner.Name'",
+        "runAfter": {
+          "ProfileAck": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CallGetProfile": {
+        "type": "Workflow",
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "GetUserProfile"
+            }
+          },
+          "body": {
+            "message": "@triggerBody()"
+          }
+        },
+        "runAfter": {
+          "GetPartnerId": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Success_650817df": {
+        "type": "If",
+        "expression": "@equals(false, variables('intervention'))",
+        "actions": {
+          "SendOUT_03e42539": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "else": {
+          "actions": {
+            "ProfileAck_86c1d834": {
+              "type": "Compose",
+              "inputs": "@'ProfileAck = Microsoft.Samples.BizTalk.Litware.Utilities.ResourceHelper.GetEmptyProfileAck();\r\nProfileAck.PartnerName = userID;\r\nProfileAck.Result = false'",
+              "runAfter": {}
+            },
+            "SendFailedACK_3d63cefd": {
+              "type": "Http",
+              "inputs": {
+                "method": "POST",
+                "uri": "http://localhost/service",
+                "body": "@triggerBody()",
+                "headers": {
+                  "Content-Type": "application/json"
+                }
+              },
+              "runAfter": {
+                "ProfileAck_86c1d834": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "CallGetProfile": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Success_650817df": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

@@ -1,0 +1,22 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: AdvancedShipNotice.xsd
+$targetSchema: AffiliateApplication.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  ns1: http://Schemas.PurchaseOrder
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://Schemas.POPropertySchema
+  ns1: http://Schemas.PurchaseOrderAcknowledgement
+  xs: http://www.w3.org/2001/XMLSchema
+msdata:PurchaseOrderAcknowledgement:
+  POAckNo: concat("1")
+  PONo: /ns1:PurchaseOrder/POHeader/PONo
+  Status: concat("Accepted")

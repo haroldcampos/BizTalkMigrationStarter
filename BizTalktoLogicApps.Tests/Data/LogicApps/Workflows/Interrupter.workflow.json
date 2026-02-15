@@ -1,0 +1,170 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "Interrupted": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Interrupted",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "InterruptMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "InterruptMsg",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "Interrupted": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderCorrelation": {
+        "type": "Compose",
+        "inputs": "@'// Unhandled shape type: CorrelationDeclaration'",
+        "runAfter": {
+          "InterruptMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Construct_Interrupt_Message_6048f35b": {
+        "type": "Compose",
+        "inputs": "@'InterruptMsg = new Microsoft.Samples.BizTalk.SouthridgeVideo.SchemaClasses.Interrupt();\r\nInterruptMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CustID) = OrderCorrelation(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CustID);\r\nInterruptMsg(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderID) = OrderCorrelation(Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderID)'",
+        "runAfter": {
+          "OrderCorrelation": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Until": {
+        "type": "Until",
+        "expression": "@'!(!Interrupted)'",
+        "limit": {
+          "count": 60,
+          "timeout": "PT1H"
+        },
+        "actions": {
+          "Interrupt_Scope": {
+            "type": "Scope",
+            "actions": {
+              "Interrupt": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "http://localhost/service",
+                  "body": "@triggerBody()",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  }
+                },
+                "runAfter": {}
+              },
+              "Interrupt_Reply": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from InterruptPort (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "Interrupt": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Interrupted_1": {
+                "type": "Compose",
+                "inputs": "@'Interrupted = true'",
+                "runAfter": {
+                  "Interrupt_Reply": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "Timeout_Exception": {
+                "type": "Scope",
+                "actions": {
+                  "Try_again": {
+                    "type": "Compose",
+                    "inputs": "@'Interrupted = false'",
+                    "runAfter": {}
+                  }
+                },
+                "runAfter": {
+                  "Interrupted_1": [
+                    "FAILED",
+                    "TIMEDOUT",
+                    "SKIPPED"
+                  ]
+                }
+              },
+              "No_Subscriber_Exception": {
+                "type": "Scope",
+                "actions": {
+                  "No_One_to_Interrupt": {
+                    "type": "Compose",
+                    "inputs": "@'Interrupted = true'",
+                    "runAfter": {}
+                  }
+                },
+                "runAfter": {
+                  "Interrupted_1": [
+                    "FAILED",
+                    "TIMEDOUT",
+                    "SKIPPED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Construct_Interrupt_Message_6048f35b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Until": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

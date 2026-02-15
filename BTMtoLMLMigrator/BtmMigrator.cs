@@ -21,8 +21,6 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
         private BtmParser _parser;
         private FunctoidTranslator _functoidTranslator;
         private LmlGenerator _lmlGenerator;
-        private string _sourceSchemaPath;
-        private string _targetSchemaPath;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BtmMigrator"/> class.
@@ -45,9 +43,6 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
         /// <exception cref="System.Xml.XmlException">Thrown when the BTM or schema files contain invalid XML.</exception>
         public string ConvertBtmToLml(string btmFilePath, string sourceSchemaPath, string targetSchemaPath)
         {
-            _sourceSchemaPath = sourceSchemaPath;
-            _targetSchemaPath = targetSchemaPath;
-            
             var mapData = _parser.Parse(btmFilePath, sourceSchemaPath, targetSchemaPath);
             var translatedMap = _functoidTranslator.TranslateFunctoids(mapData, sourceSchemaPath, targetSchemaPath);
             translatedMap.BtmFilePath = btmFilePath;

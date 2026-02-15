@@ -1,0 +1,75 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "Message_Out": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Message_Out",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "ConstructMessage_Message_Out_cf13e963": {
+        "type": "Compose",
+        "inputs": "@'Message_Out = Message_In;\r\nMessage_Out(ArbitraryXPathSample.TotalAmount)=Message_Out(ArbitraryXPathSample.Item1Price) *\r\n                                              Message_Out(ArbitraryXPathSample.Item1Quantity) + \r\n                                              Message_Out(ArbitraryXPathSample.Item2Price) *\r\n                                              Message_Out(ArbitraryXPathSample.Item2Quantity) +\r\n                                              Message_Out(ArbitraryXPathSample.Item3Price) *\r\n                                              Message_Out(ArbitraryXPathSample.Item3Quantity) +\r\n                                              Message_Out(ArbitraryXPathSample.Item4Price) *\r\n                                              Message_Out(ArbitraryXPathSample.Item4Quantity) +\r\n                                              Message_Out(ArbitraryXPathSample.Item5Price) *\r\n                                              Message_Out(ArbitraryXPathSample.Item5Quantity)'",
+        "runAfter": {
+          "Message_Out": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_Message_Out": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_Message_Out_cf13e963": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Send_Message_Out": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

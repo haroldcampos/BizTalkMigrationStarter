@@ -1,0 +1,28 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: CSR_OrderRequest.xsd
+$targetSchema: SQLHistoryInsert.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  ns0: http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderPropertySchema
+  ns1: http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CSR_OrderRequest.v1
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  ns0: http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.OrderPropertySchema
+  ns1: http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.CSR_OrderRequest.v1
+  tns: http://Microsoft.Samples.BizTalk.SouthridgeVideo.Schemas.SQLHistoryInsert.v1
+  xs: http://www.w3.org/2001/XMLSchema
+tns:HistoryInsert:
+  sync:
+    after:
+      OrderLog:
+        $@CustNumber: /ns1:CSR_OrderRequest/RequestHeader/CRN
+        $@OrderNumber: /ns1:CSR_OrderRequest/RequestHeader/ORN
+        $@OrderStatus: /ns1:CSR_OrderRequest/RequestHeader/OrdStatus
+        $@OrderTime: /ns1:CSR_OrderRequest/Header/Timestamp
+        $@OrderType: /ns1:CSR_OrderRequest/RequestHeader/OrdTypeCode
+        $@RequestID: /ns1:CSR_OrderRequest/Header/ReqId
+        $@RequestType: /ns1:CSR_OrderRequest/Header/RequestType
+        $@SeqNumber: custom-function(/ns1:CSR_OrderRequest/RequestHeader/ORNSeq) /* Original code: ///*Uncomment the following code for a sample Inline C# function //that concatenates two inputs. Change the number of parameters of //this function to be equal to the number of inputs connected to this functoid.*/  public int GetIntFromString(string param1) { 	return Int32.Parse(param1); } */

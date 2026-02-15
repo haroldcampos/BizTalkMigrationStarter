@@ -1,0 +1,391 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "orderCount": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "orderCount",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "ctr": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "ctr",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "orderCount": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "thePath": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "thePath",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "ctr": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "vendorID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "vendorID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "thePath": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "callFailed": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "callFailed",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "vendorID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "sendFailed": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "sendFailed",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "callFailed": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "destination": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "destination",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "sendFailed": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderMessage",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "destination": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderFormMsg": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderFormMsg",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "OrderMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Vendor": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Vendor",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "OrderFormMsg": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Get_Orders_Cnt": {
+        "type": "Compose",
+        "inputs": "@'orderCount = (System.Int32)xpath(OrderMessage, \"count(/*[local-name()=''PurchaseOrder'' and namespace-uri()='''']/*[local-name()=''OrderForms'' and namespace-uri()='''']/*[local-name()=''OrderForm'' and namespace-uri()=''''])\")'",
+        "runAfter": {
+          "Vendor": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Until": {
+        "type": "Until",
+        "expression": "@greater(variables('ctr'), variables('orderCount'))",
+        "limit": {
+          "count": 60,
+          "timeout": "PT1H"
+        },
+        "actions": {
+          "Construct_Order_From_4e6a0fcd": {
+            "type": "Compose",
+            "inputs": "@'thePath = System.String.Format(\"/*[local-name()=''PurchaseOrder'' and namespace-uri()='''']/*[local-name()=''OrderForms'' and namespace-uri()='''']/*[local-name()=''OrderForm'' and namespace-uri()=''''][{0}]\", ctr);\r\nOrderFormMsg = xpath(OrderMessage, thePath)'",
+            "runAfter": {}
+          },
+          "Get_Vendor_ID": {
+            "type": "Compose",
+            "inputs": "@'vendorID = OrderFormMsg.Name'",
+            "runAfter": {
+              "Construct_Order_From_4e6a0fcd": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "CallGetProfile": {
+            "type": "Workflow",
+            "inputs": {
+              "host": {
+                "workflow": {
+                  "id": "GetUserProfile"
+                }
+              },
+              "body": {
+                "message": "@triggerBody()"
+              }
+            },
+            "runAfter": {
+              "Get_Vendor_ID": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ContactVendor_3f2e390d": {
+            "type": "If",
+            "expression": "@equals(false, variables('callFailed'))",
+            "actions": {
+              "Send_Partial_order_to_partner_bbe5d90e": {
+                "type": "Scope",
+                "actions": {
+                  "Set_Destination": {
+                    "type": "Compose",
+                    "inputs": "@'ContactVendorRoleLink(Microsoft.XLANGs.BaseTypes.DestinationParty) = new Microsoft.XLANGs.BaseTypes.Party(vendorID,\"OrganizationName\")'",
+                    "runAfter": {}
+                  },
+                  "Order_to_Vendor": {
+                    "type": "Http",
+                    "inputs": {
+                      "method": "POST",
+                      "uri": "http://localhost/service",
+                      "body": "@triggerBody()",
+                      "headers": {
+                        "Content-Type": "application/json"
+                      }
+                    },
+                    "runAfter": {
+                      "Set_Destination": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Get_EMail_Address": {
+                    "type": "Compose",
+                    "inputs": "@'destination = Microsoft.Samples.BizTalk.Litware.Utilities.XmlHelper.GetPartnerEmail(ProfileMsg)'",
+                    "runAfter": {
+                      "Order_to_Vendor": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "Send_failed": {
+                    "type": "Scope",
+                    "actions": {
+                      "Set_Failed_Flag": {
+                        "type": "Compose",
+                        "inputs": "@'sendFailed = true'",
+                        "runAfter": {}
+                      },
+                      "Notify_Admin": {
+                        "type": "Compose",
+                        "inputs": "@'System.Diagnostics.EventLog.WriteEntry(\"Litware Scenario\", \"Unable to initialize Role Link or un-enlisted party for Vendor = \" + vendorID + \". Exception occured: \"+ exp.Message, System.Diagnostics.EventLogEntryType.Error)'",
+                        "runAfter": {
+                          "Set_Failed_Flag": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Get_EMail_Address": [
+                        "FAILED",
+                        "TIMEDOUT",
+                        "SKIPPED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {}
+              },
+              "GotEmail_c98a78f3": {
+                "type": "If",
+                "expression": "@and(not(equals(null, variables('destination'))), equals(false, variables('sendFailed')))",
+                "actions": {
+                  "InitializeSendPort_5ec3f633": {
+                    "type": "Compose",
+                    "inputs": "@'SendVendorEmail(Microsoft.XLANGs.BaseTypes.Address) = destination'",
+                    "runAfter": {}
+                  },
+                  "SendEmailNotification_dab3f883": {
+                    "type": "Http",
+                    "inputs": {
+                      "method": "POST",
+                      "uri": "http://localhost/service",
+                      "body": "@triggerBody()",
+                      "headers": {
+                        "Content-Type": "application/json"
+                      }
+                    },
+                    "runAfter": {
+                      "InitializeSendPort_5ec3f633": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Set_Failed_Flag_79ac3607": {
+                      "type": "Compose",
+                      "inputs": "@'sendFailed = false'",
+                      "runAfter": {}
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Send_Partial_order_to_partner_bbe5d90e": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Notify_Admin_4cb73de4": {
+                  "type": "Compose",
+                  "inputs": "@'System.Diagnostics.EventLog.WriteEntry(\"Litware Scenario\", \"Unable to find Partner Profile with Vendor ID = \" + vendorID, System.Diagnostics.EventLogEntryType.Warning)'",
+                  "runAfter": {}
+                }
+              }
+            },
+            "runAfter": {
+              "CallGetProfile": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Inc_Counter": {
+            "type": "Compose",
+            "inputs": "@'ctr = ctr + 1'",
+            "runAfter": {
+              "ContactVendor_3f2e390d": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Get_Orders_Cnt": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Until": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

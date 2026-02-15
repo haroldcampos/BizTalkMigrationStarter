@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
@@ -75,8 +76,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                     }
                     else
                     {
-                        Console.WriteLine($"WARNING: Connector registry not found at {registryPath}");
-                        Console.WriteLine("Using fallback empty registry");
+                        Trace.TraceWarning("Connector registry not found at {0}. Using fallback empty registry.", registryPath);
                         jsonContent = "{ \"components\": {}, \"metadata\": {} }";
                     }
                 }
@@ -87,11 +87,11 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                 // Parse component mappings
                 ParseComponentMappings();
                 
-                Console.WriteLine($"[REGISTRY] Loaded {_componentMappings.Count} component mappings");
+                Trace.TraceInformation("[REGISTRY] Loaded {0} component mappings", _componentMappings.Count);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[REGISTRY] ERROR loading connector registry: {ex.Message}");
+                Trace.TraceError("[REGISTRY] Error loading connector registry: {0}", ex.Message);
                 _registry = new JObject();
                 _componentMappings = new Dictionary<string, ComponentMapping>();
             }
@@ -127,7 +127,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[REGISTRY] Error parsing component {component.Name}: {ex.Message}");
+                    Trace.TraceWarning("[REGISTRY] Error parsing component {0}: {1}", component.Name, ex.Message);
                 }
             }
         }
@@ -267,7 +267,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
             if (CustomCodeRequired)
             {
                 notes.AppendLine("//");
-                notes.AppendLine("// ?? WARNING: This component requires custom code development");
+                notes.AppendLine("// [!] WARNING: This component requires custom code development");
             }
             
             notes.AppendLine("//");

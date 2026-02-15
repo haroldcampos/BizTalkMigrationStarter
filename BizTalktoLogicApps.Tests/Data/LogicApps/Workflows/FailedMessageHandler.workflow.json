@@ -1,0 +1,83 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "ConstructErrorMessage_bf03a2c5": {
+        "type": "Compose",
+        "inputs": "@'ErrorMessage.BodySegment = FailedMessage.ErrorSegment'",
+        "runAfter": {}
+      },
+      "SendErrorMessage": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructErrorMessage_bf03a2c5": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructActualMessage_3830721d": {
+        "type": "Compose",
+        "inputs": "@'ActualMessage.BodySegment=FailedMessage.BodySegment'",
+        "runAfter": {
+          "SendErrorMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SendActualMessage": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructActualMessage_3830721d": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "SendActualMessage": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

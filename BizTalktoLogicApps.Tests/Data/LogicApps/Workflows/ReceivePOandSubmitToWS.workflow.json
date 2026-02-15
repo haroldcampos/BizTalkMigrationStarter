@@ -1,0 +1,135 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "consumeWebServiceRL": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "folderPath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Orchestrations\\ConsumeWebService\\In",
+            "maxFileCount": 10
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "whenFilesAreAdded",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "kind": "Polling",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 1
+        }
+      }
+    },
+    "actions": {
+      "ConstructPOMessage_87cb81f3": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "FilePOToWebPO",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {}
+      },
+      "WebServicePOSend": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructPOMessage_87cb81f3')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructPOMessage_87cb81f3": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "WebServiceInvoiceReceive": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from POWebServicePort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "WebServicePOSend": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructInvoiceMessage_42970e5b": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "WebInvoiceToFileInvoice",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {
+          "WebServiceInvoiceReceive": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "FileInvoiceSend": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructInvoiceMessage_42970e5b')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructInvoiceMessage_42970e5b": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "consumeWebServiceInvoiceSP": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "filePath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Orchestrations\\ConsumeWebService\\Out\\%MessageID%.xml",
+            "body": "@triggerBody()"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "createFile",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "runAfter": {
+          "FileInvoiceSend": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "consumeWebServicePOSP": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/POWebService/submitPOService.asmx",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "text/xml; charset=utf-8"
+          }
+        },
+        "runAfter": {
+          "consumeWebServiceInvoiceSP": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

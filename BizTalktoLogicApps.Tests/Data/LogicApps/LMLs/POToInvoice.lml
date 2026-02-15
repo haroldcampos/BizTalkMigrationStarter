@@ -1,0 +1,21 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: AdvancedShipNotice.xsd
+$targetSchema: AffiliateApplication.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  ns1: http://HelloWorld.POSchema
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://HelloWorld.InvoiceSchema
+  ns1: http://HelloWorld.POSchema
+  xs: http://www.w3.org/2001/XMLSchema
+msdata:Invoice:
+  Number: /ns1:PO/PO_Number
+  TotalPrice: /ns1:PO/Total

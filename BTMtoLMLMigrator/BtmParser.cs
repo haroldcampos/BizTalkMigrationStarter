@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -180,7 +181,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             // First, load the explicitly provided schema files if available
             if (!string.IsNullOrEmpty(_providedSourceSchemaPath) && File.Exists(_providedSourceSchemaPath))
             {
-                Console.WriteLine($"Loading provided source schema: {_providedSourceSchemaPath}");
+                Trace.TraceInformation("Loading provided source schema: {0}", _providedSourceSchemaPath);
                 try
                 {
                     var dummyRef = doc.CreateElement("Reference");
@@ -191,18 +192,18 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         LoadExternalSchema(_providedSourceSchemaPath, mapData, dummyRef);
                         srcTree.RemoveChild(dummyRef);
                         processedSchemas.Add(_providedSourceSchemaPath);
-                        Console.WriteLine($"Successfully loaded source schema. Source namespaces: {string.Join(", ", mapData.SourceNamespaces.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+                        Trace.TraceInformation("Successfully loaded source schema. Source namespaces: {0}", string.Join(", ", mapData.SourceNamespaces.Select(kvp => kvp.Key + "=" + kvp.Value)));
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Warning: Could not load provided source schema: {ex.Message}");
+                    Trace.TraceWarning("Could not load provided source schema: {0}", ex.Message);
                 }
             }
             
             if (!string.IsNullOrEmpty(_providedTargetSchemaPath) && File.Exists(_providedTargetSchemaPath))
             {
-                Console.WriteLine($"Loading provided target schema: {_providedTargetSchemaPath}");
+                Trace.TraceInformation("Loading provided target schema: {0}", _providedTargetSchemaPath);
                 try
                 {
                     var dummyRef = doc.CreateElement("Reference");
@@ -213,12 +214,12 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         LoadExternalSchema(_providedTargetSchemaPath, mapData, dummyRef);
                         trgTree.RemoveChild(dummyRef);
                         processedSchemas.Add(_providedTargetSchemaPath);
-                        Console.WriteLine($"Successfully loaded target schema. Target namespaces: {string.Join(", ", mapData.TargetNamespaces.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+                        Trace.TraceInformation("Successfully loaded target schema. Target namespaces: {0}", string.Join(", ", mapData.TargetNamespaces.Select(kvp => kvp.Key + "=" + kvp.Value)));
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Warning: Could not load provided target schema: {ex.Message}");
+                    Trace.TraceWarning("Could not load provided target schema: {0}", ex.Message);
                 }
             }
             
@@ -268,7 +269,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Warning: Could not load schema {xsdPath}: {ex.Message}");
+                    Trace.TraceWarning("Could not load schema {0}: {1}", xsdPath, ex.Message);
                     }
                 }
             }
@@ -302,7 +303,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Warning: Could not load schema from tree attribute {xsdPath}: {ex.Message}");
+                    Trace.TraceWarning("Could not load schema from tree attribute {0}: {1}", xsdPath, ex.Message);
                 }
             }
         }
@@ -331,7 +332,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             bool isSourceSchema = IsSourceSchemaReference(referenceNode);
             var namespaces = isSourceSchema ? mapData.SourceNamespaces : mapData.TargetNamespaces;
             
-            Console.WriteLine($"Processing schema: {Path.GetFileName(xsdPath)}, targetNamespace: {targetNamespace}");
+            Trace.TraceInformation("Processing schema: {0}, targetNamespace: {1}", Path.GetFileName(xsdPath), targetNamespace);
             
             // First, extract all namespace declarations from the schema element (except default namespace)
             foreach (XmlAttribute attr in schemaNode.Attributes)
@@ -342,7 +343,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     if (!namespaces.ContainsKey(nsPrefix))
                     {
                         namespaces[nsPrefix] = attr.Value;
-                        Console.WriteLine($"  Added namespace from xmlns: {nsPrefix} = {attr.Value}");
+                        Trace.TraceInformation("  Added namespace from xmlns: {0} = {1}", nsPrefix, attr.Value);
                     }
                 }
                 else if (attr.Name == "xmlns" && !string.IsNullOrEmpty(attr.Value))
@@ -358,7 +359,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         if (!namespaces.ContainsKey(prefix))
                         {
                             namespaces[prefix] = attr.Value;
-                            Console.WriteLine($"  Added default namespace with prefix: {prefix} = {attr.Value}");
+                            Trace.TraceInformation("  Added default namespace with prefix: {0} = {1}", prefix, attr.Value);
                         }
                     }
                 }
@@ -377,7 +378,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     if (!namespaces.ContainsKey(prefix))
                     {
                         namespaces[prefix] = targetNamespace;
-                        Console.WriteLine($"  Added target namespace with derived prefix: {prefix} = {targetNamespace}");
+                        Trace.TraceInformation("  Added target namespace with derived prefix: {0} = {1}", prefix, targetNamespace);
                     }
                 }
             }
@@ -395,7 +396,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         if (!namespaces.ContainsKey(prefix))
                         {
                             namespaces[prefix] = importNamespace;
-                            Console.WriteLine($"  Added imported namespace: {prefix} = {importNamespace}");
+                            Trace.TraceInformation("  Added imported namespace: {0} = {1}", prefix, importNamespace);
                         }
                     }
                 }
@@ -406,14 +407,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             {
                 var emptyPrefixValue = namespaces[""];
                 namespaces.Remove("");
-                Console.WriteLine($"  Removed empty prefix for namespace: {emptyPrefixValue}");
+                Trace.TraceInformation("  Removed empty prefix for namespace: {0}", emptyPrefixValue);
                 
                 // Make sure this namespace has a proper prefix
                 if (!namespaces.ContainsValue(emptyPrefixValue))
                 {
                     var newPrefix = DeriveNamespacePrefix(emptyPrefixValue, namespaces);
                     namespaces[newPrefix] = emptyPrefixValue;
-                    Console.WriteLine($"  Re-added with proper prefix: {newPrefix} = {emptyPrefixValue}");
+                    Trace.TraceInformation("  Re-added with proper prefix: {0} = {1}", newPrefix, emptyPrefixValue);
                 }
             }
         }
@@ -583,6 +584,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     YCell = int.TryParse(functoidNode.Attributes["Y-Cell"]?.Value, out int y) ? y : 0
                 };
 
+                // Parse page number (multi-page BTM files use a Page attribute)
+                if (int.TryParse(functoidNode.Attributes?["Page"]?.Value, out int pageNum))
+                {
+                    functoid.PageNumber = pageNum;
+                    if (pageNum > mapData.PageCount)
+                        mapData.PageCount = pageNum;
+                }
+
                 // Parse input parameters
                 var inputParamsNode = functoidNode.SelectSingleNode("Input-Parameters");
                 if (inputParamsNode != null)
@@ -595,11 +604,26 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                             var param = new BtmParameter
                             {
                                 Type = paramType,
-                                Value = paramNode.Attributes["Value"]?.Value ?? paramNode.InnerText
+                                Value = paramNode.Attributes["Value"]?.Value ?? paramNode.InnerText,
+                                Guid = paramNode.Attributes["Guid"]?.Value
                             };
+
+                            // Extract explicit order if present; otherwise use document position
+                            if (int.TryParse(paramNode.Attributes["Order"]?.Value, out int order))
+                            {
+                                param.LinkIndex = order;
+                            }
+                            else
+                            {
+                                param.LinkIndex = functoid.InputParameters.Count;
+                            }
+
                             functoid.InputParameters.Add(param);
                         }
                     }
+
+                    // Sort parameters by their explicit order to ensure correct positional semantics
+                    functoid.InputParameters.Sort((a, b) => a.LinkIndex.CompareTo(b.LinkIndex));
                 }
 
                 // Parse scripter code
@@ -679,6 +703,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 { "137", "SciLog10" },          // Base 10 Logarithm
                 { "138", "SciPow" },            // Power
                 { "139", "SciLogn" },           // Logarithm (base N)
+                { "140", "StringPadLeft" },     // String Pad Left (common/fill)
                 
                 // Scripting functoid
                 { "260", "Scripting" },
@@ -709,15 +734,19 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 { "326", "CumulativeMin" },     // Cumulative Minimum
                 { "327", "CumulativeMax" },     // Cumulative Maximum
                 { "328", "CumulativeConcat" },  // Cumulative Concatenate
+                { "329", "CumulativeCount" },  // Cumulative Count
                 
                 // Advanced functoids - Value Mapping (374-376)
                 { "374", "ValueMappingFlattening" },
                 { "375", "ValueMapping" },
                 { "376", "NilValue" },          // Nil Value
+                { "377", "MassFlattening" },    // Value Mapping (Flattening) variant
                 
                 // Advanced functoids - Looping/Iteration (424, 474)
                 { "424", "Looping" },           // Looping functoid
+                { "425", "TableLoopingExtract" }, // Table Looping Extract
                 { "474", "Iteration" },         // Iteration functoid
+                { "475", "RecordCount" },       // Record Count (alternate FID)
                 
                 // Database functoids (524, 574-575)
                 { "524", "DBLookup" },          // Database Lookup
@@ -749,7 +778,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             var linkNodes = doc.SelectNodes("//Link");
             if (linkNodes == null) return;
 
-            Console.WriteLine($"DEBUG: Parsing {linkNodes.Count} links from BTM");
+            Trace.TraceInformation("Parsing {0} links from BTM", linkNodes.Count);
             foreach (XmlNode linkNode in linkNodes)
             {
                 var link = new BtmLink
@@ -762,7 +791,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     TargetDirective = linkNode.Attributes["Compiler-Directive"]?.Value
                 };
 
-                Console.WriteLine($"  Link: ID={link.LinkId}, From={link.LinkFrom}, To={link.LinkTo}");
+                Trace.TraceInformation("  Link: ID={0}, From={1}, To={2}", link.LinkId, link.LinkFrom, link.LinkTo);
                 mapData.Links.Add(link);
             }
         }
@@ -886,7 +915,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: Could not load schema tree from {xsdPath}: {ex.Message}");
+                Trace.TraceWarning("Could not load schema tree from {0}: {1}", xsdPath, ex.Message);
             }
 
             return null;
@@ -916,21 +945,46 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             var complexType = element.SelectSingleNode("xs:complexType", nsMgr);
             if (complexType != null)
             {
-                var sequence = complexType.SelectSingleNode("xs:sequence", nsMgr);
-                if (sequence != null)
+                // Collect child elements from xs:sequence, xs:choice, xs:all, and xs:group
+                foreach (XmlNode compositorChild in complexType.ChildNodes)
                 {
-                    foreach (XmlNode childElement in sequence.SelectNodes("xs:element", nsMgr))
+                    if (compositorChild.NodeType == XmlNodeType.Element &&
+                        (compositorChild.LocalName == "sequence" || compositorChild.LocalName == "choice" ||
+                         compositorChild.LocalName == "all" || compositorChild.LocalName == "group"))
                     {
-                        var child = ParseXsdElement(childElement, node, node.XPath, namespaces, nsMgr);
-                        if (child != null)
-                        {
-                            node.Children.Add(child);
-                        }
+                        ParseXsdCompositor(compositorChild, node, namespaces, nsMgr);
                     }
                 }
             }
 
             return node;
+        }
+
+        /// <summary>
+        /// Recursively parses an XSD compositor (sequence, choice, all, or group) and adds discovered elements to the parent node.
+        /// </summary>
+        private void ParseXsdCompositor(XmlNode compositor, BtmSchemaNode parentNode,
+            Dictionary<string, string> namespaces, XmlNamespaceManager nsMgr)
+        {
+            foreach (XmlNode child in compositor.ChildNodes)
+            {
+                if (child.NodeType != XmlNodeType.Element)
+                    continue;
+
+                if (child.LocalName == "element")
+                {
+                    var parsed = ParseXsdElement(child, parentNode, parentNode.XPath, namespaces, nsMgr);
+                    if (parsed != null)
+                    {
+                        parentNode.Children.Add(parsed);
+                    }
+                }
+                else if (child.LocalName == "sequence" || child.LocalName == "choice" ||
+                         child.LocalName == "all" || child.LocalName == "group")
+                {
+                    ParseXsdCompositor(child, parentNode, namespaces, nsMgr);
+                }
+            }
         }
 
         /// <summary>

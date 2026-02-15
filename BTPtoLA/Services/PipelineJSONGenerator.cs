@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -102,7 +103,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                 // Skip null actions (empty scopes, etc.)
                 if (actionObj == null)
                 {
-                    Console.WriteLine("[GENERATOR] Skipping null action: " + act.Name);
+                    Trace.TraceInformation("[GENERATOR] Skipping null action: {0}", act.Name);
                     continue;
                 }
 
@@ -436,7 +437,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                         // Skip null actions
                         if (childJson == null)
                         {
-                            Console.WriteLine("[GENERATOR] Skipping null child action: " + child.Name);
+                        Trace.TraceInformation("[GENERATOR] Skipping null child action: {0}", child.Name);
                             continue;
                         }
 
@@ -453,7 +454,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                     // Return null if the scope is completely empty
                     if (childObj.Count == 0)
                     {
-                        Console.WriteLine("[GENERATOR] Returning null for empty scope: " + act.Name);
+                        Trace.TraceInformation("[GENERATOR] Returning null for empty scope: {0}", act.Name);
                         return null;
                     }
 

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using BizTalktoLogicApps.ODXtoWFMigrator;
 
@@ -66,45 +67,45 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             // Validate options
             options.Validate();
 
-            Console.WriteLine("[REFACTORING] Starting pattern-based workflow generation...");
-            Console.WriteLine($"[REFACTORING] Target: {options.Target}");
-            Console.WriteLine($"[REFACTORING] Strategy: {options.Strategy}");
-            Console.WriteLine($"[REFACTORING] Messaging: {options.PreferredMessagingPlatform}");
+            Trace.TraceInformation("[REFACTORING] Starting pattern-based workflow generation...");
+            Trace.TraceInformation("[REFACTORING] Target: {0}", options.Target);
+            Trace.TraceInformation("[REFACTORING] Strategy: {0}", options.Strategy);
+            Trace.TraceInformation("[REFACTORING] Messaging: {0}", options.PreferredMessagingPlatform);
 
             try
             {
                 // STEP 1: Parse orchestration using EXISTING parser (no changes to parser)
-                Console.WriteLine("[REFACTORING] Step 1: Parsing orchestration...");
+                Trace.TraceInformation("[REFACTORING] Step 1: Parsing orchestration...");
                 var model = BizTalkOrchestrationParser.ParseOdx(odxPath);
                 var binding = BindingSnapshot.Parse(bindingsFilePath);
 
                 // STEP 2: Detect integration patterns using EXISTING report generator
-                Console.WriteLine("[REFACTORING] Step 2: Detecting integration patterns...");
+                Trace.TraceInformation("[REFACTORING] Step 2: Detecting integration patterns...");
                 var detectedPatterns = OrchestrationReportGenerator.ExportDetectedPatterns(model);
-                Console.WriteLine($"[REFACTORING]   Found {detectedPatterns.Count} pattern(s)");
+                Trace.TraceInformation("[REFACTORING]   Found {0} pattern(s)", detectedPatterns.Count);
                 foreach (var pattern in detectedPatterns)
                 {
-                    Console.WriteLine($"[REFACTORING]   - {pattern.PatternName}");
+                    Trace.TraceInformation("[REFACTORING]   - {0}", pattern.PatternName);
                 }
 
                 // STEP 3: Generate baseline workflow using EXISTING mapper
-                Console.WriteLine("[REFACTORING] Step 3: Generating baseline workflow...");
+                Trace.TraceInformation("[REFACTORING] Step 3: Generating baseline workflow...");
                 var baselineWorkflow = LogicAppsMapper.MapToLogicApp(model, binding, isCallable: false);
 
                 // STEP 4: Apply pattern-based optimizations (NEW - Phase 2)
-                Console.WriteLine("[REFACTORING] Step 4: Applying pattern optimizations...");
+                Trace.TraceInformation("[REFACTORING] Step 4: Applying pattern optimizations...");
                 var optimizedWorkflow = WorkflowReconstructor.OptimizeWorkflow(
                     baselineWorkflow,
                     detectedPatterns,
                     options);
 
                 // STEP 5: Optimize connector selections (NEW - Phase 3)
-                Console.WriteLine("[REFACTORING] Step 5: Optimizing connector selections...");
+                Trace.TraceInformation("[REFACTORING] Step 5: Optimizing connector selections...");
                 var connectorRegistry = LoadConnectorRegistry(options.ConnectorRegistryPath);
                 ConnectorOptimizer.OptimizeConnectors(optimizedWorkflow, connectorRegistry, options);
 
                 // STEP 6: Generate JSON using EXISTING generator
-                Console.WriteLine("[REFACTORING] Step 6: Generating workflow JSON...");
+                Trace.TraceInformation("[REFACTORING] Step 6: Generating workflow JSON...");
                 var json = LogicAppJSONGenerator.GenerateStandardWorkflow(
                     optimizedWorkflow,
                     options.WorkflowType,
@@ -112,15 +113,15 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                     connectorRegistry);
 
                 // STEP 7: Post-process JSON for final enhancements (NEW - Phase 4)
-                Console.WriteLine("[REFACTORING] Step 7: Applying final optimizations...");
+                Trace.TraceInformation("[REFACTORING] Step 7: Applying final optimizations...");
                 var finalJson = JsonPostProcessor.ApplyPatternOptimizations(json, detectedPatterns, options);
 
-                Console.WriteLine("[REFACTORING] ? Refactored workflow generation complete!");
+                Trace.TraceInformation("[REFACTORING] Refactored workflow generation complete!");
                 return finalJson;
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                Console.WriteLine($"[REFACTORING] ? Failed: {ex.Message}");
+                Trace.TraceError("[REFACTORING] Failed: {0}", ex.Message);
                 throw;
             }
         }
@@ -153,7 +154,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             }
 
             File.WriteAllText(outputPath, json);
-            Console.WriteLine($"[REFACTORING] Workflow written to: {outputPath}");
+            Trace.TraceInformation("[REFACTORING] Workflow written to: {0}", outputPath);
 
             // Generate parameters file if requested
             options = options ?? new RefactoringOptions();
@@ -162,7 +163,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 var parametersPath = Path.ChangeExtension(outputPath, null) + ".parameters.json";
                 var parametersJson = JsonPostProcessor.GenerateParametersFile(json);
                 File.WriteAllText(parametersPath, parametersJson);
-                Console.WriteLine($"[REFACTORING] Parameters written to: {parametersPath}");
+                Trace.TraceInformation("[REFACTORING] Parameters written to: {0}", parametersPath);
             }
         }
 
@@ -175,12 +176,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
         {
             if (!string.IsNullOrEmpty(registryPath) && File.Exists(registryPath))
             {
-                Console.WriteLine($"[REFACTORING]   Using custom registry: {registryPath}");
+                Trace.TraceInformation("[REFACTORING] Using custom registry: {0}", registryPath);
                 return ConnectorSchemaRegistry.LoadFromFile(registryPath);
             }
             else
             {
-                Console.WriteLine("[REFACTORING]   Using standard connector registry search");
+                Trace.TraceInformation("[REFACTORING] Using standard connector registry search");
                 return BizTalkOrchestrationParser.TryLoadConnectorRegistry();
             }
         }

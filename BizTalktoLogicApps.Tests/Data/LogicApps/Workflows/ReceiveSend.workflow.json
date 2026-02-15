@@ -1,0 +1,82 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "Expression_SetResponseURI": {
+        "type": "Compose",
+        "inputs": "@'DynamicSendPort(Microsoft.XLANGs.BaseTypes.Address)=\"mailto:\"+POMessageIn(Microsoft.Samples.BizTalk.SendMail.EmailAddress)'",
+        "runAfter": {}
+      },
+      "ConstructMessage_SetMailSubject_eb6f8564": {
+        "type": "Scope",
+        "actions": {
+          "MessageAssignment_CopyMessage": {
+            "type": "Compose",
+            "inputs": "@'POMessageOut=POMessageIn'",
+            "runAfter": {}
+          },
+          "MessageAssignment_SetSubject": {
+            "type": "Compose",
+            "inputs": "@'POMessageOut(SMTP.Subject)=\"Your PO \"+POMessageIn(Microsoft.Samples.BizTalk.SendMail.PONumber)+\" received\"'",
+            "runAfter": {
+              "MessageAssignment_CopyMessage": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Expression_SetResponseURI": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "SendConfirmation": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_SetMailSubject_eb6f8564": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "SendConfirmation": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

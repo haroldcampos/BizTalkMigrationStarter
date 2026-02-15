@@ -1,0 +1,36 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "pipelinesend": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "Assemble": {
+        "type": "Scope",
+        "actions": {
+          "Flatfileassembler": {
+            "type": "FlatFileEncoding",
+            "inputs": {
+              "content": "@triggerBody()",
+              "schema": {
+                "source": "LogicApp",
+                "name": "FLAT_FILE_SCHEMA_NAME_HERE"
+              }
+            },
+            "metadata": {
+              "comment": "// Component: Flat File Assembler\r\n// Description: Converts XML to flat file format, adds headers and trailers\r\n// Behavior: Serializes XML to flat file according to schema, adds envelope components\r\n// Message Flow: 1 message in ? 1 message out\r\n// Properties:\r\n//   HeaderSpecName = CMP.PipelinesAndSchemas.InvoiceHeader\r\n//   DocumentSpecName = CMP.PipelinesAndSchemas.Invoice\r\n//   TargetCharset = \r\n//   TargetCodePage = 0\r\n//   PreserveBom = false\n// Use 'Flat file encoding' action\n// ACTION REQUIRED:\n// 1. Export flat file schema from BizTalk\n// 2. Upload to Logic App artifacts\n// 3. Select schema in Flat File Encoding action\n// 4. Ensure input is XML matching schema structure\n// Stage: Assemble (All)"
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {}
+      }
+    },
+    "outputs": {}
+  }
+}

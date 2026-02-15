@@ -1,0 +1,172 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_messages_received_in_session": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "queueName": "queue",
+            "isSessionsEnabled": false
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "receiveQueueMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "kind": ""
+      }
+    },
+    "actions": {
+      "Interrupted": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {}
+      },
+      "Wait_0": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 1,
+            "unit": "Minute"
+          }
+        },
+        "runAfter": {}
+      },
+      "Throw_InterruptEx": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "Terminated",
+            "message": ""
+          }
+        },
+        "runAfter": {}
+      },
+      "Interrupted_1": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from InterruptPort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {}
+      },
+      "Interrupted_2": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {}
+      },
+      "Throw_InterruptEx_1": {
+        "type": "Terminate",
+        "inputs": {
+          "runStatus": "Failed",
+          "runError": {
+            "code": "Terminated",
+            "message": ""
+          }
+        },
+        "runAfter": {
+          "Interrupted_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Interrupted_3": {
+        "type": "Compose",
+        "inputs": "// Unmapped: Response Receive response from InterruptPort (BizTalk correlation pattern - requires manual configuration)",
+        "runAfter": {
+          "Throw_InterruptEx_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Wait_0_1": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 1,
+            "unit": "Minute"
+          }
+        },
+        "runAfter": {}
+      },
+      "Check_for_Interrupt_Join": {
+        "type": "Compose",
+        "inputs": {
+          "migrationWarning": "BizTalk Listen shape: only the FIRST branch should execute (race pattern). Logic Apps runs ALL branches in parallel. Manual review required.",
+          "originalBizTalkShape": "Listen",
+          "requiredAction": "Convert to Switch on status/timeout, or add Terminate actions to losing branches."
+        },
+        "runAfter": {
+          "Interrupted": [
+            "SUCCEEDED"
+          ],
+          "Wait_0": [
+            "SUCCEEDED"
+          ],
+          "Throw_InterruptEx": [
+            "SUCCEEDED"
+          ],
+          "Interrupted_1": [
+            "SUCCEEDED"
+          ],
+          "Interrupted_3": [
+            "SUCCEEDED"
+          ],
+          "Wait_0_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Check_for_Interrupt_Join": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Sequential Convoy",
+          "description": "Multiple correlated messages processed in order",
+          "recommendation": "Use Stateful workflow with session-based messaging (Service Bus, RabbitMQ, or Kafka) for guaranteed message ordering"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:11.5546193Z"
+    }
+  }
+}

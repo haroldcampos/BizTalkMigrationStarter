@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -80,7 +81,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 if (!translatedMap.TargetNamespaces.ContainsKey(sourceNs.Key))
                 {
                     translatedMap.TargetNamespaces[sourceNs.Key] = sourceNs.Value;
-                    Console.WriteLine($"Copied source namespace to target: {sourceNs.Key} = {sourceNs.Value}");
+                    Trace.TraceInformation("Copied source namespace to target: {sourceNs.Key} = {sourceNs.Value}");
                 }
             }
 
@@ -244,7 +245,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             var parser = new BtmParser();
             var flatMappings = new List<LmlMapping>();
             
-            Console.WriteLine("DEBUG: Building mappings from XPath");
+            Trace.TraceInformation("DEBUG: Building mappings from XPath");
             
             // First pass: identify looping functoids and their target connections
             var loopingFunctoids = _mapData.Functoids.Where(f => f.FunctoidType == "Looping" || f.FunctoidType == "MassCopy").ToList();
@@ -272,7 +273,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         var targetPath = CleanupTargetXPath(outLink.LinkTo);
                         
                         massCopyInfo.Add((targetPath, loopSourcePath));
-                        Console.WriteLine($"  DEBUG: Mass copy detected: {targetPath} from {loopSourcePath}");
+                        Trace.TraceInformation("  DEBUG: Mass copy detected: {targetPath} from {loopSourcePath}");
                     }
                 }
             }
@@ -286,7 +287,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 if (targetFunctoid != null)
                 {
                     // Link to functoid, not final target
-                    Console.WriteLine($"  Skipping link to functoid: {link.LinkId}");
+                    Trace.TraceInformation("  Skipping link to functoid: {link.LinkId}");
                     continue;
                 }
 
@@ -297,7 +298,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 // Skip mass copy links - they'll be handled specially
                 if (sourceFunctoid != null && (sourceFunctoid.FunctoidType == "Looping" || sourceFunctoid.FunctoidType == "MassCopy"))
                 {
-                    Console.WriteLine($"  Skipping mass copy link (will be expanded later): {link.LinkId}");
+                    Trace.TraceInformation("  Skipping mass copy link (will be expanded later): {link.LinkId}");
                     continue;
                 }
 
@@ -305,9 +306,9 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 string sourceExpression;
                 if (sourceFunctoid != null)
                 {
-                    Console.WriteLine($"  DEBUG: Processing functoid {sourceFunctoid.FunctoidId}, Type={sourceFunctoid.FunctoidType}");
+                    Trace.TraceInformation("  DEBUG: Processing functoid {sourceFunctoid.FunctoidId}, Type={sourceFunctoid.FunctoidType}");
                     sourceExpression = TranslateFunctoid(sourceFunctoid);
-                    Console.WriteLine($"  Link {link.LinkId}: {targetXPath} = {sourceExpression} (from functoid)");
+                    Trace.TraceInformation("  Link {link.LinkId}: {targetXPath} = {sourceExpression} (from functoid)");
                     
                     // Special handling for Looping functoids - they generate $for structures
                     if (sourceFunctoid.FunctoidType == "Looping" && sourceExpression.StartsWith("$for("))
@@ -327,14 +328,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         };
                         
                         flatMappings.Add(loopMapping);
-                        Console.WriteLine($"  Created $for loop: {loopMapping.TargetPath}");
+                        Trace.TraceInformation("  Created $for loop: {loopMapping.TargetPath}");
                         continue; // Skip regular processing for loop functoids
                     }
                 }
                 else
                 {
                     sourceExpression = sourceXPath;
-                    Console.WriteLine($"  Link {link.LinkId}: {targetXPath} = {sourceExpression}");
+                    Trace.TraceInformation("  Link {link.LinkId}: {targetXPath} = {sourceExpression}");
                 }
 
                 var mapping = new LmlMapping
@@ -346,10 +347,10 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 flatMappings.Add(mapping);
             }
 
-            Console.WriteLine($"DEBUG: Created {flatMappings.Count} flat mappings");
+            Trace.TraceInformation("DEBUG: Created {flatMappings.Count} flat mappings");
             foreach (var m in flatMappings)
             {
-                Console.WriteLine($"  {m.TargetPath} = {m.SourceExpression}");
+                Trace.TraceInformation("  {m.TargetPath} = {m.SourceExpression}");
             }
             
             // Expand mass copy operations to explicit child field mappings
@@ -367,11 +368,11 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 if (!hasShorterPath)
                 {
                     uniqueMassCopyInfo.Add((targetPath, sourcePath));
-                    Console.WriteLine($"  Keeping mass copy: {targetPath} from {sourcePath}");
+                    Trace.TraceInformation("  Keeping mass copy: {targetPath} from {sourcePath}");
                 }
                 else
                 {
-                    Console.WriteLine($"  Skipping nested/deeper mass copy: {targetPath} from {sourcePath}");
+                    Trace.TraceInformation("  Skipping nested/deeper mass copy: {targetPath} from {sourcePath}");
                 }
             }
             
@@ -387,10 +388,10 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             // Build hierarchical structure from flat mappings
             var hierarchy = BuildHierarchyFromFlatMappings(flatMappings);
             
-            Console.WriteLine($"DEBUG: Built hierarchy with {hierarchy.Count} root nodes");
+            Trace.TraceInformation("DEBUG: Built hierarchy with {hierarchy.Count} root nodes");
             foreach (var h in hierarchy)
             {
-                Console.WriteLine($"  Root: {h.TargetPath}, Children: {h.Children?.Count ?? 0}, Attributes: {h.Attributes?.Count ?? 0}");
+                Trace.TraceInformation("  Root: {h.TargetPath}, Children: {h.Children?.Count ?? 0}, Attributes: {h.Attributes?.Count ?? 0}");
             }
             
             // Post-process: Move child mappings into $for loops and make XPaths relative
@@ -485,18 +486,18 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                                 {
                                     // ALL non-leaf segments get namespace prefix
                                     parts[i] = $"{ediNsPrefix}:{segmentName}";
-                                    Console.WriteLine($"  EDI segment with prefix: {parts[i]}");
+                                    Trace.TraceInformation("  EDI segment with prefix: {parts[i]}");
                                 }
                                 else
                                 {
                                     // ONLY the final leaf element has no prefix
                                     parts[i] = segmentName;
-                                    Console.WriteLine($"  EDI leaf element (no prefix): {parts[i]}");
+                                    Trace.TraceInformation("  EDI leaf element (no prefix): {parts[i]}");
                                 }
                             }
                             
                             xpath = "/" + string.Join("/", parts);
-                            Console.WriteLine($"  Final EDI XPath: {xpath}");
+                            Trace.TraceInformation("  Final EDI XPath: {xpath}");
                         }
                     }
                 }
@@ -514,7 +515,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     if (!string.IsNullOrEmpty(_mapData.SourceSchema))
                     {
                         var schemaName = Path.GetFileNameWithoutExtension(_mapData.SourceSchema);
-                        Console.WriteLine($"  Looking for source namespace matching schema: {schemaName}");
+                        Trace.TraceInformation("  Looking for source namespace matching schema: {schemaName}");
                         
                         // Find namespace that contains this schema name
                         var matchingEntry = _mapData.SourceNamespaces
@@ -526,7 +527,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         if (!string.IsNullOrEmpty(matchingEntry.Key))
                         {
                             sourceNsPrefix = matchingEntry.Key;
-                            Console.WriteLine($"  Found source namespace by schema name: {sourceNsPrefix} = {matchingEntry.Value}");
+                            Trace.TraceInformation("  Found source namespace by schema name: {sourceNsPrefix} = {matchingEntry.Value}");
                         }
                     }
                     
@@ -544,7 +545,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         
                         if (!string.IsNullOrEmpty(sourceNsPrefix))
                         {
-                            Console.WriteLine($"  Using first non-utility namespace: {sourceNsPrefix}");
+                            Trace.TraceInformation("  Using first non-utility namespace: {sourceNsPrefix}");
                         }
                     }
                     
@@ -557,16 +558,16 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                             // Add namespace prefix to the root element only
                             parts[0] = $"{sourceNsPrefix}:{parts[0]}";
                             xpath = "/" + string.Join("/", parts);
-                            Console.WriteLine($"  Added namespace prefix to source root: {xpath}");
+                            Trace.TraceInformation("  Added namespace prefix to source root: {xpath}");
                         }
                         else
                         {
-                            Console.WriteLine($"  Source XPath unchanged: {xpath}");
+                            Trace.TraceInformation("  Source XPath unchanged: {xpath}");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"  No source namespace prefix found - using XPath as-is: {xpath}");
+                        Trace.TraceInformation("  No source namespace prefix found - using XPath as-is: {xpath}");
                     }
                 }
             }
@@ -607,7 +608,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         // Add as child to loop
                         loopMapping.Children.Add(childMapping);
                         regularMappings.Remove(childMapping);
-                        Console.WriteLine($"  Added child to loop: {childMapping.TargetPath} = {relativeXPath}");
+                        Trace.TraceInformation("  Added child to loop: {childMapping.TargetPath} = {relativeXPath}");
                     }
                 }
             }
@@ -694,10 +695,10 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                                     {
                                         var firstSource = parentMapping.Attributes[part];
                                         var secondSource = mapping.SourceExpression;
-                                        Console.WriteLine($"  WARNING: Duplicate mapping detected to '{currentPath}'");
-                                        Console.WriteLine($"    First mapping:  {firstSource}");
-                                        Console.WriteLine($"    Second mapping: {secondSource}");
-                                        Console.WriteLine($"    Keeping FIRST mapping (last mapping wins disabled)");
+                                        Trace.TraceInformation("  WARNING: Duplicate mapping detected to '{currentPath}'");
+                                        Trace.TraceInformation("    First mapping:  {firstSource}");
+                                        Trace.TraceInformation("    Second mapping: {secondSource}");
+                                        Trace.TraceInformation("    Keeping FIRST mapping (last mapping wins disabled)");
                                         // Don't overwrite - keep the first mapping
                                     }
                                     else
@@ -715,10 +716,10 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                                 {
                                     var firstSource = existingMapping.SourceExpression;
                                     var secondSource = mapping.SourceExpression;
-                                    Console.WriteLine($"  WARNING: Duplicate mapping detected to '{currentPath}'");
-                                    Console.WriteLine($"    First mapping:  {firstSource}");
-                                    Console.WriteLine($"    Second mapping: {secondSource}");
-                                    Console.WriteLine($"    Keeping FIRST mapping (last mapping wins disabled)");
+                                    Trace.TraceInformation("  WARNING: Duplicate mapping detected to '{currentPath}'");
+                                    Trace.TraceInformation("    First mapping:  {firstSource}");
+                                    Trace.TraceInformation("    Second mapping: {secondSource}");
+                                    Trace.TraceInformation("    Keeping FIRST mapping (last mapping wins disabled)");
                                     // Don't overwrite - keep the first mapping
                                 }
                                 else if (!string.IsNullOrEmpty(mapping.SourceExpression))
@@ -763,14 +764,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         if (existingChild != null)
                         {
                             // Merge the $for loop into the existing child instead of creating a duplicate
-                            Console.WriteLine($"  MERGE: Found existing collection '{collectionName}' - merging $for loop into it");
-                            Console.WriteLine($"    Existing child has {existingChild.Children.Count} children, $for has {collectionMapping.Children.Count} children");
+                            Trace.TraceInformation("  MERGE: Found existing collection '{collectionName}' - merging $for loop into it");
+                            Trace.TraceInformation("    Existing child has {existingChild.Children.Count} children, $for has {collectionMapping.Children.Count} children");
                             
                             // Add all children from the collection mapping (which includes the $for loop) to the existing child
                             foreach (var child in collectionMapping.Children)
                             {
                                 existingChild.Children.Add(child);
-                                Console.WriteLine($"    Added child '{child.TargetPath}' to existing collection");
+                                Trace.TraceInformation("    Added child '{child.TargetPath}' to existing collection");
                             }
                         }
                         else
@@ -785,14 +786,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                                 Attributes = new Dictionary<string, string>()
                             };
                             
-                            Console.WriteLine($"  Creating new collection '{collectionName}' with {collectionMapping.Children.Count} children");
+                            Trace.TraceInformation("  Creating new collection '{collectionName}' with {collectionMapping.Children.Count} children");
                             parentMapping.Children.Add(simplifiedCollection);
                         }
                     }
                     else
                     {
                         // Parent not found, add to result
-                        Console.WriteLine($"  WARNING: Parent '{parentPath}' not found for collection '{parts[parts.Length - 1]}', adding to root");
+                        Trace.TraceInformation("  WARNING: Parent '{parentPath}' not found for collection '{parts[parts.Length - 1]}', adding to root");
                         result.Add(collectionMapping);
                     }
                 }
@@ -870,7 +871,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             if (string.IsNullOrEmpty(absolutePath) || string.IsNullOrEmpty(loopBasePath))
                 return absolutePath;
             
-            Console.WriteLine($"    DEBUG MakeXPathRelative: abs='{absolutePath}', base='{loopBasePath}'");
+            Trace.TraceInformation("    DEBUG MakeXPathRelative: abs='{absolutePath}', base='{loopBasePath}'");
                 
             // Remove leading slash for comparison
             var absPath = absolutePath.TrimStart('/');
@@ -882,7 +883,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             {
                 // Extract the relative part
                 var relativePart = absPath.Substring(basePath.Length + 1); // +1 for the slash
-                Console.WriteLine($"      Extracted relative part: '{relativePart}'");
+                Trace.TraceInformation("      Extracted relative part: '{relativePart}'");
                 
                 var segments = relativePart.Split('/');
                 for (int i = 0; i < segments.Length; i++)
@@ -896,14 +897,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 }
                 
                 relativePart = string.Join("/", segments);
-                Console.WriteLine($"      Final relative path: '{relativePart}'");
+                Trace.TraceInformation("      Final relative path: '{relativePart}'");
                 
                 // The loop context is IMPLICIT - just return the relative path
                 return relativePart;
             }
             
             // If it doesn't start with the loop path, return as-is (might be an external reference)
-            Console.WriteLine($"      Path doesn't start with loop base - returning unchanged");
+            Trace.TraceInformation("      Path doesn't start with loop base - returning unchanged");
             return absolutePath;
         }
         
@@ -1066,15 +1067,15 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
 
         private string ResolveSourceExpression(string linkFrom)
         {
-            Console.WriteLine($"DEBUG ResolveSourceExpression: linkFrom={linkFrom}");
+            Trace.TraceInformation("DEBUG ResolveSourceExpression: linkFrom={linkFrom}");
             
             // Check if linkFrom is a schema node
             var sourceNode = GetSchemaNode(linkFrom, _mapData.SourceTree);
             if (sourceNode != null)
             {
-                Console.WriteLine($"  Found schema node: {sourceNode.Name}, XPath={sourceNode.XPath}");
+                Trace.TraceInformation("  Found schema node: {sourceNode.Name}, XPath={sourceNode.XPath}");
                 var result = BuildSourceXPath(sourceNode);
-                Console.WriteLine($"  Returning XPath: {result}");
+                Trace.TraceInformation("  Returning XPath: {result}");
                 return result;
             }
 
@@ -1082,13 +1083,13 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             var functoid = _mapData.Functoids.FirstOrDefault(f => f.FunctoidId == linkFrom);
             if (functoid != null)
             {
-                Console.WriteLine($"  Found functoid: Type={functoid.FunctoidType}, ID={functoid.FunctoidId}");
+                Trace.TraceInformation("  Found functoid: Type={functoid.FunctoidType}, ID={functoid.FunctoidId}");
                 var result = TranslateFunctoid(functoid);
-                Console.WriteLine($"  Functoid translated to: {result}");
+                Trace.TraceInformation("  Functoid translated to: {result}");
                 return result;
             }
 
-            Console.WriteLine($"  Not found as schema node or functoid, returning as-is: {linkFrom}");
+            Trace.TraceInformation("  Not found as schema node or functoid, returning as-is: {linkFrom}");
             return linkFrom;
         }
 
@@ -1153,6 +1154,13 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     break;
                 case "StringUpperCase":
                     expression = resolvedParams.Count >= 1 ? $"upper-case({resolvedParams[0]})" : $"/* StringUpperCase requires 1 param */";
+                    break;
+                case "StringPadLeft":
+                    expression = resolvedParams.Count >= 3
+                        ? $"string-pad-left({resolvedParams[0]}, {resolvedParams[1]}, {resolvedParams[2]})"
+                        : resolvedParams.Count >= 2
+                        ? $"string-pad-left({resolvedParams[0]}, {resolvedParams[1]})"
+                        : $"/* StringPadLeft requires 2-3 params */";
                     break;
                 
                 // Additional String functoids (Azure Data Mapper patterns)
@@ -1381,6 +1389,9 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 case "CumulativeConcat":
                     expression = resolvedParams.Count >= 1 ? $"string-join({resolvedParams[0]}, '')" : $"/* CumulativeConcat requires 1 param */";
                     break;
+                case "CumulativeCount":
+                    expression = resolvedParams.Count >= 1 ? $"count({resolvedParams[0]})" : $"/* CumulativeCount requires 1 param */";
+                    break;
 
                 // Advanced functoids - Value Mapping (FID 374-376)
                 case "ValueMappingFlattening":
@@ -1398,14 +1409,25 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 case "NilValue":
                     expression = $"null /* Nil Value */";
                     break;
+                case "MassFlattening":
+                    expression = resolvedParams.Count == 2
+                        ? $"if-then-else({resolvedParams[0]}, {resolvedParams[1]}, null)"
+                        : $"/* MassFlattening requires 2 params */";
+                    break;
 
                 // Advanced functoids - Looping/Iteration (FID 424, 474)
                 case "Looping":
                     // For Looping functoids, return the source XPath that will be used in $for loops
                     expression = resolvedParams.Count >= 1 ? $"$for({resolvedParams[0]})" : "$loop";
                     break;
+                case "TableLoopingExtract":
+                    expression = $"/* TableLoopingExtract - requires manual review: extract column from table looping */";
+                    break;
                 case "Iteration":
                     expression = $"position()";
+                    break;
+                case "RecordCount":
+                    expression = resolvedParams.Count >= 1 ? $"count({resolvedParams[0]})" : $"/* RecordCount requires 1 param */";
                     break;
 
                 // Scripting functoid (FID 260)
@@ -1525,8 +1547,8 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 // The comparison result determines if the first parameter value should be mapped
                 // Format: if-then-else(comparison, valueToMap, null)
                 
-                Console.WriteLine($"  CONDITIONAL PATTERN: {functoid.FunctoidType} functoid links to target field");
-                Console.WriteLine($"    Generating if-then-else({comparisonFunction}({resolvedParams[0]}, {resolvedParams[1]}), {resolvedParams[0]}, null)");
+                Trace.TraceInformation("  CONDITIONAL PATTERN: {functoid.FunctoidType} functoid links to target field");
+                Trace.TraceInformation("    Generating if-then-else({comparisonFunction}({resolvedParams[0]}, {resolvedParams[1]}), {resolvedParams[0]}, null)");
                 
                 return $"if-then-else({comparisonFunction}({resolvedParams[0]}, {resolvedParams[1]}), {resolvedParams[0]}, null)";
             }
@@ -1628,7 +1650,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
         /// <returns>The resolved parameter as a quoted constant or XPath expression.</returns>
         private string ResolveParameter(BtmParameter param)
         {
-            Console.WriteLine($"DEBUG ResolveParameter: Type={param.Type}, Value={param.Value}");
+            Trace.TraceInformation("DEBUG ResolveParameter: Type={param.Type}, Value={param.Value}");
             
             if (param.Type == "constant")
             {
@@ -1638,8 +1660,8 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             else if (param.Type == "link")
             {
                 // The param.Value is a Link ID - we need to find that link and get its LinkFrom
-                Console.WriteLine($"  Looking for link with ID: {param.Value}");
-                Console.WriteLine($"  Total links in map: {_mapData.Links.Count}");
+                Trace.TraceInformation("  Looking for link with ID: {param.Value}");
+                Trace.TraceInformation("  Total links in map: {_mapData.Links.Count}");
                 
                 // Trim and compare to handle any whitespace issues
                 var linkId = param.Value?.Trim();
@@ -1647,7 +1669,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 
                 if (link != null)
                 {
-                    Console.WriteLine($"  Found link! LinkFrom={link.LinkFrom}, LinkTo={link.LinkTo}");
+                    Trace.TraceInformation("  Found link! LinkFrom={link.LinkFrom}, LinkTo={link.LinkTo}");
                     // Now resolve the link's source (LinkFrom)
                     var resolved = ResolveSourceExpression(link.LinkFrom);
                     
@@ -1657,7 +1679,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     {
                         // This is a BTM-format XPath that needs cleanup
                         resolved = CleanupSourceXPath(resolved);
-                        Console.WriteLine($"  Cleaned up BTM XPath to: {resolved}");
+                        Trace.TraceInformation("  Cleaned up BTM XPath to: {resolved}");
                     }
                     else if (!resolved.Contains("(") || 
                              resolved.StartsWith("/ns") || 
@@ -1666,21 +1688,21 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         // This looks like an XPath (starts with /ns or ns, or has no parentheses)
                         // Apply namespace prefix if needed
                         resolved = CleanupSourceXPath(resolved);
-                        Console.WriteLine($"  Cleaned up XPath to: {resolved}");
+                        Trace.TraceInformation("  Cleaned up XPath to: {resolved}");
                     }
                     else
                     {
                         // This is a function call (contains parentheses, doesn't look like XPath)
                         // Don't modify it
-                        Console.WriteLine($"  Keeping function as-is: {resolved}");
+                        Trace.TraceInformation("  Keeping function as-is: {resolved}");
                     }
                     
                     return resolved;
                 }
                 else
                 {
-                    Console.WriteLine($"  Link NOT FOUND with ID: {param.Value}");
-                    Console.WriteLine($"  Available link IDs: {string.Join(", ", _mapData.Links.Select(l => $"'{l.LinkId}'"))}");
+                    Trace.TraceInformation("  Link NOT FOUND with ID: {param.Value}");
+                    Trace.TraceInformation("  Available link IDs: {0}", string.Join(", ", _mapData.Links.Select(l => "'" + l.LinkId + "'")));
                 }
                 
                 // Fallback: try to resolve the param value directly and clean it up
@@ -1871,7 +1893,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
         /// </remarks>
         private LmlMapping CreateMassCopyLoopMapping(string targetCollectionPath, string sourceCollectionPath, TranslatedMapData translatedMap)
         {
-            Console.WriteLine($"DEBUG: Creating mass copy loop for {targetCollectionPath} from {sourceCollectionPath}");
+            Trace.TraceInformation("DEBUG: Creating mass copy loop for {targetCollectionPath} from {sourceCollectionPath}");
             
             var sourcePathParts = sourceCollectionPath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             var loopSegmentIndex = -1;
@@ -1914,8 +1936,8 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 }
                 var loopPath = "/" + string.Join("/", loopPathBuilder);
                 
-                Console.WriteLine($"  Found Loop segment at index {loopSegmentIndex}: {sourcePathParts[loopSegmentIndex]}");
-                Console.WriteLine($"  Creating $for loop at: {loopPath}");
+                Trace.TraceInformation("  Found Loop segment at index {loopSegmentIndex}: {sourcePathParts[loopSegmentIndex]}");
+                Trace.TraceInformation("  Creating $for loop at: {loopPath}");
                 
                 // Extract the target element name (e.g., "LineItem" from "/Basket/OrderForms/OrderForm/LineItems/LineItem")
                 var targetPathParts = targetCollectionPath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
@@ -1960,7 +1982,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 forLoopMapping.Children.Add(itemMapping);
                 collectionMapping.Children.Add(forLoopMapping);
                 
-                Console.WriteLine($"  Created loop structure: {targetParentPath} -> $for({loopPath}) -> {targetElementName}");
+                Trace.TraceInformation("  Created loop structure: {targetParentPath} -> $for({loopPath}) -> {targetElementName}");
                 
                 return collectionMapping;
             }
@@ -1971,7 +1993,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             
             if (string.IsNullOrEmpty(sourceSchemaPath) || string.IsNullOrEmpty(targetSchemaPath))
             {
-                Console.WriteLine($"  WARNING: Schema file paths not available, falling back to direct mapping");
+                Trace.TraceInformation("  WARNING: Schema file paths not available, falling back to direct mapping");
                 return new LmlMapping
                 {
                     TargetPath = targetCollectionPath,
@@ -1986,11 +2008,11 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             var sourceChildren = ParseXsdForChildren(sourceSchemaPath, sourceCollectionPath);
             var targetChildren = ParseXsdForChildren(targetSchemaPath, targetCollectionPath);
             
-            Console.WriteLine($"  Found {sourceChildren.Count} source children and {targetChildren.Count} target children");
+            Trace.TraceInformation("  Found {sourceChildren.Count} source children and {targetChildren.Count} target children");
             
             if (sourceChildren.Count == 0 || targetChildren.Count == 0)
             {
-                Console.WriteLine($"  WARNING: No children found in schemas, falling back to direct mapping");
+                Trace.TraceInformation("  WARNING: No children found in schemas, falling back to direct mapping");
                 return new LmlMapping
                 {
                     TargetPath = targetCollectionPath,
@@ -2007,7 +2029,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             
             if (sourceChildElement == null || targetChildElement == null)
             {
-                Console.WriteLine($"  WARNING: No repeating child element found, falling back to direct mapping");
+                Trace.TraceInformation("  WARNING: No repeating child element found, falling back to direct mapping");
                 return new LmlMapping
                 {
                     TargetPath = targetCollectionPath,
@@ -2018,7 +2040,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 };
             }
             
-            Console.WriteLine($"  Source child: {sourceChildElement.Name}, Target child: {targetChildElement.Name}");
+            Trace.TraceInformation("  Source child: {sourceChildElement.Name}, Target child: {targetChildElement.Name}");
             
             // Create the collection wrapper (OrderForms)
             var collectionMapping2 = new LmlMapping
@@ -2056,7 +2078,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             var sourceAttributes = ParseXsdAttributes(sourceSchemaPath, $"{sourceCollectionPath}/{sourceChildElement.Name}");
             var targetAttributes = ParseXsdAttributes(targetSchemaPath, $"{targetCollectionPath}/{targetChildElement.Name}");
             
-            Console.WriteLine($"  Found {sourceAttributes.Count} source attributes and {targetAttributes.Count} target attributes");
+            Trace.TraceInformation("  Found {sourceAttributes.Count} source attributes and {targetAttributes.Count} target attributes");
             
             foreach (var targetAttr in targetAttributes)
             {
@@ -2068,7 +2090,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     // CRITICAL FIX: In a $for loop context, attribute XPaths should NOT be quoted
                     // Azure Data Mapper expects: @AttributeName (not '@AttributeName')
                     childItemMapping.Attributes[$"@{targetAttr}"] = $"@{sourceAttr}";
-                    Console.WriteLine($"    Mapped attribute: @{targetAttr} = @{sourceAttr}");
+                    Trace.TraceInformation("    Mapped attribute: @{targetAttr} = @{sourceAttr}");
                 }
             }
             
@@ -2138,7 +2160,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  ERROR parsing XSD attributes: {ex.Message}");
+                Trace.TraceInformation("  ERROR parsing XSD attributes: {ex.Message}");
             }
             
             return attributes;
@@ -2156,7 +2178,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             
             if (!File.Exists(xsdFilePath))
             {
-                Console.WriteLine($"  WARNING: XSD file not found: {xsdFilePath}");
+                Trace.TraceInformation("  WARNING: XSD file not found: {xsdFilePath}");
                 return children;
             }
             
@@ -2178,7 +2200,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     ? elementNameWithNs.Substring(elementNameWithNs.IndexOf(':') + 1) 
                     : elementNameWithNs;
                 
-                Console.WriteLine($"  Searching XSD for element: '{elementName}' (from path: '{parentPath}')");
+                Trace.TraceInformation("  Searching XSD for element: '{elementName}' (from path: '{parentPath}')");
                 
                 // Find the element definition in the XSD
                 var elementNode = xsdDoc.SelectSingleNode($"//xs:element[@name='{elementName}']", nsMgr);
@@ -2264,24 +2286,24 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                                     }
                                     
                                     children.Add(child);
-                                    Console.WriteLine($"    Found child: {childName} (IsRepeating: {child.IsRepeating})");
+                                    Trace.TraceInformation("    Found child: {childName} (IsRepeating: {child.IsRepeating})");
                                 }
                             }
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"  WARNING: No complexType found for element '{elementName}'");
+                        Trace.TraceInformation("  WARNING: No complexType found for element '{elementName}'");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"  WARNING: Element '{elementName}' not found in XSD");
+                    Trace.TraceInformation("  WARNING: Element '{elementName}' not found in XSD");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  ERROR parsing XSD: {ex.Message}");
+                Trace.TraceInformation("  ERROR parsing XSD: {ex.Message}");
             }
             
             return children;
@@ -2296,23 +2318,23 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             var forLoops = new List<LmlMapping>();
             FindAllForLoops(hierarchy, forLoops);
             
-            Console.WriteLine($"DEBUG: Found {forLoops.Count} $for loops to process");
+            Trace.TraceInformation("DEBUG: Found {forLoops.Count} $for loops to process");
             
             foreach (var forLoop in forLoops)
             {
                 if (string.IsNullOrEmpty(forLoop.LoopTargetParentPath) || string.IsNullOrEmpty(forLoop.LoopExpression))
                 {
-                    Console.WriteLine($"  Skipping $for loop with missing LoopTargetParentPath or LoopExpression");
+                    Trace.TraceInformation("  Skipping $for loop with missing LoopTargetParentPath or LoopExpression");
                     continue;
                 }
                     
-                Console.WriteLine($"  Processing $for loop: {forLoop.LoopExpression} targeting {forLoop.LoopTargetParentPath}");
+                Trace.TraceInformation("  Processing $for loop: {forLoop.LoopExpression} targeting {forLoop.LoopTargetParentPath}");
                 
                 // Find the item element inside the $for loop
                 var itemElement = forLoop.Children.FirstOrDefault(c => c.TargetPath == forLoop.LoopTargetElementName);
                 if (itemElement == null)
                 {
-                    Console.WriteLine($"    WARNING: No item element found in $for loop (expected '{forLoop.LoopTargetElementName}')");
+                    Trace.TraceInformation("    WARNING: No item element found in $for loop (expected '{forLoop.LoopTargetElementName}')");
                     continue;
                 }
                 
@@ -2320,14 +2342,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 // These attributes were added during BuildHierarchyFromFlatMappings but have absolute XPaths
                 if (itemElement.Attributes != null && itemElement.Attributes.Count > 0)
                 {
-                    Console.WriteLine($"    Making {itemElement.Attributes.Count} attributes relative to loop");
+                    Trace.TraceInformation("    Making {itemElement.Attributes.Count} attributes relative to loop");
                     var relativeAttributes = new Dictionary<string, string>();
                     foreach (var attr in itemElement.Attributes)
                     {
                         var originalValue = attr.Value;
                         var relativeValue = MakeXPathRelativeInExpression(originalValue, forLoop.LoopExpression);
                         relativeAttributes[attr.Key] = relativeValue;
-                        Console.WriteLine($"      Attribute {attr.Key}: '{originalValue}' -> '{relativeValue}'");
+                        Trace.TraceInformation("      Attribute {attr.Key}: '{originalValue}' -> '{relativeValue}'");
                     }
                     itemElement.Attributes = relativeAttributes;
                 }
@@ -2335,7 +2357,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 // Also process child elements' source expressions
                 if (itemElement.Children != null && itemElement.Children.Count > 0)
                 {
-                    Console.WriteLine($"    Making {itemElement.Children.Count} child element XPaths relative to loop");
+                    Trace.TraceInformation("    Making {itemElement.Children.Count} child element XPaths relative to loop");
                     MakeChildPathsRelative(itemElement.Children, forLoop.LoopExpression);
                 }
                 
@@ -2344,7 +2366,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 var childMappings = new List<LmlMapping>();
                 FindChildMappingsForLoop(hierarchy, forLoop.LoopTargetParentPath, childMappings);
                 
-                Console.WriteLine($"    Found {childMappings.Count} potential child mappings for this loop from outer hierarchy");
+                Trace.TraceInformation("    Found {childMappings.Count} potential child mappings for this loop from outer hierarchy");
                 
                 // Move matching children into the item element and make XPaths relative
                 foreach (var childMapping in childMappings)
@@ -2354,7 +2376,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     {
                         var originalExpr = childMapping.SourceExpression;
                         childMapping.SourceExpression = MakeXPathRelativeInExpression(childMapping.SourceExpression, forLoop.LoopExpression);
-                        Console.WriteLine($"      Child expression: '{originalExpr}' -> '{childMapping.SourceExpression}'");
+                        Trace.TraceInformation("      Child expression: '{originalExpr}' -> '{childMapping.SourceExpression}'");
                     }
                     
                     // Make attribute XPaths relative too
@@ -2364,7 +2386,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         foreach (var attr in childMapping.Attributes)
                         {
                             var attrValue = MakeXPathRelativeInExpression(attr.Value, forLoop.LoopExpression);
-                            Console.WriteLine($"      Made attribute XPath relative: {attr.Key} = {attrValue}");
+                            Trace.TraceInformation("      Made attribute XPath relative: {attr.Key} = {attrValue}");
                             relativeAttributes[attr.Key] = attrValue;
                         }
                         childMapping.Attributes = relativeAttributes;
@@ -2403,7 +2425,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     child.SourceExpression = MakeXPathRelativeInExpression(originalExpr, loopExpression);
                     if (originalExpr != child.SourceExpression)
                     {
-                        Console.WriteLine($"        Child '{child.TargetPath}': '{originalExpr}' -> '{child.SourceExpression}'");
+                        Trace.TraceInformation("        Child '{child.TargetPath}': '{originalExpr}' -> '{child.SourceExpression}'");
                     }
                 }
                 
@@ -2462,7 +2484,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         normalizedMappingPath.StartsWith(normalizedLoopPath + "/@"))
                     {
                         result.Add(mapping);
-                        Console.WriteLine($"      Found potential child: {mapping.TargetPath}");
+                        Trace.TraceInformation("      Found potential child: {mapping.TargetPath}");
                     }
                 }
                 
@@ -2476,14 +2498,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
         
         private void RemoveDuplicateLoopMappings(List<LmlMapping> hierarchy)
         {
-            Console.WriteLine($"DEBUG: RemoveDuplicateLoopMappings called on hierarchy with {hierarchy.Count} nodes");
+            Trace.TraceInformation("DEBUG: RemoveDuplicateLoopMappings called on hierarchy with {hierarchy.Count} nodes");
             
             // Remove mappings that have already been moved into $for loops
             for (int i = hierarchy.Count - 1; i >= 0; i--)
             {
                 var mapping = hierarchy[i];
                 
-                Console.WriteLine($"  Processing node: {mapping.TargetPath}, Children: {mapping.Children?.Count ?? 0}");
+                Trace.TraceInformation("  Processing node: {mapping.TargetPath}, Children: {mapping.Children?.Count ?? 0}");
                 
                 // Recursively clean children first (bottom-up approach)
                 if (mapping.Children != null && mapping.Children.Count > 0)
@@ -2495,14 +2517,14 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 // This handles cases where the same element (e.g., "LineItems") appears twice at the same level
                 if (mapping.Children != null && mapping.Children.Count > 1)
                 {
-                    Console.WriteLine($"  Checking for duplicates in {mapping.Children.Count} children of '{mapping.TargetPath}'");
+                    Trace.TraceInformation("  Checking for duplicates in {mapping.Children.Count} children of '{mapping.TargetPath}'");
                     
                     // CRITICAL: Extract just the last segment of each child's TargetPath for comparison
                     // This handles cases where some children have full paths and others have just the element name
                     var duplicateGroups = mapping.Children
                         .GroupBy(c => {
                             var lastSegment = c.TargetPath?.Split('/').Last() ?? c.TargetPath;
-                            Console.WriteLine($"    Child path '{c.TargetPath}' -> segment '{lastSegment}'");
+                            Trace.TraceInformation("    Child path '{c.TargetPath}' -> segment '{lastSegment}'");
                             return lastSegment;
                         })
                         .Where(g => g.Count() > 1)
@@ -2510,7 +2532,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     
                     foreach (var duplicateGroup in duplicateGroups)
                     {
-                        Console.WriteLine($"  DUPLICATE SIBLINGS FOUND: {duplicateGroup.Count()}x '{duplicateGroup.Key}' under '{mapping.TargetPath}'");
+                        Trace.TraceInformation("  DUPLICATE SIBLINGS FOUND: {duplicateGroup.Count()}x '{duplicateGroup.Key}' under '{mapping.TargetPath}'");
                         
                         // Keep the one WITH a $for loop child (preferred)
                         var withForLoop = duplicateGroup.FirstOrDefault(c => 
@@ -2518,7 +2540,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                         
                         if (withForLoop != null)
                         {
-                            Console.WriteLine($"    Keeping version with $for loop");
+                            Trace.TraceInformation("    Keeping version with $for loop");
                             
                             // Remove all others
                             foreach (var duplicate in duplicateGroup)
@@ -2526,19 +2548,19 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                                 if (duplicate != withForLoop)
                                 {
                                     mapping.Children.Remove(duplicate);
-                                    Console.WriteLine($"    Removed duplicate '{duplicate.TargetPath}' without $for loop");
+                                    Trace.TraceInformation("    Removed duplicate '{duplicate.TargetPath}' without $for loop");
                                 }
                             }
                         }
                         else
                         {
                             // No $for loop in any - keep the first one and warn
-                            Console.WriteLine($"    WARNING: No version with $for loop found - keeping first instance");
+                            Trace.TraceInformation("    WARNING: No version with $for loop found - keeping first instance");
                             var toKeep = duplicateGroup.First();
                             foreach (var duplicate in duplicateGroup.Skip(1))
                             {
                                 mapping.Children.Remove(duplicate);
-                                Console.WriteLine($"    Removed duplicate '{duplicate.TargetPath}'");
+                                Trace.TraceInformation("    Removed duplicate '{duplicate.TargetPath}'");
                             }
                         }
                     }
@@ -2560,7 +2582,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                             // Use full path to avoid removing wrong elements
                             var fullPath = mapping.TargetPath + "/" + child.TargetPath;
                             targetsCoveredByForLoops.Add(child.TargetPath);
-                            Console.WriteLine($"      Marking as covered by $for: {child.TargetPath}");
+                            Trace.TraceInformation("      Marking as covered by $for: {child.TargetPath}");
                         }
                     }
                     
@@ -2579,7 +2601,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                             // CRITICAL FIX: Always remove children that are covered by $for loops
                             // The $for loop version is the correct one - any duplicate outside the loop should be removed
                             // This handles cases where mass copy creates both a direct mapping AND a $for loop
-                            Console.WriteLine($"    Removing duplicate mapping: {child.TargetPath} (covered by $for loop)");
+                            Trace.TraceInformation("    Removing duplicate mapping: {child.TargetPath} (covered by $for loop)");
                             // Don't add to keptChildren - effectively removing it
                         }
                         else
@@ -2595,7 +2617,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     // (This handles the case where we have both PO1Loop1 and PIDLoop1 loops)
                     if (forLoops.Count > 1)
                     {
-                        Console.WriteLine($"    Found {forLoops.Count} $for loops, keeping only the first one");
+                        Trace.TraceInformation("    Found {forLoops.Count} $for loops, keeping only the first one");
                         var firstForLoop = forLoops.First();
                         
                         // Remove all but the first $for loop
@@ -2623,15 +2645,15 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
         {
             if (translatedMap.TargetNamespaces == null || translatedMap.TargetNamespaces.Count == 0)
             {
-                Console.WriteLine("  EnforceTargetNamespaceAsNs0: No target namespaces to process");
+                Trace.TraceInformation("  EnforceTargetNamespaceAsNs0: No target namespaces to process");
                 return;
             }
             
-            Console.WriteLine("DEBUG: Enforcing target schema's primary namespace as ns0");
-            Console.WriteLine($"  Current target namespaces:");
+            Trace.TraceInformation("DEBUG: Enforcing target schema's primary namespace as ns0");
+            Trace.TraceInformation("  Current target namespaces:");
             foreach (var ns in translatedMap.TargetNamespaces)
             {
-                Console.WriteLine($"    {ns.Key} = {ns.Value}");
+                Trace.TraceInformation("    {ns.Key} = {ns.Value}");
             }
             
             // STEP 1: Find the target schema's primary business namespace
@@ -2657,7 +2679,7 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     namespaceUri.Contains("XMLSchema") ||
                     namespaceUri.Contains("BizTalk/2003"))
                 {
-                    Console.WriteLine($"  Skipping utility namespace {prefix}: {namespaceUri}");
+                    Trace.TraceInformation("  Skipping utility namespace {prefix}: {namespaceUri}");
                     continue;
                 }
                 
@@ -2668,9 +2690,9 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                     var originalNs0 = originalTargetNamespaces["ns0"];
                     if (originalNs0.Contains("PropertySchema"))
                     {
-                        Console.WriteLine($"  Original target has PropertySchema at ns0 - schema imports PropertySchema");
-                        Console.WriteLine($"  This means target namespace should stay in {prefix}, NOT swap to ns0");
-                        Console.WriteLine($"  Skipping namespace enforcement for this map");
+                        Trace.TraceInformation("  Original target has PropertySchema at ns0 - schema imports PropertySchema");
+                        Trace.TraceInformation("  This means target namespace should stay in {prefix}, NOT swap to ns0");
+                        Trace.TraceInformation("  Skipping namespace enforcement for this map");
                         return; // Don't swap!
                     }
                 }
@@ -2679,49 +2701,49 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
                 bool wasInOriginalTarget = originalTargetNamespaces.Values.Contains(namespaceUri);
                 bool isInSourceValues = translatedMap.SourceNamespaces.Values.Contains(namespaceUri);
                 
-                Console.WriteLine($"  Checking namespace {prefix}: {namespaceUri}");
-                Console.WriteLine($"    Was in original target: {wasInOriginalTarget}");
-                Console.WriteLine($"    Is in source values: {isInSourceValues}");
+                Trace.TraceInformation("  Checking namespace {prefix}: {namespaceUri}");
+                Trace.TraceInformation("    Was in original target: {wasInOriginalTarget}");
+                Trace.TraceInformation("    Is in source values: {isInSourceValues}");
                 
                 // If the namespace was in BOTH original target AND source, it's shared
                 if (wasInOriginalTarget && isInSourceValues)
                 {
-                    Console.WriteLine($"  Namespace {prefix} is SHARED (in both original target and source) - will NOT swap");
+                    Trace.TraceInformation("  Namespace {prefix} is SHARED (in both original target and source) - will NOT swap");
                     continue;
                 }
                 
                 // If namespace is only in source (copied later), it's not unique to target
                 if (isInSourceValues && !wasInOriginalTarget)
                 {
-                    Console.WriteLine($"  Namespace {prefix} was copied from source (not in original target) - will NOT swap");
+                    Trace.TraceInformation("  Namespace {prefix} was copied from source (not in original target) - will NOT swap");
                     continue;
                 }
                 
                 // This namespace is unique to target
                 targetPrimaryNamespace = namespaceUri;
                 targetPrimaryPrefix = prefix;
-                Console.WriteLine($"  Found target primary namespace: {targetPrimaryPrefix} = {targetPrimaryNamespace} (UNIQUE to target)");
+                Trace.TraceInformation("  Found target primary namespace: {targetPrimaryPrefix} = {targetPrimaryNamespace} (UNIQUE to target)");
                 break;
             }
             
             // STEP 2: If no unique target namespace found, don't change anything
             if (string.IsNullOrEmpty(targetPrimaryNamespace) || string.IsNullOrEmpty(targetPrimaryPrefix))
             {
-                Console.WriteLine("  No unique target business namespace found - keeping current namespace assignments");
+                Trace.TraceInformation("  No unique target business namespace found - keeping current namespace assignments");
                 return;
             }
             
             // STEP 3: Check if target primary namespace is already ns0
             if (targetPrimaryPrefix == "ns0")
             {
-                Console.WriteLine($"  Target primary namespace is already ns0 - no changes needed");
+                Trace.TraceInformation("  Target primary namespace is already ns0 - no changes needed");
                 return;
             }
             
             // STEP 4: Swap namespaces so target primary namespace becomes ns0
-            Console.WriteLine($"  Swapping namespace prefixes:");
-            Console.WriteLine($"    Before: ns0 = {(translatedMap.TargetNamespaces.ContainsKey("ns0") ? translatedMap.TargetNamespaces["ns0"] : "(not set)")}");
-            Console.WriteLine($"    Before: {targetPrimaryPrefix} = {targetPrimaryNamespace}");
+            Trace.TraceInformation("  Swapping namespace prefixes:");
+            Trace.TraceInformation("    Before: ns0 = {0}", translatedMap.TargetNamespaces.ContainsKey("ns0") ? translatedMap.TargetNamespaces["ns0"] : "(not set)");
+            Trace.TraceInformation("    Before: {targetPrimaryPrefix} = {targetPrimaryNamespace}");
             
             var tempNamespaces = new Dictionary<string, string>(translatedMap.TargetNamespaces);
             
@@ -2748,13 +2770,13 @@ namespace BizTalktoLogicApps.BTMtoLMLMigrator
             // Replace the target namespaces
             translatedMap.TargetNamespaces = tempNamespaces;
             
-            Console.WriteLine($"    After: ns0 = {translatedMap.TargetNamespaces["ns0"]}");
-            Console.WriteLine($"    After: {targetPrimaryPrefix} = {(translatedMap.TargetNamespaces.ContainsKey(targetPrimaryPrefix) ? translatedMap.TargetNamespaces[targetPrimaryPrefix] : "(removed)")}");
+            Trace.TraceInformation("    After: ns0 = {0}", translatedMap.TargetNamespaces["ns0"]);
+            Trace.TraceInformation("    After: {0} = {1}", targetPrimaryPrefix, translatedMap.TargetNamespaces.ContainsKey(targetPrimaryPrefix) ? translatedMap.TargetNamespaces[targetPrimaryPrefix] : "(removed)");
             
-            Console.WriteLine($"  Final target namespaces:");
+            Trace.TraceInformation("  Final target namespaces:");
             foreach (var ns in translatedMap.TargetNamespaces)
             {
-                Console.WriteLine($"    {ns.Key} = {ns.Value}");
+                Trace.TraceInformation("    {ns.Key} = {ns.Value}");
             }
         }
     }

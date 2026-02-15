@@ -1,0 +1,168 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "msgApprovalInfo": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "msgApprovalInfo",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "Until": {
+        "type": "Until",
+        "expression": "@not(equals(variables('msgApprovalInfo')?['ApprovalStatus'], 'Waiting'))",
+        "limit": {
+          "count": 60,
+          "timeout": "PT1H"
+        },
+        "actions": {
+          "ReceiveStatusRequest": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from poReceiveStatusRequest (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {}
+          },
+          "ReceiveApproval": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from poApproved (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {}
+          },
+          "SendStatusRequest": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {}
+          },
+          "SendApprovedAck": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {}
+          },
+          "ReceiveStatusRequest_1": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from poReceiveStatusRequest (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {}
+          },
+          "SendStatusRequest_1": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "ReceiveStatusRequest_1": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ReceiveApproval_1": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from poApproved (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {}
+          },
+          "SendApprovedAck_1": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "ReceiveApproval_1": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "Get_Approver_Response_Join": {
+            "type": "Compose",
+            "inputs": {
+              "parallelBranchesCompleted": true,
+              "branchCount": 6
+            },
+            "runAfter": {
+              "ReceiveStatusRequest": [
+                "SUCCEEDED"
+              ],
+              "ReceiveApproval": [
+                "SUCCEEDED"
+              ],
+              "SendStatusRequest": [
+                "SUCCEEDED"
+              ],
+              "SendApprovedAck": [
+                "SUCCEEDED"
+              ],
+              "SendStatusRequest_1": [
+                "SUCCEEDED"
+              ],
+              "SendApprovedAck_1": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "msgApprovalInfo": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Until": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

@@ -1,0 +1,18 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: AdvancedShipNotice.xsd
+$targetSchema: AdvancedShipNotice.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+msdata:Root:
+  Child: custom-function(/ns0:Root/Field1, /ns0:Root/Field2) /* Original code: <!-- The following Xslt call template constructs the 'Child' record structure of the Destination document based on the input parameters to this functoid. -->  <xsl:template name='MyXsltCallTemplate'> 	<xsl:param name='param1' /> 	<xsl:param name='param2' /> 	<xsl:element name='Child'> 		<xsl:attribute name='Field1'> 			<xsl:value-of select='$param1' /><xsl:value-of select='$param2' /> 		</xsl:attribute> 		<Record1/> 		<Record2/> 	</xsl:element> </xsl:template> */

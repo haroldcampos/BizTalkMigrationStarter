@@ -1,0 +1,113 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_messages_received_in_session": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "queueName": "queue",
+            "isSessionsEnabled": false
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "receiveQueueMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "kind": ""
+      }
+    },
+    "actions": {
+      "Send_2": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {}
+      },
+      "Until": {
+        "type": "Until",
+        "expression": "@'!(true)'",
+        "limit": {
+          "count": 60,
+          "timeout": "PT1H"
+        },
+        "actions": {
+          "Receive_1": {
+            "type": "Compose",
+            "inputs": "// Unmapped: Response Receive response from mqreceive (BizTalk correlation pattern - requires manual configuration)",
+            "runAfter": {}
+          },
+          "Send_1": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {
+              "Receive_1": [
+                "SUCCEEDED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Send_2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "Until": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Sequential Convoy",
+          "description": "Multiple correlated messages processed in order",
+          "recommendation": "Use Stateful workflow with session-based messaging (Service Bus, RabbitMQ, or Kafka) for guaranteed message ordering"
+        },
+        {
+          "name": "Splitter",
+          "description": "Split a single message into multiple messages",
+          "recommendation": "Use For-Each loop with dynamic array from message"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:13.0840734Z"
+    }
+  }
+}

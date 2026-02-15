@@ -1,0 +1,193 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "brokerID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "brokerID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "partner": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "partner",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "brokerID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "orderID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "orderID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "partner": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "bFailure": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "bFailure",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "orderID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "OrderAck": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "OrderAck",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "bFailure": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "GetBrokerID": {
+        "type": "Compose",
+        "inputs": "@'orderID = OrderInquiryMessage.Request.OrderGroupId;\r\npartner = OrderRequestRoleLink(Microsoft.XLANGs.BaseTypes.SourceParty);\r\nbrokerID = partner.Name;\r\n//brokerID = OrderInquiryMessage.Request.SoldToName'",
+        "runAfter": {
+          "OrderAck": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CallGetPurchaseOrder": {
+        "type": "Workflow",
+        "inputs": {
+          "host": {
+            "workflow": {
+              "id": "GetPurchaseOrder"
+            }
+          },
+          "body": {
+            "message": "@triggerBody()"
+          }
+        },
+        "runAfter": {
+          "GetBrokerID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "GotOrderWithID_f3eabe99": {
+        "type": "If",
+        "expression": "@equals(false, variables('bFailure'))",
+        "actions": {
+          "OrderSend_ea1b91f2": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "http://localhost/service",
+              "body": "@triggerBody()",
+              "headers": {
+                "Content-Type": "application/json"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "else": {
+          "actions": {
+            "OrderAck_5f8b153f": {
+              "type": "Compose",
+              "inputs": "@'OrderAck = Microsoft.Samples.BizTalk.Litware.Utilities.ResourceHelper.GetEmptyOrderAck();\r\nOrderAck.Response.OrderGroupId = orderID;\r\nOrderAck.Response.Result = false;\r\nOrderAck.Response.SoldToName = brokerID'",
+              "runAfter": {}
+            },
+            "SendNACK_935bf48c": {
+              "type": "Http",
+              "inputs": {
+                "method": "POST",
+                "uri": "http://localhost/service",
+                "body": "@triggerBody()",
+                "headers": {
+                  "Content-Type": "application/json"
+                }
+              },
+              "runAfter": {
+                "OrderAck_5f8b153f": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "CallGetPurchaseOrder": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "GotOrderWithID_f3eabe99": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

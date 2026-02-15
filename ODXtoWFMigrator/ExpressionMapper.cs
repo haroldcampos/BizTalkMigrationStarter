@@ -15,6 +15,15 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
     /// </summary>
     public static class ExpressionMapper
     {
+        private static readonly Regex TypeCastPattern = new Regex(@"^\(\s*[\w\.]+\s*\)", RegexOptions.Compiled);
+
+        // BizTalk promoted property access: message(Schema.Property)
+        // Examples: ship_request_ack(ShippingSchemas.Ship_Acknowledged)
+        //          ship_history(ShippingSchemas.Ship_Completed)
+        //          ship_status(ShippingSchemas.ShipStatus)
+        private static readonly Regex PromotedPropertyPattern = new Regex(
+            @"^(\w+)\((\w+)\.(\w+)\)$", RegexOptions.Compiled);
+
         /// <summary>
         /// Maps a BizTalk expression to Logic Apps WDL expression.
         /// Handles comparisons, logical operators, method calls, and property access.
@@ -57,7 +66,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                 return mapped;
             }
-            catch (Exception)
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 // Safety: If conversion fails, wrap as string literal
                 return "@'" + expression.Replace("'", "''") + "'";
@@ -194,6 +203,17 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return ConvertLessThan(expr, variableNames);
             }
 
+            // Handle assignment statements (single '=' that is not '==', '!=', '>=', '<=')
+            // MUST be checked BEFORE string concatenation, because assignment expressions like
+            //   FailureReason = "Message Construction Failed because: " + eOrderBroker.Message
+            // contain both '=' and '+' with string literals. If ConvertStringConcatenation runs first,
+            // the '+' split produces 'FailureReason = "..."' as an operand, which gets wrapped as
+            // variables('FailureReason = "..."') — an invalid variable name.
+            if (IsAssignmentExpression(expr))
+            {
+                return "'" + expr.Replace("'", "''") + "'";
+            }
+
             // Handle string concatenation with + operator
             if (expr.Contains("+") && ContainsStringLiteral(expr))
             {
@@ -219,6 +239,19 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             if (expr.StartsWith("xpath("))
             {
                 return ConvertXPath(expr);
+            }
+
+            // Handle BizTalk promoted property access: message(Schema.Property)
+            // BizTalk context/promoted properties have no direct Logic Apps equivalent.
+            // Use variables() to reference the message content, since messages used in
+            // conditions are tracked as variables. Using body() would reference a
+            // nonexistent action and cause template validation errors.
+            var promotedExprMatch = PromotedPropertyPattern.Match(expr);
+            if (promotedExprMatch.Success)
+            {
+                var messageName = promotedExprMatch.Groups[1].Value;
+                var propertyName = promotedExprMatch.Groups[3].Value;
+                return $"variables('{messageName}')?['{propertyName}']";
             }
 
             // Handle property access (Message.Field or Variable.Property)
@@ -257,6 +290,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return "false";
             }
 
+            // Handle null literal
+            if (expr.Equals("null", StringComparison.Ordinal))
+            {
+                return "null";
+            }
+
             // Fallback: return as string literal
             return "'" + expr.Replace("'", "''") + "'";
         }
@@ -266,11 +305,16 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         private static string ConvertLogicalAnd(string expr, IEnumerable<string> variableNames)
         {
             var parts = expr.Split(new[] { "&&" }, StringSplitOptions.None);
-            if (parts.Length == 2)
+            if (parts.Length >= 2)
             {
-                var left = ConvertExpression(parts[0].Trim(), variableNames);
-                var right = ConvertExpression(parts[1].Trim(), variableNames);
-                return $"and({left}, {right})";
+                // Build nested and() calls for N operands: and(a, and(b, c))
+                var right = ConvertExpression(parts[parts.Length - 1].Trim(), variableNames);
+                for (int i = parts.Length - 2; i >= 0; i--)
+                {
+                    var left = ConvertExpression(parts[i].Trim(), variableNames);
+                    right = $"and({left}, {right})";
+                }
+                return right;
             }
             return "'" + expr.Replace("'", "''") + "'";
         }
@@ -278,11 +322,16 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         private static string ConvertLogicalOr(string expr, IEnumerable<string> variableNames)
         {
             var parts = expr.Split(new[] { "||" }, StringSplitOptions.None);
-            if (parts.Length == 2)
+            if (parts.Length >= 2)
             {
-                var left = ConvertExpression(parts[0].Trim(), variableNames);
-                var right = ConvertExpression(parts[1].Trim(), variableNames);
-                return $"or({left}, {right})";
+                // Build nested or() calls for N operands: or(a, or(b, c))
+                var right = ConvertExpression(parts[parts.Length - 1].Trim(), variableNames);
+                for (int i = parts.Length - 2; i >= 0; i--)
+                {
+                    var left = ConvertExpression(parts[i].Trim(), variableNames);
+                    right = $"or({left}, {right})";
+                }
+                return right;
             }
             return "'" + expr.Replace("'", "''") + "'";
         }
@@ -429,13 +478,15 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
         private static string ConvertListAdd(string expr)
         {
-            // MessagesToAggregate.Add(ActivationMessage) -> union(variables('MessagesToAggregate'), createArray(body('ActivationMessage')))
+            // MessagesToAggregate.Add(ActivationMessage) -> union(variables('MessagesToAggregate'), createArray(variables('ActivationMessage')))
+            // Both the list and the item are BizTalk variables/messages, not Logic Apps actions.
+            // Using body() would reference a nonexistent action and cause template validation errors.
             var match = Regex.Match(expr, @"(\w+)\.Add\((\w+)\)");
             if (match.Success)
             {
                 var listVar = match.Groups[1].Value;
                 var itemVar = match.Groups[2].Value;
-                return $"union(variables('{listVar}'), createArray(body('{itemVar}')))";
+                return $"union(variables('{listVar}'), createArray(variables('{itemVar}')))";
             }
             return "'" + expr.Replace("'", "''") + "'";
         }
@@ -481,7 +532,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 // Return a comment indicating manual implementation is needed
                 if (parts.Length >= 2)
                 {
-                    var propertyName = parts[parts.Length - 1];
+                    // Clean trailing non-identifier characters (e.g., "Message )" from string concat splitting)
+                    var rawPropertyName = parts[parts.Length - 1];
+                    var propertyName = new string(rawPropertyName.TakeWhile(c => char.IsLetterOrDigit(c) || c == '_' || c == '(' || c == ')').ToArray());
                     if (string.Equals(propertyName, "ToString()", StringComparison.OrdinalIgnoreCase))
                     {
                         return "'Exception occurred'";
@@ -494,13 +547,18 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return "'" + firstPart + "'";
             }
 
-            // Detect C# Enum constant (3+ segments, all TitleCased)
-            // Example: Sat.Scade.Pagos.Modelo.Comun.Procesos.RecepcionArchivosPagos
-            if (parts.Length >= 3 && parts.All(p => p.Length > 0 && char.IsUpper(p[0])))
+            // Detect fully-qualified .NET type reference or enum constant
+            // Examples:
+            //   Microsoft.Solutions.BTARN.ConfigurationManager.ConfigurationConstants.rnifv11VersionID
+            //   System.Boolean.FalseString
+            //   Sat.Scade.Pagos.Modelo.Comun.Procesos.RecepcionArchivosPagos
+            // These must NOT be converted to body('Microsoft') or body('System') which creates
+            // invalid action references in Logic Apps.
+            if (parts.Length >= 2 && IsFullyQualifiedReference(parts))
             {
-                // This is an enum constant - use just the last segment as string literal
-                var enumValue = parts[parts.Length - 1];
-                return "'" + enumValue + "'";
+                // Use just the last segment as string literal value
+                var lastSegment = parts[parts.Length - 1];
+                return "'" + lastSegment + "'";
             }
 
             // Detect variable reference
@@ -563,6 +621,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             // Strip type casts like (System.Int16), (int), (string), etc.
             operand = StripTypeCast(operand);
 
+            // Strip trailing non-identifier characters left over from expression splitting.
+            // When ConvertStringConcatenation splits "text" + FailureReason ), the right
+            // operand becomes "FailureReason )" — the trailing " )" must be removed before
+            // it is passed to ConvertVariableReference (which would produce variables('FailureReason )')).
+            operand = StripTrailingNonIdentifier(operand);
+
             // String literal
             if (operand.StartsWith("\"") && operand.EndsWith("\""))
             {
@@ -585,6 +649,29 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             if (operand.Equals("false", StringComparison.OrdinalIgnoreCase))
             {
                 return "false";
+            }
+
+            // Null literal
+            if (operand.Equals("null", StringComparison.Ordinal))
+            {
+                return "null";
+            }
+
+            // BizTalk promoted property access: message(Schema.Property)
+            // Examples: ship_request_ack(ShippingSchemas.Ship_Acknowledged)
+            //           ship_status(ShippingSchemas.ShipStatus)
+            // Must be checked BEFORE the generic dot-based property access, because the
+            // dot inside parentheses would cause ConvertPropertyAccess to split incorrectly
+            // producing body('ship_request_ack(ShippingSchemas')?['Ship_Acknowledged)'].
+            // Uses variables() instead of body() because the message name refers to a
+            // BizTalk message, not a Logic Apps action. Messages used in conditions are
+            // tracked as variables in the generated workflow.
+            var promotedMatch = PromotedPropertyPattern.Match(operand);
+            if (promotedMatch.Success)
+            {
+                var messageName = promotedMatch.Groups[1].Value;
+                var propertyName = promotedMatch.Groups[3].Value;
+                return $"variables('{messageName}')?['{propertyName}']";
             }
 
             // Property access (Message.Field or Variable.Property)
@@ -611,8 +698,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
             // Pattern: (TypeName)Value or (Namespace.TypeName)Value
             // Matches: (System.Int16)..., (int)..., (string)..., etc.
-            var typeCastPattern = new Regex(@"^\(\s*[\w\.]+\s*\)");
-            var match = typeCastPattern.Match(expr);
+            var match = TypeCastPattern.Match(expr);
 
             if (match.Success)
             {
@@ -624,9 +710,135 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         }
 
         /// <summary>
+        /// Strips trailing non-identifier characters from an operand.
+        /// When expressions are split on operators like '+', residual syntax characters
+        /// such as closing parentheses, semicolons, or commas may remain attached.
+        /// Example: "FailureReason )" -> "FailureReason"
+        /// Example: "count ;" -> "count"
+        /// Only strips when the core content looks like an identifier or property access;
+        /// string literals and numeric literals are left untouched.
+        /// </summary>
+        private static string StripTrailingNonIdentifier(string operand)
+        {
+            if (string.IsNullOrWhiteSpace(operand))
+                return operand;
+
+            // Don't strip string literals
+            if (operand.StartsWith("\""))
+                return operand;
+
+            // Trim trailing characters that are not part of an identifier or property access.
+            // Valid trailing chars: letters, digits, underscore, dot (property access), quote.
+            // Closing paren ')' is only valid when matched with an opening '(' (method calls like ToString()).
+            // A lone trailing ')' is residual syntax from expression splitting and must be stripped.
+            int end = operand.Length - 1;
+            while (end >= 0)
+            {
+                char c = operand[end];
+                if (char.IsLetterOrDigit(c) || c == '_' || c == '"')
+                    break;
+                // Keep ')' only if the operand contains a matching '(' (method call)
+                if (c == ')' && operand.IndexOf('(') >= 0)
+                    break;
+                end--;
+            }
+
+            if (end < 0)
+                return operand; // All characters stripped - return original to avoid empty string
+
+            var trimmed = operand.Substring(0, end + 1).TrimEnd();
+
+            // Also strip leading non-identifier characters (e.g., "( FailureReason" -> "FailureReason")
+            // Don't strip if it starts with a quote (string literal) or digit (numeric)
+            if (trimmed.Length > 0 && !char.IsLetterOrDigit(trimmed[0]) && trimmed[0] != '_' && trimmed[0] != '"' && trimmed[0] != '(')
+            {
+                int start = 0;
+                while (start < trimmed.Length && !char.IsLetterOrDigit(trimmed[start]) && trimmed[start] != '_' && trimmed[start] != '"')
+                {
+                    start++;
+                }
+                if (start < trimmed.Length)
+                {
+                    trimmed = trimmed.Substring(start).TrimStart();
+                }
+            }
+
+            return trimmed.Length > 0 ? trimmed : operand;
+        }
+
+        /// <summary>
+        /// Determines if a single-line expression is a C# assignment statement.
+        /// Detects bare '=' that is not part of '==', '!=', '>=', or '<='.
+        /// Examples:
+        ///   StubSAPWSRequest.BAPI_BANKACCT_GET_DETAIL_Request = CreditLimitRequest  -> true
+        ///   a == b                                                                  -> false
+        ///   count > 10                                                              -> false
+        /// </summary>
+        private static bool IsAssignmentExpression(string expr)
+        {
+            // Remove compound operators so they don't produce false-positive bare '='
+            var stripped = expr
+                .Replace("==", "")
+                .Replace("!=", "")
+                .Replace(">=", "")
+                .Replace("<=", "");
+
+            // If a bare '=' remains, this is an assignment
+            return stripped.Contains("=");
+        }
+
+        /// <summary>
+        /// Determines if a dot-separated expression is a fully-qualified .NET type/constant reference
+        /// rather than a message property access.
+        /// Detects patterns like:
+        ///   - Microsoft.Solutions.BTARN.* (starts with known namespace root)
+        ///   - System.Boolean.FalseString (starts with known namespace root)
+        ///   - Sat.Scade.Pagos.* (3+ segments, most PascalCase = namespace path)
+        /// </summary>
+        private static bool IsFullyQualifiedReference(string[] parts)
+        {
+            if (parts.Length < 2)
+                return false;
+
+            var first = parts[0];
+
+            // Known .NET / BizTalk namespace roots that are never message or action names
+            if (first.Equals("Microsoft", StringComparison.Ordinal) ||
+                first.Equals("System", StringComparison.Ordinal) ||
+                first.Equals("IBM", StringComparison.Ordinal) ||
+                first.Equals("Oracle", StringComparison.Ordinal) ||
+                first.Equals("Newtonsoft", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            // For 3+ segments, check if all but the last start with uppercase (namespace/type path)
+            // The last segment can be any case (field, property, or enum value)
+            if (parts.Length >= 3)
+            {
+                bool allLeadingUpperCase = true;
+                for (int i = 0; i < parts.Length - 1; i++)
+                {
+                    if (parts[i].Length == 0 || !char.IsUpper(parts[i][0]))
+                    {
+                        allLeadingUpperCase = false;
+                        break;
+                    }
+                }
+                if (allLeadingUpperCase)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Determines if an identifier is a BizTalk exception variable.
-        /// BizTalk convention: exception variables start with 'e' followed by an uppercase letter.
-        /// Examples: eBreakLoop, eAbortException, eRollbackException, ePersistenceException
+        /// BizTalk conventions include:
+        ///   - Names starting with 'e' followed by an uppercase letter (eBreakLoop, eAbortException)
+        ///   - Names ending with 'Ex' or 'Exception' (globalEx, CodeEx, pEx, interruptEx)
+        ///   - The common short names 'ex' and 'exp'
+        /// These are exception objects in catch blocks and cannot be referenced as actions in Logic Apps.
         /// </summary>
         private static bool IsExceptionVariable(string identifier)
         {
@@ -635,8 +847,32 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return false;
             }
 
-            // Check if starts with 'e' followed by uppercase letter (BizTalk exception naming convention)
-            return identifier[0] == 'e' && char.IsUpper(identifier[1]);
+            // Check if starts with 'e' followed by uppercase letter (eBreakLoop, eAbortException)
+            if (identifier[0] == 'e' && char.IsUpper(identifier[1]))
+            {
+                return true;
+            }
+
+            // Check if ends with 'Ex' (globalEx, CodeEx, pEx, interruptEx, interruptFacilitiesEx)
+            if (identifier.EndsWith("Ex", StringComparison.Ordinal) && identifier.Length > 2)
+            {
+                return true;
+            }
+
+            // Check if ends with 'Exception' (globalException, myException)
+            if (identifier.EndsWith("Exception", StringComparison.Ordinal) && identifier.Length > 9)
+            {
+                return true;
+            }
+
+            // Check common short names 'ex' and 'exp' (case-insensitive)
+            if (string.Equals(identifier, "ex", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(identifier, "exp", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         #endregion

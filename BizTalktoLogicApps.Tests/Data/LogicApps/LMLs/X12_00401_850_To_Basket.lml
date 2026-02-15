@@ -1,0 +1,32 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: X12_00401_850.xsd
+$targetSchema: Basket.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  btsedi: http://schemas.microsoft.com/BizTalk/2005/EdiSchemaEditorExtension
+  ns0: http://schemas.microsoft.com/BizTalk/EDI/X12/2006
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  btsedi: http://schemas.microsoft.com/BizTalk/2005/EdiSchemaEditorExtension
+  ns0: http://Microsoft.Samples.BizTalk.Litware.Schemas.PropertySchema.PropertySchema
+  ns1: http://Microsoft.Samples.BizTalk.Litware.Schemas.PropertySchema
+  xs: http://www.w3.org/2001/XMLSchema
+Basket:
+  $@BasketID: /ns0:X12_00401_850/ns0:BEG/BEG03
+  $@Created: /ns0:X12_00401_850/ns0:BEG/BEG05
+  $@LastModified: current-dateTime()
+  $@LineItemCount: /ns0:X12_00401_850/ns0:CTTLoop1/ns0:CTT/CTT01
+  $@OrderGroupID: /ns0:X12_00401_850/ns0:BEG/BEG03
+  OrderForms:
+    OrderForm:
+      $@OrderGroupID: /ns0:X12_00401_850/ns0:BEG/BEG03
+      PromoCodeRecords: /ns0:X12_00401_850/ns0:CTTLoop1/ns0:CTT/CTT01
+      LineItems:
+        $for(/ns0:X12_00401_850/ns0:PO1Loop1):
+          LineItem:
+            $@Description: ns0:PIDLoop1/PID_2/PID05
+            $@ProductID: ns0:PO1/PO107
+            $@Quantity: abs(ns0:PO1/PO102)

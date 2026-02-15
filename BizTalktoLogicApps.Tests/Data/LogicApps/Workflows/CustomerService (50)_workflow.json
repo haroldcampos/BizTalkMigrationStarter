@@ -1,0 +1,1241 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "DefaultReceiveLocation": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "accountNumber": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "accountNumber",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "customerName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "customerName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "accountNumber": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "zipCode": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "zipCode",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "customerName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "RequestIsValid": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "RequestIsValid",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "zipCode": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "errorLastPayments": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "errorLastPayments",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "RequestIsValid": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "errorPendingTransactions": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "errorPendingTransactions",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "errorLastPayments": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "errorCreditLimit": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "errorCreditLimit",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "runAfter": {
+          "errorPendingTransactions": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "beginCreditLimitTime": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "beginCreditLimitTime",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "errorCreditLimit": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "endCreditLimitTime": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "endCreditLimitTime",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "beginCreditLimitTime": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "beginLastPaymentTime": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "beginLastPaymentTime",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "endCreditLimitTime": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "endLastPaymentTime": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "endLastPaymentTime",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "beginLastPaymentTime": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "beginPendingTransTime": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "beginPendingTransTime",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "endLastPaymentTime": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "endPendingTransTime": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "endPendingTransTime",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "beginPendingTransTime": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "creditLimitDuration": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "creditLimitDuration",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "endPendingTransTime": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "lastPaymentDuration": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "lastPaymentDuration",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "creditLimitDuration": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "pendingTransDuration": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "pendingTransDuration",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "lastPaymentDuration": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "activityID": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "activityID",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "pendingTransDuration": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "beginTime": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "beginTime",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "activityID": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "endTime": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "endTime",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "beginTime": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "timeTaken": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "timeTaken",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "endTime": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "sapReturnCode": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "sapReturnCode",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "timeTaken": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "sapTimeout": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "sapTimeout",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "sapReturnCode": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "pendTransTimeout": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "pendTransTimeout",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "sapTimeout": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "pmntTrackTimeout": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "pmntTrackTimeout",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "pendTransTimeout": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "xd1": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "xd1",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "pmntTrackTimeout": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CustomerServiceRequest": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "CustomerServiceRequest",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "xd1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CustomerServiceResponse": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "CustomerServiceResponse",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "CustomerServiceRequest": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DataElementName": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "DataElementName",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "CustomerServiceResponse": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Request": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "Request",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "DataElementName": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "CreditLimitResponse": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "CreditLimitResponse",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "Request": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "PendingTransactionsResponse": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "PendingTransactionsResponse",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "CreditLimitResponse": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "HandleExceptions": {
+        "type": "Scope",
+        "actions": {
+          "BeginActivity": {
+            "type": "Compose",
+            "inputs": "@'// Begin the BAM activity\r\n\r\nactivityID = Microsoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.BeginRequest(CustomerServiceRequest.RequestSource, CustomerServiceRequest.RequestType);\r\n\r\n// Save starting time for later computing response times...\r\nbeginTime = System.DateTime.Now;\r\n\r\n// Request Received Milestone\r\nMicrosoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackRequestReceived(activityID)'",
+            "runAfter": {}
+          },
+          "GetTimeoutValues": {
+            "type": "Compose",
+            "inputs": "@'sapTimeout = System.Convert.ToInt32 (\r\n        Microsoft.Samples.BizTalk.WoodgroveBank.ConfigHelper.ConfigParameters.GetConfigParameter(\r\n            Microsoft.Samples.BizTalk.WoodgroveBank.ConfigHelper.ConfigParameters.SsoConfigParameter.SapAdapterTimeout),\r\n        System.Globalization.CultureInfo.CurrentCulture);\r\npendTransTimeout = System.Convert.ToInt32(\r\n        Microsoft.Samples.BizTalk.WoodgroveBank.ConfigHelper.ConfigParameters.GetConfigParameter(\r\n            Microsoft.Samples.BizTalk.WoodgroveBank.ConfigHelper.ConfigParameters.SsoConfigParameter.PendingTransactionsAdapterTimeout),\r\n        System.Globalization.CultureInfo.CurrentCulture);\r\npmntTrackTimeout = System.Convert.ToInt32(\r\n        Microsoft.Samples.BizTalk.WoodgroveBank.ConfigHelper.ConfigParameters.GetConfigParameter(\r\n            Microsoft.Samples.BizTalk.WoodgroveBank.ConfigHelper.ConfigParameters.SsoConfigParameter.PaymentTrackingAdapterTimeout),\r\n        System.Globalization.CultureInfo.CurrentCulture)'",
+            "runAfter": {
+              "BeginActivity": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ExtractCustomerName": {
+            "type": "Compose",
+            "inputs": "@'// Validate the input request based on the contents of the AuthenticationInfo element.\r\n// The AuthenticationInfo elements contains name/value pairs for authenticating the customer\r\n// We must either have a ZipCode or a CustomerName to declare that this a valid request.\r\n// Validating the message based on the contents of the request is done in one or more\r\n// of the back end systems...\r\n\r\ncustomerName  = xpath(CustomerServiceRequest, \r\n\"string(/*[local-name()=''CustomerServiceRequest'']/*[local-name()=''Body'']/*[local-name()=''AuthenticationInfo''][DataElementName=''CustomerName'']/*[local-name()=''DataElementValue''])\")'",
+            "runAfter": {
+              "GetTimeoutValues": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ExtractZipCode": {
+            "type": "Compose",
+            "inputs": "@'//Get the zipCode out of the message...\r\n\r\nzipCode = xpath(CustomerServiceRequest, \r\n\"string(/*[local-name()=''CustomerServiceRequest'']/*[local-name()=''Body'']/*[local-name()=''AuthenticationInfo''][DataElementName=''ZipCode'']/*[local-name()=''DataElementValue''])\")'",
+            "runAfter": {
+              "ExtractCustomerName": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ExtractAccountNumber": {
+            "type": "Compose",
+            "inputs": "@'//Get the Account Number out of the message...\r\n\r\naccountNumber = xpath(CustomerServiceRequest, \r\n\"string(/*[local-name()=''CustomerServiceRequest'']/*[local-name()=''Body'']/*[local-name()=''AccountNumber''])\")'",
+            "runAfter": {
+              "ExtractZipCode": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "ValidateRequest": {
+            "type": "Compose",
+            "inputs": "@'// One of the authentication values must be there in the message in order to proceed\r\n// And the account number must be there also.\r\n// And the account number must be valid...\r\nRequestIsValid = (zipCode != \"\" || customerName != \"\") && \r\n                    accountNumber != \"\" &&\r\n                    Microsoft.Samples.BizTalk.WoodgroveBank.Utilities.CustomerServiceHelper.IsAccountNumberValid(accountNumber)'",
+            "runAfter": {
+              "ExtractAccountNumber": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "IsRequestValid_a906930a": {
+            "type": "If",
+            "expression": "@variables('RequestIsValid')",
+            "actions": {
+              "ConstructCreditLimitRequest_e5169b60": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "CustomerServiceRequest_To_CreditLimiRequest",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {}
+              },
+              "Expression_1": {
+                "type": "Compose",
+                "inputs": "@'xd1 = CreditLimitRequest;\r\nSystem.Diagnostics.Trace.WriteLine(\"Credit Limit Request = \" + xd1.OuterXml)'",
+                "runAfter": {
+                  "ConstructCreditLimitRequest_e5169b60": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "AssignBeginTime": {
+                "type": "Compose",
+                "inputs": "@'beginCreditLimitTime = System.DateTime.Now'",
+                "runAfter": {
+                  "Expression_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SendCreditLimitRequest": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "http://localhost/service",
+                  "body": "@triggerBody()",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  }
+                },
+                "runAfter": {
+                  "AssignBeginTime": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SAPTimeoutDetectionScope": {
+                "type": "Scope",
+                "actions": {
+                  "ReceiveCreditLimitResponse": {
+                    "type": "Compose",
+                    "inputs": "// Unmapped: Response Receive response from Port_1 (BizTalk correlation pattern - requires manual configuration)",
+                    "runAfter": {}
+                  },
+                  "ExamineForError": {
+                    "type": "Compose",
+                    "inputs": "@'// Examine the SAP return code\r\n\r\nsapReturnCode = (System.String) xpath(CreditLimitResponse, \r\n\"string(/*[local-name()=''BAPI_BANKACCT_GET_DETAIL_Response'']/*[local-name()=''E_RC''])\");\r\n\r\nerrorCreditLimit = sapReturnCode != \"\"'",
+                    "runAfter": {
+                      "ReceiveCreditLimitResponse": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "SAPTimeoutHandler": {
+                    "type": "Scope",
+                    "actions": {
+                      "AssignTimeoutError": {
+                        "type": "Compose",
+                        "inputs": "@'errorCreditLimit = true;\r\n\r\nsapReturnCode = Microsoft.Samples.BizTalk.WoodgroveBank.ErrorHelper.CustomerServiceErrors.SapTimeoutErrorCode()'",
+                        "runAfter": {}
+                      },
+                      "Trace": {
+                        "type": "Compose",
+                        "inputs": "@'WriteLine(\"Timeout from SAP\")'",
+                        "runAfter": {
+                          "AssignTimeoutError": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "ConstructCreditLimitResponeMessage_ce80b779": {
+                        "type": "Xslt",
+                        "inputs": {
+                          "content": "@triggerBody()",
+                          "map": {
+                            "name": "CustomerServiceRequest_To_CreditLimitResponse",
+                            "type": "Xslt"
+                          },
+                          "transformOptions": "ApplyXsltTemplates"
+                        },
+                        "runAfter": {
+                          "Trace": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Trace_1": {
+                        "type": "Compose",
+                        "inputs": "@'System.Diagnostics.Trace.WriteLine(\"Constructed SAP Response Message\");\r\n\r\n//xd1 = CreditLimitResponse ;\r\n//System.Diagnostics.Trace.Write(\"CreditLimitResponse = \" + xd1.OuterXml)'",
+                        "runAfter": {
+                          "ConstructCreditLimitResponeMessage_ce80b779": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "ExamineForError": [
+                        "FAILED",
+                        "TIMEDOUT",
+                        "SKIPPED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "SendCreditLimitRequest": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "CreateBAMMilestone": {
+                "type": "Compose",
+                "inputs": "@'endCreditLimitTime = System.DateTime.Now;\r\ncreditLimitDuration = endCreditLimitTime.Subtract(beginCreditLimitTime);\r\n\r\n// Create the appropriate BAM milestones...\r\nif (errorCreditLimit)\r\n{\r\n    // Map SAP return code to appropriate descriptions here...\r\n\r\n    Microsoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackCreditLimitError\r\n       (\r\n           activityID, \r\n           System.Convert.ToInt32(creditLimitDuration.TotalMilliseconds),\r\n           sapReturnCode,\r\n           Microsoft.Samples.BizTalk.WoodgroveBank.ErrorHelper.CustomerServiceErrors.DecodeSapErrorCodeToDescription(sapReturnCode),\r\n           Microsoft.Samples.BizTalk.WoodgroveBank.ErrorHelper.CustomerServiceErrors.DecodeSapErrorCodeToSource(sapReturnCode)\r\n       );       \r\n}\r\nelse\r\n{\r\n    Microsoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackCreditLimitSuccess(activityID, \r\n          System.Convert.ToInt32(creditLimitDuration.TotalMilliseconds));\r\n}'",
+                "runAfter": {
+                  "SAPTimeoutDetectionScope": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ConstructLastPaymentRequest_85e96c88": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "CustomerServiceRequest_To_LastPaymentRequest",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {}
+              },
+              "AssignBeginTime_1": {
+                "type": "Compose",
+                "inputs": "@'beginLastPaymentTime = System.DateTime.Now'",
+                "runAfter": {
+                  "ConstructLastPaymentRequest_85e96c88": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SendRequestToPaymentTrackingSystem": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "http://localhost/service",
+                  "body": "@triggerBody()",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  }
+                },
+                "runAfter": {
+                  "AssignBeginTime_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ExamineForError_1": {
+                "type": "Compose",
+                "inputs": "@'// Check for errors\r\nerrorLastPayments = LastPaymentResponse.ResponseStatus.Error.ErrorNumber != \"0000\"'",
+                "runAfter": {
+                  "SendRequestToPaymentTrackingSystem": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "AssignTimeoutError_1": {
+                "type": "Compose",
+                "inputs": "@'errorLastPayments = true'",
+                "runAfter": {
+                  "SendRequestToPaymentTrackingSystem": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ReceiveResponseFromPaymentTrackingSystem": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from PaymentTrackingSystemResponsePort (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "SendRequestToPaymentTrackingSystem": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "AssembleResponseMessageWithError_c6ac8d1d": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "CustomerServiceRequest_To_LastPaymentResponseTimeout",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {
+                  "SendRequestToPaymentTrackingSystem": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetTimeoutPeriod": {
+                "type": "Wait",
+                "inputs": {
+                  "interval": {
+                    "count": 1,
+                    "unit": "Minute"
+                  }
+                },
+                "runAfter": {
+                  "SendRequestToPaymentTrackingSystem": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ExamineForError_2": {
+                "type": "Compose",
+                "inputs": "@'// Check for errors\r\nerrorLastPayments = LastPaymentResponse.ResponseStatus.Error.ErrorNumber != \"0000\"'",
+                "runAfter": {
+                  "SendRequestToPaymentTrackingSystem": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ReceiveResponseFromPaymentTrackingSystem_1": {
+                "type": "Compose",
+                "inputs": "// Unmapped: Response Receive response from PaymentTrackingSystemResponsePort (BizTalk correlation pattern - requires manual configuration)",
+                "runAfter": {
+                  "ExamineForError_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "AssignTimeoutError_2": {
+                "type": "Compose",
+                "inputs": "@'errorLastPayments = true'",
+                "runAfter": {
+                  "SendRequestToPaymentTrackingSystem": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "AssembleResponseMessageWithError_c6ac8d1d_1": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "CustomerServiceRequest_To_LastPaymentResponseTimeout",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {
+                  "AssignTimeoutError_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SetTimeoutPeriod_1": {
+                "type": "Wait",
+                "inputs": {
+                  "interval": {
+                    "count": 1,
+                    "unit": "Minute"
+                  }
+                },
+                "runAfter": {
+                  "AssembleResponseMessageWithError_c6ac8d1d_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ListenForPmntTrackResponseWithTimeout_Join": {
+                "type": "Compose",
+                "inputs": {
+                  "parallelBranchesCompleted": true,
+                  "branchCount": 7
+                },
+                "runAfter": {
+                  "ExamineForError_1": [
+                    "SUCCEEDED"
+                  ],
+                  "AssignTimeoutError_1": [
+                    "SUCCEEDED"
+                  ],
+                  "ReceiveResponseFromPaymentTrackingSystem": [
+                    "SUCCEEDED"
+                  ],
+                  "AssembleResponseMessageWithError_c6ac8d1d": [
+                    "SUCCEEDED"
+                  ],
+                  "SetTimeoutPeriod": [
+                    "SUCCEEDED"
+                  ],
+                  "ReceiveResponseFromPaymentTrackingSystem_1": [
+                    "SUCCEEDED"
+                  ],
+                  "SetTimeoutPeriod_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "CreateBAMMilestones": {
+                "type": "Compose",
+                "inputs": "@'// Calculate the response time\r\nendLastPaymentTime = System.DateTime.Now;\r\nlastPaymentDuration = endLastPaymentTime.Subtract(beginLastPaymentTime);\r\n\r\n// Create the BAM milestones...\r\nif (errorLastPayments)\r\n{\r\n    Microsoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackLastPaymentError(activityID, \r\n           System.Convert.ToInt32(lastPaymentDuration.TotalMilliseconds), \r\n           LastPaymentResponse.ResponseStatus.Error.ErrorNumber, \r\n           LastPaymentResponse.ResponseStatus.Error.ErrorDescription,\r\n           LastPaymentResponse.ResponseStatus.Error.ErrorSource);\r\n}\r\nelse\r\n{\r\n    Microsoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackLastPaymentSuccess(activityID, \r\n          System.Convert.ToInt32(lastPaymentDuration.TotalMilliseconds));\r\n}'",
+                "runAfter": {
+                  "ListenForPmntTrackResponseWithTimeout_Join": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "ConstructPendingTransactionsRequest_53076f8f": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "CustomerServiceRequest_To_PendingTransactionsRequest",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {}
+              },
+              "AssignBeginTime_2": {
+                "type": "Compose",
+                "inputs": "@'beginPendingTransTime = System.DateTime.Now'",
+                "runAfter": {
+                  "ConstructPendingTransactionsRequest_53076f8f": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "SendPendingTransactionsRequest": {
+                "type": "Http",
+                "inputs": {
+                  "method": "POST",
+                  "uri": "http://localhost/service",
+                  "body": "@triggerBody()",
+                  "headers": {
+                    "Content-Type": "application/json"
+                  }
+                },
+                "runAfter": {
+                  "AssignBeginTime_2": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "PendTransTimeoutDetectionScope": {
+                "type": "Scope",
+                "actions": {
+                  "ReceivePendingTransactionResponse": {
+                    "type": "Compose",
+                    "inputs": "// Unmapped: Response Receive response from PendingTransactionSystemRequestResponsePort (BizTalk correlation pattern - requires manual configuration)",
+                    "runAfter": {}
+                  },
+                  "RetrieveResults_3b2fbc6c": {
+                    "type": "Compose",
+                    "inputs": "@'PendingTransactionsResponse = PendingTransactionsWSResponse.GetPendingTransactionsResult'",
+                    "runAfter": {
+                      "ReceivePendingTransactionResponse": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "ExamineForErrors": {
+                    "type": "Compose",
+                    "inputs": "@'// Error if the error code is not 0000\r\nerrorPendingTransactions = PendingTransactionsResponse.ResponseStatus.Error.ErrorNumber != \"0000\"'",
+                    "runAfter": {
+                      "RetrieveResults_3b2fbc6c": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  },
+                  "PendTransTimeoutHandler": {
+                    "type": "Scope",
+                    "actions": {
+                      "AssignTimeoutError_3": {
+                        "type": "Compose",
+                        "inputs": "@'errorPendingTransactions = true'",
+                        "runAfter": {}
+                      },
+                      "Trace_2": {
+                        "type": "Compose",
+                        "inputs": "@'WriteLine(\"Timeout from the Pending Transactions Web Service\")'",
+                        "runAfter": {
+                          "AssignTimeoutError_3": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "ConstructPendTransRespWithTimeoutError_afc97035": {
+                        "type": "Xslt",
+                        "inputs": {
+                          "content": "@triggerBody()",
+                          "map": {
+                            "name": "CustomerServiceRequest_To_PendingTransactionResponse",
+                            "type": "Xslt"
+                          },
+                          "transformOptions": "ApplyXsltTemplates"
+                        },
+                        "runAfter": {
+                          "Trace_2": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "ExamineForErrors": [
+                        "FAILED",
+                        "TIMEDOUT",
+                        "SKIPPED"
+                      ]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "SendPendingTransactionsRequest": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "CreateBAMMilestones_1": {
+                "type": "Compose",
+                "inputs": "@'endPendingTransTime = System.DateTime.Now;\r\npendingTransDuration = endPendingTransTime.Subtract(beginPendingTransTime);\r\n\r\n// Create the BAM milestones...\r\nif (errorPendingTransactions)\r\n{\r\n    Microsoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackPendingTransactionsError(activityID, \r\n           System.Convert.ToInt32(pendingTransDuration.TotalMilliseconds), \r\n           PendingTransactionsResponse.ResponseStatus.Error.ErrorNumber,\r\n           PendingTransactionsResponse.ResponseStatus.Error.ErrorDescription,\r\n           PendingTransactionsResponse.ResponseStatus.Error.ErrorSource);\r\n}\r\nelse\r\n{\r\n    Microsoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackPendingTransactionsSuccess(activityID, \r\n          System.Convert.ToInt32(pendingTransDuration.TotalMilliseconds));\r\n}'",
+                "runAfter": {
+                  "PendTransTimeoutDetectionScope": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "CollectAccountInformations_fa8184fc_Join": {
+                "type": "Compose",
+                "inputs": {
+                  "parallelBranchesCompleted": true,
+                  "branchCount": 3
+                },
+                "runAfter": {
+                  "CreateBAMMilestone": [
+                    "SUCCEEDED"
+                  ],
+                  "CreateBAMMilestones": [
+                    "SUCCEEDED"
+                  ],
+                  "CreateBAMMilestones_1": [
+                    "SUCCEEDED"
+                  ]
+                }
+              },
+              "CheckErrorAndAggregate_8f28fe58": {
+                "type": "If",
+                "expression": "@or(variables('errorCreditLimit'), or(variables('errorLastPayments'), variables('errorPendingTransactions')))",
+                "actions": {
+                  "ConstructCustomerServiceErrorResponse_016c0163": {
+                    "type": "Xslt",
+                    "inputs": {
+                      "content": "@triggerBody()",
+                      "map": {
+                        "name": "Aggregate_To_ErrorResponse",
+                        "type": "Xslt"
+                      },
+                      "transformOptions": "ApplyXsltTemplates"
+                    },
+                    "runAfter": {}
+                  },
+                  "CreateBAMMilestone_1b838a2f": {
+                    "type": "Compose",
+                    "inputs": "@'endTime = System.DateTime.Now;\r\n\r\ntimeTaken = endTime.Subtract(beginTime);\r\n\r\nMicrosoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackRequestCompleteError(activityID, System.Convert.ToInt32(timeTaken.TotalMilliseconds), CustomerServiceResponse.ResponseStatus.Error.ErrorNumber, CustomerServiceResponse.ResponseStatus.Error.ErrorDescription, CustomerServiceResponse.ResponseStatus.Error.ErrorSource)'",
+                    "runAfter": {
+                      "ConstructCustomerServiceErrorResponse_016c0163": [
+                        "SUCCEEDED"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "ConstructCustomerServiceResponse_a76878e1": {
+                      "type": "Xslt",
+                      "inputs": {
+                        "content": "@triggerBody()",
+                        "map": {
+                          "name": "Aggregate_To_CustomerServiceResponse",
+                          "type": "Xslt"
+                        },
+                        "transformOptions": "ApplyXsltTemplates"
+                      },
+                      "runAfter": {}
+                    },
+                    "CreateBAMMilestone_2b60c131": {
+                      "type": "Compose",
+                      "inputs": "@'endTime = System.DateTime.Now;\r\n\r\ntimeTaken = endTime.Subtract(beginTime);\r\n\r\nMicrosoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackRequestCompleteSuccess(activityID, System.Convert.ToInt32(timeTaken.TotalMilliseconds))'",
+                      "runAfter": {
+                        "ConstructCustomerServiceResponse_a76878e1": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "CollectAccountInformations_fa8184fc_Join": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "ConstructRequestDenied_08f742ea": {
+                  "type": "Xslt",
+                  "inputs": {
+                    "content": "@triggerBody()",
+                    "map": {
+                      "name": "CustomerServiceRequest_To_CustomerServiceResponseDenied",
+                      "type": "Xslt"
+                    },
+                    "transformOptions": "ApplyXsltTemplates"
+                  },
+                  "runAfter": {}
+                },
+                "CreateBAMMielstone_eaeb8ca5": {
+                  "type": "Compose",
+                  "inputs": "@'endTime = System.DateTime.Now;\r\n\r\ntimeTaken = endTime.Subtract(beginTime);\r\n\r\nMicrosoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.TrackInvalidRequest(activityID, System.Convert.ToInt32(timeTaken.TotalMilliseconds))'",
+                  "runAfter": {
+                    "ConstructRequestDenied_08f742ea": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "ValidateRequest": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "EndActivity": {
+            "type": "Compose",
+            "inputs": "@'// Complete the activity...\r\nMicrosoft.Samples.BizTalk.WoodgroveBank.ServiceLevelTracking.ServiceLevelTracking.EndRequest(activityID)'",
+            "runAfter": {
+              "IsRequestValid_a906930a": [
+                "SUCCEEDED"
+              ]
+            }
+          },
+          "CustomerServiceExceptionHandler": {
+            "type": "Scope",
+            "actions": {
+              "TraceException": {
+                "type": "Compose",
+                "inputs": "@concat('Write(\"Exception in Orchestration: \"', 'ex')",
+                "runAfter": {}
+              },
+              "RespondUnderException_c5928f37": {
+                "type": "Xslt",
+                "inputs": {
+                  "content": "@triggerBody()",
+                  "map": {
+                    "name": "CustomerServiceRequest_To_CustomerServiceResponseDenied",
+                    "type": "Xslt"
+                  },
+                  "transformOptions": "ApplyXsltTemplates"
+                },
+                "runAfter": {
+                  "TraceException": [
+                    "SUCCEEDED"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "EndActivity": [
+                "FAILED",
+                "TIMEDOUT",
+                "SKIPPED"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "PendingTransactionsResponse": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "HandleExceptions": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "metadata": {
+      "detectedPatterns": [
+        {
+          "name": "Scatter-Gather",
+          "description": "Send requests to multiple endpoints and aggregate responses",
+          "recommendation": "Use Parallel Branch action with built-in join synchronization"
+        },
+        {
+          "name": "Content-Based Router",
+          "description": "Route messages to different destinations based on content",
+          "recommendation": "Use Switch action or simplified If conditions with dynamic connectors"
+        },
+        {
+          "name": "Message Translator",
+          "description": "Transform message format from one schema to another",
+          "recommendation": "Use Data Mapper for visual transformations, Parse XML/Compose XML for schema validation, or Liquid templates for complex mapping"
+        },
+        {
+          "name": "Exception Handling & Compensation",
+          "description": "Handle errors and perform compensating actions",
+          "recommendation": "Use Scope action with Configure Run After for error handling"
+        }
+      ],
+      "optimizationApplied": true,
+      "generatedBy": "BizTalk to Logic Apps Refactoring Tool",
+      "generatedAt": "2026-02-15T15:30:11.7469349Z"
+    }
+  }
+}

@@ -117,6 +117,7 @@ namespace BizTalktoLogicApps.Tests.Integration.ODXtoWFMigrator
 
             var successCount = 0;
             var failureCount = 0;
+            var skippedCount = 0;
             var results = new StringBuilder();
 
             results.AppendLine($"Processing {odxFiles.Length} ODX files from {this.odxDirectory}");
@@ -151,19 +152,17 @@ namespace BizTalktoLogicApps.Tests.Integration.ODXtoWFMigrator
 
                 results.AppendLine($"Processing: {odxFileName}");
 
-                // Check if corresponding binding file exists
+                // Only process orchestrations that have a matching real binding file
                 if (!File.Exists(bindingPath))
                 {
-                    results.AppendLine($"  ??  WARNING: No matching binding file found: {bindingFileName}");
-                    results.AppendLine($"  Using default bindings for orchestration");
+                    results.AppendLine($"  ?  SKIPPED: No matching binding file found: {bindingFileName}");
+                    results.AppendLine($"  Add {bindingFileName} to Data/BizTalk/Bindings/ to enable conversion");
+                    skippedCount++;
+                    results.AppendLine();
+                    continue;
+                }
 
-                    // Create a minimal binding file
-                    bindingPath = this.CreateDefaultBindingsFile(baseName);
-                }
-                else
-                {
-                    results.AppendLine($"  Bindings: {bindingFileName}");
-                }
+                results.AppendLine($"  Bindings: {bindingFileName}");
 
                 try
                 {
@@ -227,11 +226,17 @@ namespace BizTalktoLogicApps.Tests.Integration.ODXtoWFMigrator
             results.AppendLine(new string('=', 80));
             results.AppendLine($"SUMMARY:");
             results.AppendLine($"  Total ODX files: {odxFiles.Length}");
-            results.AppendLine($"  Successful: {successCount}");
+            results.AppendLine($"  With bindings (converted): {successCount}");
+            results.AppendLine($"  Without bindings (skipped): {skippedCount}");
             results.AppendLine($"  Failed: {failureCount}");
             results.AppendLine(new string('=', 80));
 
             Console.WriteLine(results.ToString());
+
+            if (successCount == 0 && skippedCount > 0)
+            {
+                Assert.Inconclusive($"No ODX files had matching binding files. Add .xml binding files to Data/BizTalk/Bindings/ with the same base name as your .odx files. ({skippedCount} ODX file(s) skipped)");
+            }
 
             Assert.IsTrue(condition: successCount > 0, message: "At least one ODX file should be converted successfully");
         }
@@ -458,52 +463,6 @@ namespace BizTalktoLogicApps.Tests.Integration.ODXtoWFMigrator
             }
 
             return count;
-        }
-
-        /// <summary>
-        /// Creates a minimal default bindings file for testing.
-        /// </summary>
-        private string CreateDefaultBindingsFile(string orchestrationName)
-        {
-            var bindingsXml = $@"<?xml version=""1.0"" encoding=""utf-8""?>
-<BindingInfo xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
-  <ModuleRefCollection>
-    <ModuleRef Name=""{orchestrationName}"">
-      <Services>
-        <Service Name=""{orchestrationName}"">
-          <Ports>
-            <Port Name=""ReceivePort"" Modifier=""2"" BindingOption=""1"">
-              <ReceivePortRef Name=""DefaultReceivePort"" />
-            </Port>
-            <Port Name=""SendPort"" Modifier=""1"" BindingOption=""1"">
-              <SendPortRef Name=""DefaultSendPort"" />
-            </Port>
-          </Ports>
-        </Service>
-      </Services>
-    </ModuleRef>
-  </ModuleRefCollection>
-  <ReceivePortCollection>
-    <ReceivePort Name=""DefaultReceivePort"">
-      <ReceiveLocations>
-        <ReceiveLocation Name=""DefaultReceiveLocation"">
-          <Address>sb://namespace.servicebus.windows.net/queue</Address>
-          <TransportType Name=""ServiceBus"" />
-        </ReceiveLocation>
-      </ReceiveLocations>
-    </ReceivePort>
-  </ReceivePortCollection>
-  <SendPortCollection>
-    <SendPort Name=""DefaultSendPort"">
-      <Address>sb://namespace.servicebus.windows.net/queue</Address>
-      <TransportType Name=""ServiceBus"" />
-    </SendPort>
-  </SendPortCollection>
-</BindingInfo>";
-
-            var bindingsPath = Path.Combine(this.bindingsDirectory, orchestrationName + ".xml");
-            File.WriteAllText(bindingsPath, bindingsXml);
-            return bindingsPath;
         }
 
         /// <summary>

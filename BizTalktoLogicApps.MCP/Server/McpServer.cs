@@ -3,6 +3,7 @@
 
 using BizTalktoLogicApps.MCP.Models;
 using BizTalktoLogicApps.MCP.Server.ToolHandlers;
+using BizTalktoLogicApps.ODXtoWFMigrator;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -351,8 +352,9 @@ namespace BizTalktoLogicApps.MCP.Server
 
                 File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
             }
-            catch
+            catch (Exception ex) when (!ex.IsFatal())
             {
+                // Non-fatal logging failures are intentionally suppressed
             }
         }
     }

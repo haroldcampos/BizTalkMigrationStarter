@@ -1,0 +1,130 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_called_from_parent_workflow": {
+        "type": "Request",
+        "kind": "Http",
+        "description": "Migrated from BizTalk WCF endpoint - BizTalk Adapter: HTTP",
+        "metadata": {
+          "biztalkTransportType": "HTTP"
+        }
+      }
+    },
+    "actions": {
+      "minShipPrice": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "minShipPrice",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "shipRate": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "shipRate",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "minShipPrice": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "POMessageParameter": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "POMessageParameter",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "shipRate": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "POMessageOutput": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "POMessageOutput",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "POMessageParameter": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "FindShippingPrice_31a02c03": {
+        "type": "If",
+        "expression": "@less(body('(POMessageParameter(Microsoft')?['Samples']?['BizTalk']?['CallOrchestration']?['Weight) * shipRate)'], variables('minShipPrice'))",
+        "actions": {
+          "ConstructMessage_1_7621e139": {
+            "type": "Compose",
+            "inputs": "@'POMessageOutput = POMessageParameter;\r\nPOMessageOutput(Microsoft.Samples.BizTalk.CallOrchestration.shipmentPrice) = minShipPrice'",
+            "runAfter": {}
+          }
+        },
+        "else": {
+          "actions": {
+            "ConstructMessage_2_706d483a": {
+              "type": "Compose",
+              "inputs": "@'POMessageOutput = POMessageParameter;\r\nPOMessageOutput(Microsoft.Samples.BizTalk.CallOrchestration.shipmentPrice) = POMessageParameter(Microsoft.Samples.BizTalk.CallOrchestration.Weight) * shipRate'",
+              "runAfter": {}
+            }
+          }
+        },
+        "runAfter": {
+          "POMessageOutput": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "DefaultSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "entityName": "queue",
+            "message": "@triggerBody()",
+            "sessionId": "",
+            "contentType": "application/json"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "servicebus",
+            "operationId": "sendMessage",
+            "serviceProviderId": "/serviceProviders/serviceBus"
+          }
+        },
+        "runAfter": {
+          "FindShippingPrice_31a02c03": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

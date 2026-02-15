@@ -80,14 +80,14 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                     defaultPipelineInfo.Type == DefaultPipelineType.XMLTransmit)
                 {
                     Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine($"? DEFAULT PIPELINE DETECTED");
+                    Console.WriteLine($"[DEFAULT] DEFAULT PIPELINE DETECTED");
                     Console.ResetColor();
                 }
                 else if (defaultPipelineInfo.Type == DefaultPipelineType.ReceiveTemplate ||
                          defaultPipelineInfo.Type == DefaultPipelineType.TransmitTemplate)
                 {
                     Console.ForegroundColor = ConsoleColor.Magenta;
-                    Console.WriteLine($"?? PIPELINE TEMPLATE DETECTED");
+                    Console.WriteLine($"[TEMPLATE] PIPELINE TEMPLATE DETECTED");
                     Console.ResetColor();
                     if (!string.IsNullOrEmpty(defaultPipelineInfo.TemplateFile))
                     {
@@ -97,7 +97,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                 else if (defaultPipelineInfo.Type == DefaultPipelineType.Custom)
                 {
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"? CUSTOM PIPELINE");
+                    Console.WriteLine($"[CUSTOM] CUSTOM PIPELINE");
                     Console.ResetColor();
                     if (!string.IsNullOrEmpty(defaultPipelineInfo.TemplateFile))
                     {
@@ -110,7 +110,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                 if (!string.IsNullOrEmpty(defaultPipelineInfo.Limitations))
                 {
                     Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine($"? Limitations: {defaultPipelineInfo.Limitations}");
+                    Console.WriteLine($"[!] Limitations: {defaultPipelineInfo.Limitations}");
                     Console.ResetColor();
                 }
             }

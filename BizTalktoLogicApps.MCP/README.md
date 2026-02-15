@@ -986,6 +986,12 @@ When adding new tools:
 4. Update this README with tool documentation
 5. Add integration tests
 
+## Changelog
+
+### v1.0.0 (January 2026)
+
+- Initial release
+
 ## License
 
 MIT License - See LICENSE file in repository root.
@@ -1010,7 +1016,7 @@ For issues, questions, or feature requests:
 
 **Related Projects**:
 - **[ODXtoWFMigrator](../ODXtoWFMigrator/README.md)** - BizTalk orchestration to Logic Apps workflow conversion
-- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to LA template conversion
+- **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to LML (Logic Apps Mapping Language) conversion
 - **[BTPtoLA](../BTPtoLA/README.md)** - BizTalk pipeline to Logic Apps conversion
 - [Azure Logic Apps Documentation](https://learn.microsoft.com/azure/logic-apps/)
 - [BizTalk Server Documentation](https://learn.microsoft.com/biztalk/)

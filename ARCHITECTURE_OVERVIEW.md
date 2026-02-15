@@ -7,7 +7,7 @@ This document provides a comprehensive overview of all architecture diagrams for
 The BizTalk Migration Starter consists of four main components:
 
 1. **ODXtoWFMigrator** - Orchestration to Workflow converter
-2. **BTMtoLMLMigrator** - Map to Liquid template converter
+2. **BTMtoLMLMigrator** - Map to LML (Logic Apps Mapping Language) converter
 3. **BTPtoLA** - Pipeline to Logic Apps converter
 4. **BizTalkToLogicApps.MCP** - MCP Server for AI-assisted migration
 
@@ -159,11 +159,11 @@ Converts BizTalk Server orchestrations (.odx files) to Azure Logic Apps Standard
 |   BtmParser   |  -->  | FunctoidTranslator|  -->  | LmlGenerator |
 +---------------+       +-------------------+       +--------------+
     Phase 1                   Phase 2                   Phase 3
-  Parse BTM             Translate Logic            Generate Liquid
+  Parse BTM             Translate Logic            Generate LML
 ```
 
 ### Purpose
-Migrates BizTalk Server XSLT-based maps to Azure Logic Apps Data Mapper's Liquid format.
+Migrates BizTalk Server XSLT-based maps to Azure Logic Apps Data Mapper's LML (Logic Apps Mapping Language) format.
 
 ### Key Features
 - * BTM parsing (functoids, links, schemas)
@@ -467,6 +467,18 @@ Final JSON-level optimizations:
 - Adds pattern metadata
 - Generates parameters.json
 - Formats output for readability
+
+## Changelog
+
+### v1.1.0 (January 2026)
+
+- **LogicAppsMapper**: Replaced `ThreadLocal<string>` with `[ThreadStatic]` fields to eliminate `IDisposable` leak in long-running processes (MCP server)
+- **LogicAppsMapper**: `InvertCondition` now uses `SplitAtTopLevel()` to respect parenthesized grouping when applying De Morgan's law for While?Until conversion
+- **ExpressionMapper**: `ConvertLogicalAnd` / `ConvertLogicalOr` now handle N-ary expressions (3+ operands) by building nested `and()`/`or()` calls instead of falling back to string literals
+
+### v1.0.0 (January 2026)
+
+- Initial release
 
 ---
 
