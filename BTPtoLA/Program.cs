@@ -375,18 +375,16 @@ namespace BizTalktoLogicApps.BTPtoLA
                 // Validate input file
                 if (!File.Exists(pipelineFile))
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("ERROR: Pipeline file not found: " + pipelineFile);
-                    Console.ResetColor();
-                    
                     if (!batchMode)
                     {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("ERROR: Pipeline file not found: " + pipelineFile);
+                        Console.ResetColor();
                         Console.WriteLine();
                         Console.WriteLine("Press any key to exit...");
                         Console.ReadKey();
                     }
-                    Environment.Exit(1);
-                    return;
+                    throw new FileNotFoundException("Pipeline file not found: " + pipelineFile, pipelineFile);
                 }
 
                 // Create output directory if it doesn't exist
@@ -514,34 +512,35 @@ namespace BizTalktoLogicApps.BTPtoLA
                 }
                 else
                 {
-                    // Batch mode - just output success message
-                    Console.WriteLine($"✓ SUCCESS: {Path.GetFileName(pipelineFile)} → {outputFileName}");
+                    // Batch mode - write to stderr so stdout (MCP JSON channel) is not polluted
+                    Console.Error.WriteLine($"✓ SUCCESS: {Path.GetFileName(pipelineFile)} → {outputFileName}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine();
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("ERROR: " + ex.Message);
-                Console.ResetColor();
-                Console.WriteLine();
-                Console.WriteLine("Stack Trace:");
-                Console.WriteLine(ex.StackTrace);
-                
+                Console.Error.WriteLine();
+                Console.Error.WriteLine("ERROR: " + ex.Message);
+                Console.Error.WriteLine();
+                Console.Error.WriteLine("Stack Trace:");
+                Console.Error.WriteLine(ex.StackTrace);
+
                 if (ex.InnerException != null)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine("Inner Exception:");
-                    Console.WriteLine(ex.InnerException.Message);
+                    Console.Error.WriteLine();
+                    Console.Error.WriteLine("Inner Exception:");
+                    Console.Error.WriteLine(ex.InnerException.Message);
                 }
-                
+
                 if (!batchMode)
                 {
                     Console.WriteLine();
                     Console.WriteLine("Press any key to exit...");
                     Console.ReadKey();
                 }
-                Environment.Exit(1);
+
+                // Re-throw so callers (e.g. MCP tool handler) receive the exception
+                // instead of the process being terminated via Environment.Exit.
+                throw;
             }
 
             if (!batchMode)

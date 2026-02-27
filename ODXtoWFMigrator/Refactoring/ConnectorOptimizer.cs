@@ -54,17 +54,20 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 throw new ArgumentNullException(nameof(workflow));
             }
 
-            if (registry == null)
-            {
-                throw new ArgumentNullException(nameof(registry));
-            }
-
             if (options == null)
             {
                 throw new ArgumentNullException(nameof(options));
             }
 
-            Trace.TraceInformation("[CONNECTOR OPTIMIZER] Optimizing connectors for deployment target: {0}", options.Target);
+            if (registry == null)
+            {
+                // Registry is optional infrastructure (loaded from connector-registry.json).
+                // When it is unavailable, skip connector optimization and leave the workflow
+                // as-is — downstream legacy fallback paths in LogicAppJSONGenerator handle
+                // connectors without a registry.
+                Trace.TraceWarning("[CONNECTOR OPTIMIZER] Connector registry is null; skipping connector optimization.");
+                return;
+            }
 
             var upgradesApplied = 0;
 
@@ -96,14 +99,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 upgradesApplied += OptimizeNestedActionConnectors(action.FalseBranch, registry, options);
             }
 
-            if (upgradesApplied > 0)
-            {
-                Trace.TraceInformation("[CONNECTOR OPTIMIZER] Applied {0} connector upgrade(s)", upgradesApplied);
-            }
-            else
-            {
-                Trace.TraceInformation("[CONNECTOR OPTIMIZER] No connector upgrades needed");
-            }
         }
 
         /// <summary>
@@ -126,7 +121,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
 
             if (upgradedKind != null && upgradedKind != originalKind)
             {
-                Trace.TraceInformation("[CONNECTOR OPTIMIZER]   Trigger: {0} -> {1}", originalKind, upgradedKind);
                 trigger.Kind = upgradedKind;
                 trigger.TransportType = upgradedKind;
                 return true;
@@ -155,7 +149,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
 
             if (upgradedKind != null && upgradedKind != originalKind)
             {
-                Trace.TraceInformation("[CONNECTOR OPTIMIZER]   Action '{0}': {1} -> {2}", action.Name, originalKind, upgradedKind);
                 action.ConnectorKind = upgradedKind;
                 return true;
             }
@@ -260,17 +253,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 // FileSystem works on-premises, no replacement needed
             }
 
-            // FTP Upgrade Logic (prefer SFTP for security)
-            if (adapter.IndexOf("ftp") >= 0 && adapter.IndexOf("sftp") < 0)
-            {
-                if (registry.HasConnector("Sftp"))
-                {
-                    Trace.TraceInformation("[CONNECTOR OPTIMIZER]     Recommendation: Consider upgrading FTP to SFTP for security");
-                    // Don't auto-upgrade FTP to SFTP as it requires different authentication
-                    // Just log the recommendation
-                }
-            }
-
             // Service Bus validation for on-prem - ONLY replace if targeting on-premises
             // Service Bus is cloud-only and requires an alternative for on-premises
             if (string.Equals(adapter, "servicebus", StringComparison.OrdinalIgnoreCase) ||
@@ -331,15 +313,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 {
                     return "FileSystem";
                 }
-            }
-
-            // HTTP optimization - recommend managed connectors where applicable
-            if (string.Equals(adapter, "http", StringComparison.OrdinalIgnoreCase) && options.PreferManagedConnectors)
-            {
-                // Check if this is actually a known service that has a managed connector
-                // This would require analyzing the TargetAddress, which we don't have in this context
-                // Just log a recommendation
-                Trace.TraceInformation("[CONNECTOR OPTIMIZER] HTTP action - consider using managed connector if available for target service");
             }
 
             // No upgrade needed

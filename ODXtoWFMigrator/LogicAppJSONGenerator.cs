@@ -12,7 +12,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -101,16 +100,11 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 req["type"] = "Request";
                 req["kind"] = "Http";
                 
-                // Diagnostic: Log trigger properties
-                Trace.TraceInformation("[GENERATOR] Building HTTP Request trigger: TransportType='{0}', SecurityMode='{1}', Address='{2}'",
-                    t.TransportType ?? "NULL", t.SecurityMode ?? "NULL", t.Address ?? "NULL");
-                
                 // ✅ Add WCF metadata as description/metadata for context preservation
                 if (!string.IsNullOrEmpty(t.SecurityMode) ||
                     !string.IsNullOrEmpty(t.MessageClientCredentialType) ||
                     !string.IsNullOrEmpty(t.TransportType))
                 {
-                    Trace.TraceInformation("[GENERATOR] WCF metadata detected - adding to trigger");
                     var metadata = BuildWcfMetadataDescription(t);
                     if (!string.IsNullOrEmpty(metadata))
                     {
@@ -123,10 +117,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     {
                         req["metadata"] = metadataObj;
                     }
-                }
-                else
-                {
-                    Trace.TraceInformation("[GENERATOR] No WCF metadata found - skipping enrichment");
                 }
                 
                 return req;

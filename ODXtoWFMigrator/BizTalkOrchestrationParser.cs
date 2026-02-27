@@ -129,8 +129,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         UseDefault = Eval(varNav, nsmgr, "om:Property[@Name='UseDefaultConstructor']/@Value"),
                         Sequence = -1
                     });
-
-                    Trace.TraceInformation("[PARSER] Collected service-level variable: {0} ({1})", varName, varType);
                 }
             }
             catch (Exception ex)
@@ -380,8 +378,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 string oid = child.GetAttribute("OID", "");
                 ShapeModel shape = null;
 
-                Trace.TraceInformation("[PARSE] Found shape type: {0}, OID: {1}, Parent: {2}", type, oid, parent?.Name ?? "ROOT");
-
                 if (EqualsIgnoreCase(type, "CallRules") || EqualsIgnoreCase(type, "CallPolicy"))
                 {
                     var policy =
@@ -471,8 +467,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 .Cast<XPathNavigator>()
                                 .ToList();
 
-                            Trace.TraceInformation("[PARSER] Decision '{0}' has {1} branches", decideShape.Name, branches.Count);
-
                             if (branches.Count > 0)
                             {
                                 XPathNavigator ruleBranch = null;
@@ -494,7 +488,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                         if (nestedExpr != null)
                                         {
                                             exprValue = Eval(nestedExpr, nsmgr, "om:Property[@Name='Expression']/@Value");
-                                        Trace.TraceInformation("[PARSER]   Found nested Expression shape in branch {0}", i);
                                         }
                                     }
 
@@ -504,7 +497,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                         ruleBranch = branch;
                                         foundExpression = exprValue;
                                         decideShape.Expression = exprValue;
-                                        Trace.TraceInformation("[PARSER]   Found Expression in branch {0} ('{1}'): {2}...", i, branchName ?? "unnamed", exprValue.Substring(0, Math.Min(60, exprValue.Length)));
                                     }
                                 }
 
@@ -517,8 +509,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                         foundExpression = Eval(siblingExpr, nsmgr, "om:Property[@Name='Expression']/@Value");
                                         if (!string.IsNullOrWhiteSpace(foundExpression))
                                         {
-                                        decideShape.Expression = foundExpression;
-                                            Trace.TraceInformation("[PARSER]   Found Expression as sibling to branches: {0}...", foundExpression.Substring(0, Math.Min(60, foundExpression.Length)));
+                                            decideShape.Expression = foundExpression;
                                         }
                                     }
                                 }
@@ -542,7 +533,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     {
                                         falseBranchNav = branches[1];
                                     }
-                                    Trace.TraceInformation("[PARSER]   No Expression found - using branch order");
                                 }
 
                                 // Parse TRUE branch (including any Expression shapes inside it)
@@ -554,18 +544,14 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     // Parse ALL shapes in the branch, including Expression shapes
                                     ParseShapes(trueBranchNav, nsmgr, trueBranchModel, ref trueBranchSeq, oidMap, null);
 
-                                    Trace.TraceInformation("[PARSER]   TrueBranch parsed: {0} shapes", trueBranchModel.Shapes.Count);
-
                                     // Check if we captured any Expression shapes
                                     var expressionShapes = trueBranchModel.Shapes.OfType<ExpressionShapeModel>().ToList();
                                     if (expressionShapes.Any())
                                     {
-                                        Trace.TraceInformation("[PARSER]     Found {0} Expression shape(s) in TRUE branch", expressionShapes.Count);
                                         // If decide doesn't have expression yet, use the first Expression shape's expression
                                         if (string.IsNullOrWhiteSpace(decideShape.Expression) && expressionShapes.Any())
                                         {
                                             decideShape.Expression = expressionShapes.First().Expression;
-                                            Trace.TraceInformation("[PARSER]     Using Expression from shape: {0}", expressionShapes.First().Name);
                                         }
                                     }
 
@@ -590,15 +576,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     // Parse ALL shapes in the branch, including Expression shapes
                                     ParseShapes(falseBranchNav, nsmgr, falseBranchModel, ref falseBranchSeq, oidMap, null);
 
-                                    Trace.TraceInformation("[PARSER]   FalseBranch parsed: {0} shapes", falseBranchModel.Shapes.Count);
-
-                                    // Check if we captured any Expression shapes
-                                    var expressionShapes = falseBranchModel.Shapes.OfType<ExpressionShapeModel>().ToList();
-                                    if (expressionShapes.Any())
-                                    {
-                                        Trace.TraceInformation("[PARSER]     Found {0} Expression shape(s) in FALSE branch", expressionShapes.Count);
-                                    }
-
                                     foreach (var branchShape in falseBranchModel.Shapes)
                                     {
                                         branchShape.Parent = decideShape;
@@ -614,9 +591,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             else
                             {
                                 // No DecisionBranch elements found, look for direct child shapes
-                                Trace.TraceInformation("[PARSER]   No DecisionBranch elements found, looking for direct children");
-
-                                // Check for Expression shape as direct child
                                 var directExpr = child.SelectSingleNode("om:Element[@Type='Expression']", nsmgr);
                                 if (directExpr != null)
                                 {
@@ -624,7 +598,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     if (!string.IsNullOrWhiteSpace(exprValue))
                                     {
                                         decideShape.Expression = exprValue;
-                                        Trace.TraceInformation("[PARSER]   Found direct Expression child: {0}...", exprValue.Substring(0, Math.Min(60, exprValue.Length)));
                                     }
                                 }
                             }
@@ -655,8 +628,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 }
                             }
 
-                            Trace.TraceInformation("[PARSER] Switch '{0}' with expression: {1}...", switchShape.Name, switchShape.Expression?.Substring(0, Math.Min(60, switchShape.Expression?.Length ?? 0)));
-
                             // Parse all case branches
                             var caseBranches = Select(child, nsmgr, "om:Element[@Type='DecisionBranch']");
                             int caseIndex = 0;
@@ -671,7 +642,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                                     caseName?.ToLower().Contains("default") == true ||
                                                     caseName?.ToLower().Contains("else") == true;
 
-                                Trace.TraceInformation("[PARSER]   Case {0}: '{1}' with value: {2}", ++caseIndex, caseName, caseValue ?? "(default)");
+                                caseIndex++;
 
                                 // Parse shapes within this case
                                 var caseModel = new OrchestrationModel();
@@ -691,7 +662,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 if (isDefaultCase)
                                 {
                                     switchShape.DefaultCase.AddRange(caseModel.Shapes);
-                                    Trace.TraceInformation("[PARSER]     Default case parsed: {0} shapes", caseModel.Shapes.Count);
                                 }
                                 else
                                 {
@@ -704,11 +674,8 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                     }
 
                                     switchShape.Cases[caseKey].AddRange(caseModel.Shapes);
-                                    Trace.TraceInformation("[PARSER]     Case '{0}' parsed: {1} shapes", caseKey, caseModel.Shapes.Count);
                                 }
                             }
-
-                            Trace.TraceInformation("[PARSER] Switch complete with {0} cases and {1} default case", switchShape.Cases.Count, switchShape.DefaultCase.Count > 0 ? "a" : "no");
 
                             shape = switchShape;
                             break;
@@ -728,7 +695,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             int branchIndex = 0;
                             foreach (var branchNav in listenBranches)
                             {
-                                Trace.TraceInformation("[PARSER] Parsing Listen branch {0}", ++branchIndex);
+                                branchIndex++;
                                 var branchModel = new OrchestrationModel();
                                 int branchSeq = 0;
                                 ParseShapes(branchNav, nsmgr, branchModel, ref branchSeq, oidMap, listenShape);
@@ -1022,7 +989,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                         case "TransactionAttribute":
                             // Skip metadata shapes - don't create action for them
-                            Trace.TraceInformation("[PARSE] Skipping metadata shape: TransactionAttribute");
                             continue;
 
                         case "VariableDeclaration":
@@ -1050,7 +1016,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                 VarType = Eval(child, nsmgr, "om:Property[@Name='Type']/@Value"),
                                 Sequence = seq++
                             };
-                            Trace.TraceInformation("[PARSER] Scope-level MessageDeclaration '{0}' parsed as VariableDeclaration for hoisting", shape.Name);
                             break;
 
                         // Catch-all for unknown shapes
@@ -1090,8 +1055,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     {
                         needsRecursion = false;
                     }
-
-                    Trace.TraceInformation("[PARSE] Shape {0} ({1}) - Will recurse: {2}", shape.Name, shape.ShapeType, needsRecursion);
 
                     if (needsRecursion)
                     {
@@ -1309,14 +1272,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 {
                     try
                     {
-                        Trace.TraceInformation("[INFO] Loading connector registry from: {0}", path);
                         var registry = ConnectorSchemaRegistry.LoadFromFile(path);
-
-                        if (registry != null)
-                        {
-                            Trace.TraceInformation("[SUCCESS] Connector registry loaded successfully with {0} connector(s)", registry.ConnectorCount);
-                        }
-
                         return registry;
                     }
                     catch (Exception ex)
