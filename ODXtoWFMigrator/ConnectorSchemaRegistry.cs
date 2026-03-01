@@ -18,7 +18,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
     /// This registry enables:
     /// - Dynamic connector lookup by BizTalk adapter name (FILE, FTP, SQL, ServiceBus, etc.)
     /// - Extensible connector definitions via JSON configuration files
-    /// - Fallback to built-in connector schemas when external registry is unavailable
     /// - Accurate parameter mapping for triggers and actions during ODX to workflow conversion
     /// Used by BizTalkOrchestrationParser and LogicAppJSONGenerator for connector-aware workflow generation.
     /// </remarks>
@@ -191,16 +190,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         }
 
         /// <summary>
-        /// Registers every entry in <see cref="ConnectorSchema.BizTalkAdapters"/> as a
-        /// case-insensitive alias that resolves to the same schema instance.
-        /// </summary>
-        /// <param name="registry">The registry to add aliases to.</param>
-        /// <param name="schema">The connector schema whose BizTalkAdapters list supplies the alias names.</param>
-        /// <remarks>
-        /// Driven entirely by the BizTalkAdapters array in connector-registry.json.
-        /// No hardcoded connector names — adding or changing adapters requires only a JSON edit.
-        /// </remarks>
-        /// <summary>
         /// Parses a JSON parameter array that may contain either plain strings (legacy format)
         /// or objects with Name, ValueSource, and DefaultValue fields (data-driven format).
         /// Both formats may coexist in the same array to allow incremental migration.
@@ -219,7 +208,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             {
                 if (token.Type == JTokenType.String)
                 {
-                    // Legacy format: plain string — treated as Literal with no default
                     result.Add(new ParameterSchema
                     {
                         Name = token.ToString(),
@@ -229,7 +217,6 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 }
                 else if (token.Type == JTokenType.Object)
                 {
-                    // Data-driven format: { "Name": "...", "ValueSource": "...", "DefaultValue": "..." }
                     var obj = (JObject)token;
                     result.Add(new ParameterSchema
                     {
@@ -243,6 +230,16 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             return result;
         }
 
+        /// <summary>
+        /// Registers every entry in <see cref="ConnectorSchema.BizTalkAdapters"/> as a
+        /// case-insensitive alias that resolves to the same schema instance.
+        /// </summary>
+        /// <param name="registry">The registry to add aliases to.</param>
+        /// <param name="schema">The connector schema whose BizTalkAdapters list supplies the alias names.</param>
+        /// <remarks>
+        /// Driven entirely by the BizTalkAdapters array in connector-registry.json.
+        /// No hardcoded connector names — adding or changing adapters requires only a JSON edit.
+        /// </remarks>
         private static void AddCommonAliases(ConnectorSchemaRegistry registry, ConnectorSchema schema)
         {
             if (schema == null || string.IsNullOrEmpty(schema.Name))
