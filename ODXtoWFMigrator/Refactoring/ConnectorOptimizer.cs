@@ -193,7 +193,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
         /// <param name="operationType">Operation type ("trigger" or "action").</param>
         /// <param name="registry">Connector registry.</param>
         /// <param name="options">Refactoring options.</param>
-        /// <returns>Upgraded connector kind or null if no upgrade needed.</returns>
+        /// <returns>Upgraded connector kind, or null if no change is needed.</returns>
         private static string SelectOptimalConnector(
             string originalAdapter,
             string currentKind,
@@ -207,13 +207,19 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
             }
 
             var adapter = originalAdapter.ToLowerInvariant();
+            var targetString = options.Target.ToString(); // "Cloud" or "OnPremises"
 
-            // MSMQ Upgrade Logic
+            // ---------------------------------------------------------------
+            // Part A: Intentional upgrades — migrate legacy BizTalk adapters
+            // to preferred modern equivalents regardless of compatibility.
+            // These are policy decisions, not compatibility fixes.
+            // ---------------------------------------------------------------
+
+            // MSMQ / NetMsmq ? ServiceBus (cloud) or preferred messaging (on-prem)
             if (adapter.IndexOf("msmq") >= 0 || adapter.IndexOf("netmsmq") >= 0)
             {
                 if (options.Target == DeploymentTarget.Cloud)
                 {
-                    // MSMQ to Service Bus (cloud only)
                     if (registry.HasConnector("ServiceBus"))
                     {
                         return "ServiceBus";
@@ -221,102 +227,112 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator.Refactoring
                 }
                 else
                 {
-                    // MSMQ to RabbitMQ (on-prem preferred)
                     if (string.Equals(options.PreferredMessagingPlatform, "RabbitMQ", StringComparison.OrdinalIgnoreCase) &&
                         registry.HasConnector("RabbitMQ"))
                     {
                         return "RabbitMQ";
                     }
-                    else if (string.Equals(options.PreferredMessagingPlatform, "Kafka", StringComparison.OrdinalIgnoreCase) &&
-                             registry.HasConnector("ConfluentKafka"))
+
+                    if (string.Equals(options.PreferredMessagingPlatform, "Kafka", StringComparison.OrdinalIgnoreCase) &&
+                        registry.HasConnector("ConfluentKafka"))
                     {
                         return "ConfluentKafka";
                     }
-                    else if (registry.HasConnector("IbmMq"))
+
+                    if (registry.HasConnector("IbmMq"))
                     {
                         return "IbmMq";
                     }
                 }
             }
 
-            // FILE Adapter Upgrade Logic - Only upgrade to Blob if Cloud target explicitly chosen
+            // FILE adapter ? AzureBlob when targeting cloud with managed connectors preferred.
+            // FileSystem works on-premises — no replacement needed for that target.
             if (adapter.IndexOf("file") >= 0 && adapter.IndexOf("hostfile") < 0)
             {
-                if (options.Target == DeploymentTarget.Cloud && options.PreferManagedConnectors)
+                if (options.Target == DeploymentTarget.Cloud && options.PreferManagedConnectors &&
+                    registry.HasConnector("AzureBlob"))
                 {
-                    // FILE to Azure Blob Storage (cloud preferred)
-                    if (registry.HasConnector("AzureBlob"))
-                    {
-                        return "AzureBlob";
-                    }
+                    return "AzureBlob";
                 }
-                // FileSystem works on-premises, no replacement needed
             }
 
-            // Service Bus validation for on-prem - ONLY replace if targeting on-premises
-            // Service Bus is cloud-only and requires an alternative for on-premises
-            if (string.Equals(adapter, "servicebus", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(adapter, "sb", StringComparison.OrdinalIgnoreCase))
+            // ---------------------------------------------------------------
+            // Part B: Compatibility replacement — use registry to detect
+            // connectors that cannot run on the deployment target and find
+            // the best same-category alternative that can.
+            // ---------------------------------------------------------------
+
+            // If the current connector is not in the registry, nothing to do.
+            if (!registry.IsCompatibleWith(currentKind, targetString))
             {
-                if (options.Target == DeploymentTarget.OnPremises)
+                var currentConnector = registry.GetConnector(currentKind);
+                var category = currentConnector != null ? currentConnector.MessagingCategory : null;
+
+                var replacement = PickBestAlternative(
+                    registry.FindAlternatives(category, targetString),
+                    options);
+
+                if (replacement != null)
                 {
-                    Trace.TraceWarning("[CONNECTOR OPTIMIZER] Service Bus not available on-premises. Replacing with messaging alternative.");
-                    
-                    // Auto-replace with RabbitMQ for on-prem (Service Bus doesn't work on-prem)
-                    if (string.Equals(options.PreferredMessagingPlatform, "RabbitMQ", StringComparison.OrdinalIgnoreCase) &&
-                        registry.HasConnector("RabbitMQ"))
-                    {
-                        return "RabbitMQ";
-                    }
-                    else if (string.Equals(options.PreferredMessagingPlatform, "Kafka", StringComparison.OrdinalIgnoreCase) &&
-                             registry.HasConnector("ConfluentKafka"))
-                    {
-                        return "ConfluentKafka";
-                    }
+                    Trace.TraceWarning(
+                        "[CONNECTOR OPTIMIZER] {0} is not compatible with {1}. Replacing with {2}.",
+                        currentKind,
+                        targetString,
+                        replacement);
+
+                    return replacement;
                 }
             }
 
-            // Azure Event Hub - cloud-only, needs alternative for on-prem
-            if (adapter.IndexOf("eventhub") >= 0 && options.Target == DeploymentTarget.OnPremises)
-            {
-                Trace.TraceWarning("[CONNECTOR OPTIMIZER] Event Hub not available on-premises. Replacing with messaging alternative.");
-                
-                if (string.Equals(options.PreferredMessagingPlatform, "Kafka", StringComparison.OrdinalIgnoreCase) &&
-                    registry.HasConnector("ConfluentKafka"))
-                {
-                    return "ConfluentKafka";
-                }
-                else if (registry.HasConnector("RabbitMQ"))
-                {
-                    return "RabbitMQ";
-                }
-            }
-
-            // Cosmos DB validation for on-prem - cloud-only, needs alternative
-            if (adapter.IndexOf("cosmos") >= 0 && options.Target == DeploymentTarget.OnPremises)
-            {
-                Trace.TraceWarning("[CONNECTOR OPTIMIZER] Cosmos DB not available on-premises. Replacing with SQL.");
-                
-                // Suggest SQL as fallback
-                if (registry.HasConnector("Sql"))
-                {
-                    return "Sql";
-                }
-            }
-
-            // Azure Blob Storage - cloud-only, needs alternative for on-prem
-            if (adapter.IndexOf("azureblob") >= 0 && options.Target == DeploymentTarget.OnPremises)
-            {
-                Trace.TraceWarning("[CONNECTOR OPTIMIZER] Azure Blob Storage not available on-premises. Replacing with FileSystem.");
-                
-                if (registry.HasConnector("FileSystem"))
-                {
-                    return "FileSystem";
-                }
-            }
-
-            // No upgrade needed
+            // No upgrade needed.
             return null;
+        }
+
+        /// <summary>
+        /// Picks the best replacement connector from a set of compatible alternatives,
+        /// honouring <see cref="RefactoringOptions.PreferredMessagingPlatform"/> and
+        /// <see cref="RefactoringOptions.PreferredDatabaseConnector"/>.
+        /// </summary>
+        /// <param name="alternatives">
+        /// The compatible connectors in the same category, as returned by
+        /// <see cref="ConnectorSchemaRegistry.FindAlternatives"/>.
+        /// </param>
+        /// <param name="options">Refactoring options that carry preference signals.</param>
+        /// <returns>
+        /// The canonical connector name of the chosen alternative, or <c>null</c> when
+        /// <paramref name="alternatives"/> is empty.
+        /// </returns>
+        private static string PickBestAlternative(
+            System.Collections.Generic.IEnumerable<ConnectorSchema> alternatives,
+            RefactoringOptions options)
+        {
+            ConnectorSchema first = null;
+
+            foreach (var schema in alternatives)
+            {
+                // Remember the first compatible entry as a fallback.
+                if (first == null)
+                {
+                    first = schema;
+                }
+
+                // Honour PreferredMessagingPlatform (e.g., "RabbitMQ", "Kafka", "IbmMq").
+                if (!string.IsNullOrEmpty(options.PreferredMessagingPlatform) &&
+                    string.Equals(schema.Name, options.PreferredMessagingPlatform, StringComparison.OrdinalIgnoreCase))
+                {
+                    return schema.Name;
+                }
+
+                // Honour PreferredDatabaseConnector (e.g., "Sql", "OracleDb").
+                if (!string.IsNullOrEmpty(options.PreferredDatabaseConnector) &&
+                    string.Equals(schema.Name, options.PreferredDatabaseConnector, StringComparison.OrdinalIgnoreCase))
+                {
+                    return schema.Name;
+                }
+            }
+
+            return first != null ? first.Name : null;
         }
     }
 }

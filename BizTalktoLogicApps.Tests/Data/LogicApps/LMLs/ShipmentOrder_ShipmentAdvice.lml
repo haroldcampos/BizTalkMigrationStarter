@@ -1,0 +1,23 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: AdvancedShipNotice.xsd
+$targetSchema: AffiliateApplication.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  ns1: http://Schemas.ShipmentOrderRequest
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://Schemas.POPropertySchema
+  ns1: http://Schemas.ShipmentAdvice
+  xs: http://www.w3.org/2001/XMLSchema
+msdata:ShipmentAdvice:
+  ShipmentOrderNo: /ns1:ShipmentOrderRequest/ShimentOrderHeader/ShipmentOrderNo
+  PONo: /ns1:ShipmentOrderRequest/ShimentOrderHeader/PONo
+  TotalValue: /ns1:ShipmentOrderRequest/ShimentOrderHeader/TotalValue
+  DateofShipment: concat("1/1/2003")

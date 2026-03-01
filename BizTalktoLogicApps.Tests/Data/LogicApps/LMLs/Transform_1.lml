@@ -1,0 +1,24 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: 
+$targetSchema: 
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+msdata:Root:
+  OutputMessagePart_0:
+    Schema2:
+      Data2: concat(/ns0:Root/InputMessagePart_0/Schema1/Data1, "_S1")
+  OutputMessagePart_1:
+    BAMPart:
+      $@DocumentID: /ns0:Root/InputMessagePart_1/BAMPart/@DocumentID
+      $value: /ns0:Root/InputMessagePart_1/BAMPart

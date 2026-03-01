@@ -1,0 +1,78 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "HelloWorldReceiveLocation": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "folderPath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Orchestrations\\HelloWorld\\In",
+            "maxFileCount": 10
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "whenFilesAreAdded",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "kind": "Polling",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 1
+        }
+      }
+    },
+    "actions": {
+      "ConstructInvoice_619c4eb0": {
+        "type": "Xslt",
+        "inputs": {
+          "content": "@triggerBody()",
+          "map": {
+            "name": "POToInvoice",
+            "type": "Xslt"
+          },
+          "transformOptions": "ApplyXsltTemplates"
+        },
+        "runAfter": {}
+      },
+      "SendInvoice": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@body('ConstructInvoice_619c4eb0')",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructInvoice_619c4eb0": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "HelloWorldSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "filePath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Orchestrations\\HelloWorld\\Out\\%MessageID%.xml",
+            "body": "@triggerBody()"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "createFile",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "runAfter": {
+          "SendInvoice": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

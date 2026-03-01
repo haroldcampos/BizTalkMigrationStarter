@@ -632,6 +632,16 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     CollectVariableDeclarationsRecursiveCore(decide.FalseBranch, actions, seen);
                 }
 
+                // Check Switch cases and default case
+                if (shape is SwitchShapeModel switchShape)
+                {
+                    foreach (var caseShapes in switchShape.Cases.Values)
+                    {
+                        CollectVariableDeclarationsRecursiveCore(caseShapes, actions, seen);
+                    }
+                    CollectVariableDeclarationsRecursiveCore(switchShape.DefaultCase, actions, seen);
+                }
+
                 // Check Construct inner shapes
                 if (shape is ConstructShapeModel construct)
                 {
@@ -1082,7 +1092,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                         foreach (var child in branch.Children.OrderBy(c => c.Sequence))
                         {
-                            if (child is ReceiveShapeModel r && r.Activate) continue;
+                            if (ShouldSkipInConversion(child)) continue;
                             var mapped = ConvertShape(child);
                             if (mapped != null) branchScope.Children.Add(mapped);
                         }
@@ -1107,7 +1117,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         // This handles Group shapes that contain Decide/Listen/etc.
                         foreach (var child in branch.Children.OrderBy(c => c.Sequence))
                         {
-                            if (child is ReceiveShapeModel r && r.Activate) continue;
+                            if (ShouldSkipInConversion(child)) continue;
                             var mapped = ConvertShape(child);
                             if (mapped != null) branchScope.Children.Add(mapped);
                         }
@@ -1150,7 +1160,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         // Wrapper container - process all children inside (don't convert the wrapper itself)
                         foreach (var child in branch.Children.OrderBy(c => c.Sequence))
                         {
-                            if (child is ReceiveShapeModel r && r.Activate) continue;
+                            if (ShouldSkipInConversion(child)) continue;
                             var mapped = ConvertShape(child);
                             if (mapped != null) branchScope.Children.Add(mapped);
                         }
@@ -1167,7 +1177,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         // Process any subsequent shapes in the branch
                         foreach (var sibling in branch.Children.OrderBy(c => c.Sequence))
                         {
-                            if (sibling is ReceiveShapeModel r2 && r2.Activate) continue;
+                            if (ShouldSkipInConversion(sibling)) continue;
                             var mappedSibling = ConvertShape(sibling);
                             if (mappedSibling != null) branchScope.Children.Add(mappedSibling);
                         }
@@ -1201,10 +1211,14 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                                   "// Manual implementation required: Use runAfter conditions or status checks.",
                         Sequence = decide.Sequence
                     };
-                    
+
+                    // Process children from both branches as sequential actions (no type filtering)
                     // Process children from both branches as sequential actions (no type filtering)
                     foreach (var trueShape in decide.TrueBranch)
                     {
+                        // Skip VariableDeclarations - already hoisted to root in first pass
+                        if (ShouldSkipInConversion(trueShape)) continue;
+
                         if (string.IsNullOrEmpty(trueShape.UniqueId))
                         {
                             trueShape.UniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
@@ -1236,6 +1250,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 // Process TrueBranch shapes
                 foreach (var trueShape in decide.TrueBranch)
                 {
+                    // Skip VariableDeclarations - already hoisted to root in first pass
+                    if (ShouldSkipInConversion(trueShape)) continue;
+
                     if (string.IsNullOrEmpty(trueShape.UniqueId))
                     {
                         trueShape.UniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
@@ -1253,8 +1270,12 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 }
 
                 // Process FalseBranch shapes
+                // Process FalseBranch shapes
                 foreach (var falseShape in decide.FalseBranch)
                 {
+                    // Skip VariableDeclarations - already hoisted to root in first pass
+                    if (ShouldSkipInConversion(falseShape)) continue;
+
                     if (string.IsNullOrEmpty(falseShape.UniqueId))
                     {
                         falseShape.UniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
@@ -1299,6 +1320,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     foreach (var caseShape in caseEntry.Value)
                     {
+                        // Skip VariableDeclarations - already hoisted to root in first pass
+                        if (ShouldSkipInConversion(caseShape)) continue;
+
                         if (string.IsNullOrEmpty(caseShape.UniqueId))
                         {
                             caseShape.UniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
@@ -1328,6 +1352,9 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     foreach (var defaultShape in switchModel.DefaultCase)
                     {
+                        // Skip VariableDeclarations - already hoisted to root in first pass
+                        if (ShouldSkipInConversion(defaultShape)) continue;
+
                         if (string.IsNullOrEmpty(defaultShape.UniqueId))
                         {
                             defaultShape.UniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
@@ -1580,7 +1607,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     foreach (var child in shape.Children.OrderBy(c => c.Sequence))
                     {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        if (ShouldSkipInConversion(child)) continue;
                         var mapped = ConvertShape(child);
                         if (mapped != null) action.Children.Add(mapped);
                     }
@@ -1605,7 +1632,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     // Use shape.Children instead of catchShape.ExceptionHandlers
                     foreach (var child in shape.Children.OrderBy(c => c.Sequence))
                     {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        if (ShouldSkipInConversion(child)) continue;
                         var mapped = ConvertShape(child);
                         if (mapped != null) action.Children.Add(mapped);
                     }
@@ -1639,7 +1666,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     foreach (var child in shape.Children.OrderBy(c => c.Sequence))
                     {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        if (ShouldSkipInConversion(child)) continue;
                         var mapped = ConvertShape(child);
                         if (mapped != null) action.Children.Add(mapped);
                     }
@@ -1686,7 +1713,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     foreach (var child in shape.Children.OrderBy(c => c.Sequence))
                     {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        if (ShouldSkipInConversion(child)) continue;
                         var mapped = ConvertShape(child);
                         if (mapped != null) action.Children.Add(mapped);
                     }
@@ -1735,7 +1762,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
                     foreach (var child in shape.Children.OrderBy(c => c.Sequence))
                     {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        if (ShouldSkipInConversion(child)) continue;
                         var mapped = ConvertShape(child);
                         if (mapped != null) action.Children.Add(mapped);
                     }
@@ -1764,7 +1791,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     // Process all children - Groups can contain ANY shape (Decide, Listen, Parallel, etc.)
                     foreach (var child in shape.Children.OrderBy(c => c.Sequence))
                     {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        if (ShouldSkipInConversion(child)) continue;
                         var mapped = ConvertShape(child);
                         if (mapped != null) action.Children.Add(mapped);
                     }
@@ -1793,7 +1820,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     // Process all children shapes in the branch
                     foreach (var child in shape.Children.OrderBy(c => c.Sequence))
                     {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        if (ShouldSkipInConversion(child)) continue;
                         var mapped = ConvertShape(child);
                         if (mapped != null) action.Children.Add(mapped);
                     }
@@ -1903,7 +1930,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                         // Process children of compensation block
                         foreach (var compChild in compBlock.Children.OrderBy(c => c.Sequence))
                         {
-                            if (compChild is ReceiveShapeModel r && r.Activate) continue;
+                            if (ShouldSkipInConversion(compChild)) continue;
                             var mappedComp = ConvertShape(compChild);
                             if (mappedComp != null) 
                             {
@@ -1921,7 +1948,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     // compensation blocks were added, causing Parallel shapes to be skipped.
                     foreach (var child in GetNormalChildren(shape))
                     {
-                        if (child is ReceiveShapeModel r && r.Activate) continue;
+                        if (ShouldSkipInConversion(child)) continue;
                         var mapped = ConvertShape(child);
                         if (mapped != null) action.Children.Add(mapped);
                     }
@@ -1998,6 +2025,18 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             }
 
             return action;
+        }
+        /// <summary>
+        /// Returns true when a child shape should be skipped during ConvertShape recursion.
+        /// VariableDeclarations are hoisted to root by the first pass and must never be
+        /// emitted as nested InitializeVariable actions inside Scopes, If branches, loops, etc.
+        /// Activating Receive shapes are skipped because they are represented by the trigger.
+        /// </summary>
+        private static bool ShouldSkipInConversion(ShapeModel child)
+        {
+            if (child is VariableDeclarationShapeModel) return true;
+            if (child is ReceiveShapeModel r && r.Activate) return true;
+            return false;
         }
 
         /// <summary>

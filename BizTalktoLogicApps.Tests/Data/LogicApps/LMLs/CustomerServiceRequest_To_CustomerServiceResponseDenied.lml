@@ -1,0 +1,25 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: CustomerServiceRequest.xsd
+$targetSchema: AffiliateApplication.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  ns0: http://Microsoft.Samples.BizTalk.WoodgroveBank.Schemas.CustomerRequestProperties
+  ns1: http://Microsoft.Samples.BizTalk.WoodgroveBank.Schemas.CustomerServiceRequest
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://Microsoft.Samples.BizTalk.WoodgroveBank.Schemas.CustomerServiceResponse
+  ns1: http://Microsoft.Samples.BizTalk.WoodgroveBank.Schemas.CustomerServiceRequest
+  xs: http://www.w3.org/2001/XMLSchema
+msdata:CustomerServiceResponse:
+  $@RequestID: /ns1:CustomerServiceRequest/@RequestID
+  $@RequestSource: /ns1:CustomerServiceRequest/@RequestSource
+  $@RequestType: /ns1:CustomerServiceRequest/@RequestType
+  Customer:
+    $@Name: if-then-else(is-equal(/ns1:CustomerServiceRequest/Body/AuthenticationInfo/DataElementName, "CustomerName"), /ns1:CustomerServiceRequest/Body/AuthenticationInfo/DataElementValue, null)
+    AccountNumber: /ns1:CustomerServiceRequest/Body/AccountNumber
+  ResponseStatus:
+    $@Result: /* Scripting functoid - manual translation required */

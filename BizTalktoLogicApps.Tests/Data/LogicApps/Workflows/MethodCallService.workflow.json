@@ -1,0 +1,216 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "MethodCallReceiveLocation": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "folderPath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Orchestrations\\MethodCall\\In",
+            "maxFileCount": 10
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "whenFilesAreAdded",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "kind": "Polling",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 1
+        }
+      }
+    },
+    "actions": {
+      "iVar1": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "iVar1",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "iVar2": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "iVar2",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "iVar1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "iResult": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "iResult",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "iVar2": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "iVar3": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "iVar3",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "iResult": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "mathVar": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "mathVar",
+              "type": "object",
+              "value": null
+            }
+          ]
+        },
+        "runAfter": {
+          "iVar3": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "mOutgoing": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "mOutgoing",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "mathVar": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Assign_Variables": {
+        "type": "Compose",
+        "inputs": "@'iVar1 = mIncoming.fld1;\r\niVar2 = mIncoming.fld2;\r\niVar3 = mIncoming.fld3;\r\nmathVar = new Microsoft.Samples.BizTalk.MathLibrary.MathHelper()'",
+        "runAfter": {
+          "mOutgoing": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Decide_1_a6418ba9": {
+        "type": "If",
+        "expression": "@equals(variables('iVar3'), 'Add')",
+        "actions": {
+          "Call_Add_Method_e3c5f23e": {
+            "type": "Compose",
+            "inputs": "@'iResult = mathVar.Add(iVar1,iVar2)'",
+            "runAfter": {}
+          }
+        },
+        "else": {
+          "actions": {
+            "Call_Subtract_Method_fe3852d3": {
+              "type": "Compose",
+              "inputs": "@'iResult = mathVar.Subtract(iVar1,iVar2)'",
+              "runAfter": {}
+            }
+          }
+        },
+        "runAfter": {
+          "Assign_Variables": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Write_Trace_Statement": {
+        "type": "Compose",
+        "inputs": "@'WriteLine(iResult)'",
+        "runAfter": {
+          "Decide_1_a6418ba9": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "ConstructMessage_1_ce63ed3f": {
+        "type": "Compose",
+        "inputs": "@'mOutgoing= Microsoft.Samples.BizTalk.MathLibrary.Helper.ConstructDoc(iResult)'",
+        "runAfter": {
+          "Write_Trace_Statement": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Send_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "ConstructMessage_1_ce63ed3f": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "MethodCallSendPort": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "filePath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Orchestrations\\MethodCall\\Out\\%MessageID%.xml",
+            "body": "@triggerBody()"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "createFile",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "runAfter": {
+          "Send_1": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

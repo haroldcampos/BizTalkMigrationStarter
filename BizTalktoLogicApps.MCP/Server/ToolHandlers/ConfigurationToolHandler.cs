@@ -117,22 +117,19 @@ namespace BizTalktoLogicApps.MCP.Server.ToolHandlers
 
                     var connectors = new JArray();
                     
-                    var knownAdapterTypes = new[] { "Http", "FileSystem", "FILE", "Ftp", "FTP", "Sql", "SQL", "ServiceBus" };
-                    
-                    foreach (var adapterType in knownAdapterTypes)
+                    foreach (var connector in connectorRegistry.GetAllConnectors())
                     {
-                        if (connectorRegistry.HasConnector(adapterType))
+                        connectors.Add(new JObject
                         {
-                            var connector = connectorRegistry.GetConnector(adapterType);
-                            connectors.Add(new JObject
-                            {
-                                ["name"] = connector.Name,
-                                ["serviceProviderId"] = connector.ServiceProviderId,
-                                ["displayName"] = connector.DisplayName,
-                                ["triggerCount"] = connector.Triggers.Count,
-                                ["actionCount"] = connector.Actions.Count
-                            });
-                        }
+                            ["name"] = connector.Name,
+                            ["serviceProviderId"] = connector.ServiceProviderId,
+                            ["displayName"] = connector.DisplayName,
+                            ["deploymentScope"] = connector.DeploymentScope,
+                            ["messagingCategory"] = connector.MessagingCategory,
+                            ["bizTalkAdapters"] = new JArray(connector.BizTalkAdapters.ToArray()),
+                            ["triggerCount"] = connector.Triggers.Count,
+                            ["actionCount"] = connector.Actions.Count
+                        });
                     }
 
                     var result = new JObject

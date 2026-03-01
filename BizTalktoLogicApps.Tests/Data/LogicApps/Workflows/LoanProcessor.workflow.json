@@ -1,0 +1,80 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "LoansProcessor_1000_MicrosoftSamplesBizTalkLoansProcessorMy__749AACEA": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "folderPath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Business Rules\\Loans Processing using Business Rules\\In",
+            "maxFileCount": 10
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "whenFilesAreAdded",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "kind": "Polling",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 1
+        }
+      }
+    },
+    "actions": {
+      "Scope_1": {
+        "type": "Scope",
+        "actions": {
+          "Execute_Rules_Engine": {
+            "type": "RuleExecute",
+            "inputs": {
+              "ruleSet": "",
+              "ruleStore": "FileFolder"
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {}
+      },
+      "Send_1": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "http://localhost/service",
+          "body": "@triggerBody()",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        },
+        "runAfter": {
+          "Scope_1": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "LoansProcessor_1000_MicrosoftSamplesBizTalkLoansProcessorMy__B2CFBD22": {
+        "type": "ServiceProvider",
+        "inputs": {
+          "parameters": {
+            "filePath": "C:\\Program Files (x86)\\Microsoft BizTalk Server 2016\\SDK\\Samples\\Business Rules\\Loans Processing using Business Rules\\Out\\%MessageID%.xml",
+            "body": "@triggerBody()"
+          },
+          "serviceProviderConfiguration": {
+            "connectionName": "filesystem",
+            "operationId": "createFile",
+            "serviceProviderId": "/serviceProviders/fileSystem"
+          }
+        },
+        "runAfter": {
+          "Send_1": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

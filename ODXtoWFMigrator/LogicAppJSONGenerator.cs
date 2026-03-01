@@ -200,169 +200,34 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         }
 
         /// <summary>
-        /// Infers the appropriate trigger operation ID from the connector schema based on trigger kind.
-        /// Maps common patterns like FileSystem -> "whenFilesAreAdded", ServiceBus -> "receiveQueueMessage".
+        /// Infers the trigger operation ID from the connector schema using the registry's
+        /// <see cref="ConnectorSchema.DefaultTrigger"/> field, falling back to the first
+        /// declared trigger key, then to "manual".
         /// </summary>
-        /// <param name="t">The trigger model.</param>
-        /// <param name="connector">The connector schema containing available trigger operations.</param>
+        /// <param name="t">The trigger model (unused beyond null-safety; kept for signature compatibility).</param>
+        /// <param name="connector">The connector schema containing the default trigger and available operations.</param>
         /// <returns>The operation ID to use for the trigger.</returns>
         private static string InferTriggerOperationIdFromRegistry(LogicAppTrigger t, ConnectorSchema connector)
         {
-            string kind = t.Kind.ToLowerInvariant();
-
-            if (kind == "filesystem")
+            if (!string.IsNullOrEmpty(connector.DefaultTrigger) &&
+                connector.Triggers.ContainsKey(connector.DefaultTrigger))
             {
-                if (connector.Triggers.ContainsKey("whenFilesAreAdded"))
-                    return "whenFilesAreAdded";
-                if (connector.Triggers.ContainsKey("whenFilesAreAddedOrModified"))
-                    return "whenFilesAreAddedOrModified";
-            }
-
-            if (kind == "ftp" || kind == "sftp")
-            {
-                if (connector.Triggers.ContainsKey("whenFileIsAdded"))
-                    return "whenFileIsAdded";
-                if (connector.Triggers.ContainsKey("whenFileIsAddedOrModified"))
-                    return "whenFileIsAddedOrModified";
-            }
-
-            if (kind == "sql")
-            {
-                if (connector.Triggers.ContainsKey("whenItemsAreModified"))
-                    return "whenItemsAreModified";
-            }
-
-            if (kind == "servicebus")
-            {
-                if (connector.Triggers.ContainsKey("receiveQueueMessage"))
-                    return "receiveQueueMessage";
-                if (connector.Triggers.ContainsKey("receiveTopicMessage"))
-                    return "receiveTopicMessage";
-            }
-
-            if (kind == "eventhub")
-            {
-                if (connector.Triggers.ContainsKey("receiveEvents"))
-                    return "receiveEvents";
-            }
-
-            if (kind == "mllp")
-            {
-                if (connector.Triggers.ContainsKey("receiveMessage"))
-                    return "receiveMessage";
-            }
-
-            if (kind == "ibmmq")
-            {
-                if (connector.Triggers.ContainsKey("receiveMessage"))
-                    return "receiveMessage";
-            }
-
-            if (kind == "cosmosdb")
-            {
-                if (connector.Triggers.ContainsKey("whenDocumentsAreCreatedOrModified"))
-                    return "whenDocumentsAreCreatedOrModified";
-            }
-
-            if (kind == "azureblob")
-            {
-                if (connector.Triggers.ContainsKey("whenBlobIsAdded"))
-                    return "whenBlobIsAdded";
+                return connector.DefaultTrigger;
             }
 
             return connector.Triggers.Keys.FirstOrDefault() ?? "manual";
         }
 
         /// <summary>
-        /// Builds trigger parameters based on the operation schema and trigger configuration.
-        /// Maps trigger properties (FolderPath, FileMask, QueueName, etc.) to operation parameters.
+        /// Builds trigger parameters by resolving each parameter schema against the trigger model.
+        /// Delegates to <see cref="ResolveParameters"/> with trigger context.
         /// </summary>
         /// <param name="t">The trigger model with configuration details.</param>
         /// <param name="operation">The operation schema defining required parameters.</param>
         /// <returns>A JObject containing parameter name-value pairs.</returns>
         private static JObject BuildTriggerParameters(LogicAppTrigger t, OperationSchema operation)
         {
-            var parameters = new JObject();
-            /// This section need some serious refactoring in the future to make it more data-driven
-            foreach (var paramName in operation.Parameters)
-            {
-                var lowerParam = paramName.ToLowerInvariant();
-
-                if (lowerParam == "folderpath" || lowerParam == "path")
-                {
-                    parameters[paramName] = t.FolderPath ?? "/";
-                }
-                else if (lowerParam == "filemask" || lowerParam == "filter")
-                {
-                    parameters[paramName] = t.FileMask ?? "*";
-                }
-                else if (lowerParam == "queuename")
-                {
-                    parameters[paramName] = InferQueueName(t.Address) ?? "queue";
-                }
-                else if (lowerParam == "topicname")
-                {
-                    parameters[paramName] = InferQueueName(t.Address) ?? "topic";
-                }
-                else if (lowerParam == "subscriptionname")
-                {
-                    parameters[paramName] = "subscription";
-                }
-                else if (lowerParam == "table" || lowerParam == "tablename")
-                {
-                    parameters[paramName] = InferTableName(t.Address) ?? "Table";
-                }
-                else if (lowerParam == "eventhubname")
-                {
-                    parameters[paramName] = InferEventHubName(t.Address) ?? "eventhub";
-                }
-                else if (lowerParam == "consumergroup")
-                {
-                    parameters[paramName] = "$Default";
-                }
-                else if (lowerParam == "endpoint")
-                {
-                    parameters[paramName] = t.Address ?? "endpoint";
-                }
-                else if (lowerParam == "databasename")
-                {
-                    parameters[paramName] = "Database";
-                }
-                else if (lowerParam == "containername")
-                {
-                    parameters[paramName] = "container";
-                }
-                else if (lowerParam == "leasecontainername")
-                {
-                    parameters[paramName] = "leases";
-                }
-                else if (lowerParam == "blobprefix" || lowerParam == "prefix")
-                {
-                    parameters[paramName] = "";
-                }
-                else if (lowerParam == "includefilecontent")
-                {
-                    parameters[paramName] = true;
-                }
-                else if (lowerParam == "issessionsenabled")
-                {
-                    parameters[paramName] = false;
-                }
-                else if (lowerParam.Contains("max") && lowerParam.Contains("count"))
-                {
-                    parameters[paramName] = 10;
-                }
-                else if (lowerParam == "select" || lowerParam == "orderby")
-                {
-                    parameters[paramName] = "*";
-                }
-                else
-                {
-                    parameters[paramName] = "";
-                }
-            }
-
-            return parameters;
+            return ResolveParameters(operation.Parameters, trigger: t);
         }
 
         /// <summary>
@@ -434,14 +299,21 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
 
         /// <summary>
         /// Determines if a connector kind uses polling triggers.
-        /// Polling connectors require recurrence configuration (FileSystem, FTP, SQL, Email, etc.).
+        /// Called only from <see cref="BuildTriggerLegacy"/> (the no-registry fallback path).
+        /// When the registry IS available, <see cref="BuildTriggerFromRegistry"/> reads
+        /// <see cref="OperationSchema.Kind"/> directly and does not call this method.
         /// </summary>
         /// <param name="kind">The connector kind to check.</param>
         /// <returns>True if the connector uses polling triggers; otherwise false.</returns>
         private static bool IsPollingConnector(string kind)
         {
-            return new[] { "FileSystem", "Ftp", "Sftp", "Sql", "OutlookEmail", "GmailEmail", "ExchangeOnlineEmail" }
-                .Contains(kind ?? "", StringComparer.OrdinalIgnoreCase);
+            return new[]
+            {
+                "FileSystem", "Ftp", "Sftp", "Sql",
+                "AzureBlob", "AzureTable",
+                "OutlookEmail", "GmailEmail", "ExchangeOnlineEmail",
+                "IbmMq", "Informix", "OracleDb"
+            }.Contains(kind ?? "", StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -1608,205 +1480,300 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         }
 
         /// <summary>
-        /// Infers the appropriate action operation ID from the connector schema based on action properties.
-        /// Maps patterns like FileSystem -> "createFile", ServiceBus Topic -> "sendMessage", SQL -> "executeQuery".
+        /// Infers the action operation ID from the connector schema using the registry's
+        /// <see cref="ConnectorSchema.DefaultAction"/> field, falling back to the first
+        /// declared action key, then to "sendMessage".
         /// </summary>
-        /// <param name="act">The action model with connector configuration.</param>
-        /// <param name="connector">The connector schema containing available action operations.</param>
+        /// <param name="act">The action model (unused beyond null-safety; kept for signature compatibility).</param>
+        /// <param name="connector">The connector schema containing the default action and available operations.</param>
         /// <returns>The operation ID to use for the action.</returns>
         private static string InferActionOperationIdFromRegistry(LogicAppAction act, ConnectorSchema connector)
         {
-            string kind = act.ConnectorKind.ToLowerInvariant();
-
-            if (kind == "filesystem")
+            if (!string.IsNullOrEmpty(connector.DefaultAction) &&
+                connector.Actions.ContainsKey(connector.DefaultAction))
             {
-                if (connector.Actions.ContainsKey("createFile"))
-                    return "createFile";
-                if (connector.Actions.ContainsKey("updateFile"))
-                    return "updateFile";
-            }
-
-            if (kind == "ftp" || kind == "sftp")
-            {
-                if (connector.Actions.ContainsKey("createFile"))
-                    return "createFile";
-                if (connector.Actions.ContainsKey("uploadFile"))
-                    return "uploadFile";
-            }
-
-            if (kind == "sql")
-            {
-                if (connector.Actions.ContainsKey("executeQuery"))
-                    return "executeQuery";
-                if (connector.Actions.ContainsKey("insertRow"))
-                    return "insertRow";
-            }
-
-            if (kind == "servicebus")
-            {
-                if (act.IsTopic && connector.Actions.ContainsKey("sendMessage"))
-                    return "sendMessage";
-                if (connector.Actions.ContainsKey("sendMessage"))
-                    return "sendMessage";
-            }
-
-            if (kind == "eventhub")
-            {
-                if (connector.Actions.ContainsKey("sendEvent"))
-                    return "sendEvent";
-            }
-
-            if (kind == "smtp" || kind.Contains("email"))
-            {
-                if (connector.Actions.ContainsKey("sendEmail"))
-                    return "sendEmail";
-            }
-
-            if (kind == "mllp")
-            {
-                if (connector.Actions.ContainsKey("sendMessage"))
-                    return "sendMessage";
-            }
-
-            if (kind == "ibmmq")
-            {
-                if (connector.Actions.ContainsKey("sendMessage"))
-                    return "sendMessage";
-            }
-
-            if (kind == "azureblob")
-            {
-                if (connector.Actions.ContainsKey("createBlob"))
-                    return "createBlob";
-            }
-
-            if (kind == "cosmosdb")
-            {
-                if (connector.Actions.ContainsKey("createDocument"))
-                    return "createDocument";
+                return connector.DefaultAction;
             }
 
             return connector.Actions.Keys.FirstOrDefault() ?? "sendMessage";
         }
 
         /// <summary>
-        /// Builds action parameters based on the operation schema and action configuration.
-        /// Maps action properties (TargetAddress, QueueName, Content, etc.) to operation parameters.
+        /// Builds action parameters by resolving each parameter schema against the action model.
+        /// Delegates to <see cref="ResolveParameters"/> with action context.
         /// </summary>
         /// <param name="act">The action model with configuration details.</param>
         /// <param name="operation">The operation schema defining required parameters.</param>
         /// <returns>A JObject containing parameter name-value pairs.</returns>
         private static JObject BuildActionParameters(LogicAppAction act, OperationSchema operation)
         {
-            var parameters = new JObject();
+            return ResolveParameters(operation.Parameters, act: act);
+        }
 
-            foreach (var paramName in operation.Parameters)
+        /// <summary>
+        /// Resolves a list of parameter schemas into a JObject of name-value pairs.
+        /// Exactly one of <paramref name="act"/> or <paramref name="trigger"/> must be non-null.
+        /// </summary>
+        /// <param name="paramSchemas">The parameter schemas from the connector registry.</param>
+        /// <param name="act">The send action model, or null when resolving trigger parameters.</param>
+        /// <param name="trigger">The trigger model, or null when resolving action parameters.</param>
+        /// <returns>A JObject containing all resolved parameter values.</returns>
+        private static JObject ResolveParameters(
+            IEnumerable<ParameterSchema> paramSchemas,
+            LogicAppAction act = null,
+            LogicAppTrigger trigger = null)
+        {
+            var result = new JObject();
+            foreach (var param in paramSchemas)
             {
-                var lowerParam = paramName.ToLowerInvariant();
-            /// This code needs to be consolidated as well.
-                if (lowerParam == "filepath" || lowerParam == "path")
+                if (string.IsNullOrEmpty(param.Name))
                 {
-                    parameters[paramName] = act.TargetAddress ?? "/output/file.txt";
+                    continue;
                 }
-                else if (lowerParam == "folderpath")
+                result[param.Name] = ResolveValue(param, act, trigger);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Resolves a single parameter value using the <see cref="ParameterSchema.ValueSource"/> token.
+        /// Falls back to <see cref="ParameterSchema.DefaultValue"/> when the source property is null/empty.
+        /// For legacy parameters loaded with ValueSource "Literal", the token name is also matched
+        /// against known patterns so that registries not yet migrated to the object format still
+        /// produce correct values.
+        /// </summary>
+        private static JToken ResolveValue(ParameterSchema param, LogicAppAction act, LogicAppTrigger trigger)
+        {
+            var source = param.ValueSource ?? "Literal";
+
+            switch (source)
+            {
+                case "TargetAddress":
                 {
-                    parameters[paramName] = ExtractFolderFromPath(act.TargetAddress) ?? "/output";
+                    var val = act != null ? act.TargetAddress : trigger?.Address;
+                    return val ?? param.DefaultValue ?? "";
                 }
-                else if (lowerParam == "filename")
+
+                case "MessageBody":
                 {
-                    parameters[paramName] = ExtractFileNameFromPath(act.TargetAddress) ?? "file.txt";
+                    if (act != null)
+                    {
+                        return ResolveMessageBodyExpression(act);
+                    }
+                    return param.DefaultValue ?? "@triggerBody()";
                 }
-                else if (lowerParam == "content" || lowerParam == "body" || lowerParam == "message")
+
+                case "QueueName":
                 {
-                    parameters[paramName] = "@triggerBody()";
+                    if (act != null)
+                    {
+                        return act.QueueOrTopicName ?? InferQueueName(act.TargetAddress) ?? param.DefaultValue ?? "queue";
+                    }
+                    return InferQueueName(trigger?.Address) ?? param.DefaultValue ?? "queue";
                 }
-                else if (lowerParam == "queuename")
+
+                case "TopicName":
                 {
-                    parameters[paramName] = act.QueueOrTopicName ?? "queue";
+                    if (act != null)
+                    {
+                        return act.QueueOrTopicName ?? InferQueueName(act.TargetAddress) ?? param.DefaultValue ?? "topic";
+                    }
+                    return InferQueueName(trigger?.Address) ?? param.DefaultValue ?? "topic";
                 }
-                else if (lowerParam == "topicname")
+
+                case "SubscriptionName":
                 {
-                    parameters[paramName] = act.QueueOrTopicName ?? "topic";
+                    if (act != null)
+                    {
+                        return act.SubscriptionName ?? param.DefaultValue ?? "subscription";
+                    }
+                    return param.DefaultValue ?? "subscription";
                 }
-                else if (lowerParam == "subscriptionname")
+
+                case "FolderPath":
                 {
-                    parameters[paramName] = act.SubscriptionName ?? "subscription";
+                    if (act != null)
+                    {
+                        return ExtractFolderFromPath(act.TargetAddress) ?? param.DefaultValue ?? "/output";
+                    }
+                    return trigger?.FolderPath ?? param.DefaultValue ?? "/";
                 }
-                else if (lowerParam == "eventhubname")
+
+                case "FileName":
                 {
-                    parameters[paramName] = act.QueueOrTopicName ?? "eventhub";
+                    var path = act != null ? act.TargetAddress : null;
+                    return ExtractFileNameFromPath(path) ?? param.DefaultValue ?? "file.txt";
                 }
-                else if (lowerParam == "entityname")
+
+                case "TableName":
                 {
-                    parameters[paramName] = act.QueueOrTopicName ?? "entity";
+                    var addr = act != null ? act.TargetAddress : trigger?.Address;
+                    return InferTableName(addr) ?? param.DefaultValue ?? "Table";
                 }
-                else if (lowerParam == "table" || lowerParam == "tablename")
+
+                case "EventHubName":
                 {
-                    parameters[paramName] = "Table";
+                    if (act != null)
+                    {
+                        return act.QueueOrTopicName ?? InferEventHubName(act.TargetAddress) ?? param.DefaultValue ?? "eventhub";
+                    }
+                    return InferEventHubName(trigger?.Address) ?? param.DefaultValue ?? "eventhub";
                 }
-                else if (lowerParam == "query" || lowerParam == "statement")
+
+                case "Endpoint":
                 {
-                    parameters[paramName] = "INSERT INTO Table VALUES (...)";
+                    var addr = act != null ? act.TargetAddress : trigger?.Address;
+                    return addr ?? param.DefaultValue ?? "endpoint";
                 }
-                else if (lowerParam == "to")
+
+                case "FileMask":
                 {
-                    parameters[paramName] = "recipient@example.com";
+                    return trigger?.FileMask ?? param.DefaultValue ?? "*";
                 }
-                else if (lowerParam == "subject")
+
+                case "Literal":
+                default:
                 {
-                    parameters[paramName] = "Email Subject";
-                }
-                else if (lowerParam == "from")
-                {
-                    parameters[paramName] = "sender@example.com";
-                }
-                else if (lowerParam == "endpoint")
-                {
-                    parameters[paramName] = act.TargetAddress ?? "endpoint";
-                }
-                else if (lowerParam == "containername")
-                {
-                    parameters[paramName] = "container";
-                }
-                else if (lowerParam == "blobname")
-                {
-                    parameters[paramName] = ExtractFileNameFromPath(act.TargetAddress) ?? "blob.dat";
-                }
-                else if (lowerParam == "databasename")
-                {
-                    parameters[paramName] = "Database";
-                }
-                else if (lowerParam == "document")
-                {
-                    parameters[paramName] = "@triggerBody()";
-                }
-                else if (lowerParam == "partitionkey")
-                {
-                    parameters[paramName] = "partitionKey";
-                }
-                else if (lowerParam == "sessionid")
-                {
-                    parameters[paramName] = "";
-                }
-                else if (lowerParam == "contenttype")
-                {
-                    parameters[paramName] = "application/json";
-                }
-                else if (lowerParam == "overwrite")
-                {
-                    parameters[paramName] = false;
-                }
-                else if (lowerParam == "source" || lowerParam == "destination")
-                {
-                    parameters[paramName] = act.TargetAddress ?? "/path";
-                }
-                else
-                {
-                    parameters[paramName] = "";
+                    // For parameters still using the legacy Literal source (plain-string format),
+                    // fall back to name-pattern matching so unported connectors still work correctly.
+                    return ResolveLiteralParameter(param, act, trigger);
                 }
             }
+        }
 
-            return parameters;
+        /// <summary>
+        /// Handles parameters whose <see cref="ParameterSchema.ValueSource"/> is "Literal" —
+        /// i.e. parameters loaded from the old plain-string registry format that have not yet been
+        /// migrated to the data-driven object format.  Matches the parameter name against known
+        /// patterns and reads the appropriate action/trigger property, preserving the previous
+        /// behaviour of <c>BuildTriggerParameters</c> and <c>BuildActionParameters</c>.
+        /// </summary>
+        private static JToken ResolveLiteralParameter(ParameterSchema param, LogicAppAction act, LogicAppTrigger trigger)
+        {
+            var lowerParam = (param.Name ?? "").ToLowerInvariant();
+            var defaultVal = param.DefaultValue ?? "";
+
+            // --- path / file parameters ---
+            if (lowerParam == "filepath" || lowerParam == "path")
+            {
+                if (act != null) return act.TargetAddress ?? defaultVal;
+                return trigger?.Address ?? defaultVal;
+            }
+            if (lowerParam == "folderpath")
+            {
+                if (act != null) return ExtractFolderFromPath(act.TargetAddress) ?? defaultVal;
+                return trigger?.FolderPath ?? defaultVal;
+            }
+            if (lowerParam == "filename")
+            {
+                return ExtractFileNameFromPath(act?.TargetAddress) ?? defaultVal;
+            }
+            if (lowerParam == "filemask" || lowerParam == "filter")
+            {
+                return trigger?.FileMask ?? defaultVal;
+            }
+
+            // --- messaging parameters ---
+            if (lowerParam == "queuename")
+            {
+                if (act != null) return act.QueueOrTopicName ?? defaultVal;
+                return InferQueueName(trigger?.Address) ?? defaultVal;
+            }
+            if (lowerParam == "topicname")
+            {
+                if (act != null) return act.QueueOrTopicName ?? defaultVal;
+                return InferQueueName(trigger?.Address) ?? defaultVal;
+            }
+            if (lowerParam == "subscriptionname")
+            {
+                return act?.SubscriptionName ?? defaultVal;
+            }
+            if (lowerParam == "eventhubname")
+            {
+                if (act != null) return act.QueueOrTopicName ?? InferEventHubName(act.TargetAddress) ?? defaultVal;
+                return InferEventHubName(trigger?.Address) ?? defaultVal;
+            }
+            if (lowerParam == "entityname")
+            {
+                return act?.QueueOrTopicName ?? defaultVal;
+            }
+
+            // --- content / body ---
+            if (lowerParam == "content" || lowerParam == "body" || lowerParam == "message")
+            {
+                if (act != null) return ResolveMessageBodyExpression(act);
+                return "@triggerBody()";
+            }
+            if (lowerParam == "document")
+            {
+                return "@triggerBody()";
+            }
+
+            // --- database / storage ---
+            if (lowerParam == "table" || lowerParam == "tablename")
+            {
+                return InferTableName(act?.TargetAddress ?? trigger?.Address) ?? defaultVal;
+            }
+            if (lowerParam == "query" || lowerParam == "statement")
+            {
+                return defaultVal;
+            }
+            if (lowerParam == "containername")
+            {
+                return defaultVal;
+            }
+            if (lowerParam == "blobname")
+            {
+                return ExtractFileNameFromPath(act?.TargetAddress) ?? defaultVal;
+            }
+            if (lowerParam == "databasename")
+            {
+                return defaultVal;
+            }
+            if (lowerParam == "partitionkey")
+            {
+                return defaultVal;
+            }
+
+            // --- email ---
+            if (lowerParam == "to")   return defaultVal;
+            if (lowerParam == "from") return defaultVal;
+            if (lowerParam == "subject") return defaultVal;
+
+            // --- endpoint ---
+            if (lowerParam == "endpoint")
+            {
+                if (act != null) return act.TargetAddress ?? defaultVal;
+                return trigger?.Address ?? defaultVal;
+            }
+
+            // --- misc ---
+            if (lowerParam == "sessionid")     return defaultVal;
+            if (lowerParam == "contenttype")   return defaultVal;
+            if (lowerParam == "consumergroup") return defaultVal;
+
+            if (lowerParam == "source" || lowerParam == "destination")
+            {
+                return act?.TargetAddress ?? defaultVal;
+            }
+
+            // Boolean flags that default to a known value
+            if (lowerParam == "overwrite")           return JToken.Parse("false");
+            if (lowerParam == "includefilecontent")  return JToken.Parse("true");
+            if (lowerParam == "issessionsenabled")   return JToken.Parse("false");
+
+            // Numeric defaults
+            if (lowerParam.Contains("max") && lowerParam.Contains("count"))
+            {
+                return JToken.Parse("10");
+            }
+
+            if (lowerParam == "select" || lowerParam == "orderby")
+            {
+                return defaultVal;
+            }
+
+            return defaultVal;
         }
 
         /// <summary>

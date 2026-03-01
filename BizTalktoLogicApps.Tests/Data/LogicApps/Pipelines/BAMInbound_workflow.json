@@ -1,0 +1,73 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "pipelinereceive": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "Disassemble": {
+        "type": "Scope",
+        "actions": {
+          "XMLdisassembler": {
+            "type": "Foreach",
+            "foreach": "@triggerBody()?['items']",
+            "actions": {
+              "ParseXMLwithSchema": {
+                "type": "XmlParse",
+                "inputs": {
+                  "content": "@items('XMLdisassembler')?['$content']",
+                  "schema": {
+                    "source": "LogicApp",
+                    "name": "SCHEMA_NAME_HERE"
+                  },
+                  "xmlReaderSettings": {
+                    "dtdProcessing": "Prohibit",
+                    "xmlNormalization": true,
+                    "ignoreWhitespace": true,
+                    "ignoreProcessingInstructions": true
+                  },
+                  "jsonWriterSettings": {
+                    "ignoreAttributes": false,
+                    "useFullyQualifiedNames": false
+                  }
+                },
+                "metadata": {
+                  "comment": "// Use 'Parse XML with schema' action\n// ACTION REQUIRED:\n// 1. Upload XSD schema to Logic App artifacts\n// 2. Select schema in Parse XML action\n// 3. Configure XPath expressions for property extraction\n// 4. Map promoted properties from BizTalk schema annotations"
+                },
+                "runAfter": {}
+              }
+            },
+            "runtimeConfiguration": {
+              "concurrency": {
+                "repetitions": 20
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {}
+      },
+      "Validate": {
+        "type": "Scope",
+        "actions": {
+          "BamEndToEndPipelineComponent": {
+            "type": "Compose",
+            "inputs": "// Component: Microsoft.Samples.BizTalk.BamEndToEnd.Components.BamEndToEnd_PipelineComponent\r\n// Description: Unknown component type\r\n// Behavior: Behavior not documented\r\n// Message Flow: Unknown\n// Stage: Validate (All)",
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Disassemble": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {}
+  }
+}

@@ -1,0 +1,34 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: AdvancedShipNotice.xsd
+$targetSchema: AffiliateApplication.xsd
+$sourceNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  hws: http://schemas.microsoft.com/Hws/2003
+  hws_task_message: http://tempuri.org/Hws_Task_Message
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://schemas.microsoft.com/Hws/2003/HwsPromotedProperties/ProtocolMessageCorrelation
+  xs: http://www.w3.org/2001/XMLSchema
+hws:HwsMessage:
+  HwsSection:
+    ActivityFlowID: /ns0:HwsMessage/HwsSection/ActivityFlowID
+    InitiatingActor: /ns0:HwsMessage/HwsSection/InitiatingActor
+    TaskID: /ns0:HwsMessage/HwsSection/ActivityFlowID
+    TaskDescription: /ns0:HwsMessage/HwsSection/ActionInstanceDescription
+    ActionTypeID: /ns0:HwsMessage/HwsSection/ActionTypeID
+    ActionInstanceID: /ns0:HwsMessage/HwsSection/ActionInstanceID
+    ActorElementXPath: /ns0:HwsMessage/HwsSection/InitiatingActor
+    TargetActor: /ns0:HwsMessage/HwsSection/InitiatingActor
+    ActivityModelTypeID: /ns0:HwsMessage/HwsSection/ActivityModelTypeID
+    ActivityModelStepID: /ns0:HwsMessage/HwsSection/ActivityModelStepID
+    TaskProperties: /ns0:HwsMessage/HwsSection/ActivityFlowProperties
+    ActivityModelInstanceID: /ns0:HwsMessage/HwsSection/ActivityModelInstanceID
+    HwsWebServiceUrl: /ns0:HwsMessage/HwsSection/HwsWebServiceUrl
+  ActionSection: /ns0:HwsMessage/ActionSection

@@ -1,0 +1,26 @@
+$version: 1
+$input: XML
+$output: XML
+$sourceSchema: AdvancedShipNotice.xsd
+$targetSchema: AffiliateApplication.xsd
+$sourceNamespaces:
+  _ns0: http://contoso.org/samples
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  frag: http://contoso.org/samples/Fragments
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  q1: http://www.w3.org/2001/XMLSchema
+  xs: http://www.w3.org/2001/XMLSchema
+$targetNamespaces:
+  _ns0: http://contoso.org/samples
+  b: http://schemas.microsoft.com/BizTalk/2003
+  cbt: http://CommonDocTemplates.CommonBaseTypes
+  frag: http://contoso.org/samples/Fragments
+  msdata: urn:schemas-microsoft-com:xml-msdata
+  ns0: http://CommonDocTemplates.CommonAdvancedShipNotice
+  q1: http://www.w3.org/2001/XMLSchema
+  xs: http://www.w3.org/2001/XMLSchema
+msdata:ShipRequestMessage:
+  TotalPrice: /ns0:OrderMessage/TotalPrice
+  OrderHeader: /ns0:OrderMessage/OrderHeader
+  Items: /ns0:OrderMessage/Items

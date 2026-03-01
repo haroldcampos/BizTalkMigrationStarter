@@ -1,0 +1,36 @@
+{
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "pipelinesend": {
+        "type": "Request",
+        "kind": "Http"
+      }
+    },
+    "actions": {
+      "Assemble": {
+        "type": "Scope",
+        "actions": {
+          "XMLassembler": {
+            "type": "XmlCompose",
+            "inputs": {
+              "schema": {
+                "source": "LogicApp",
+                "name": "SCHEMA_NAME_HERE"
+              },
+              "content": "@triggerBody()"
+            },
+            "metadata": {
+              "comment": "// Component: XML Assembler\r\n// Description: Converts XML messages to appropriate format, adds envelopes, moves properties from context to body\r\n// Behavior: Serializes message, wraps in envelope, adds headers/trailers, moves context properties to document\r\n// Message Flow: 1 message in ? 1 message out\r\n// Properties:\r\n//   EnvelopeDocSpecNames = Microsoft.Samples.BizTalk.EnvelopeProcessing.XmlEnvelope\r\n//   EnvelopeSpecTargetNamespaces = http://EnvelopeProcessing.XmlEnvelope\r\n//   DocumentSpecNames = Microsoft.Samples.BizTalk.EnvelopeProcessing.PO\r\n//   DocumentSpecTargetNamespaces = http://EnvelopeProcessing.PO\r\n//   ProcessingInstructionsOptions = 0\r\n//   ProcessingInstructionsScope = 0\r\n//   AddXmlDeclaration = false\r\n//   TargetCharset = \r\n//   TargetCodePage = 0\r\n//   PreserveBom = true\r\n//   HiddenProperties = EnvelopeSpecTargetNamespaces,DocumentSpecTargetNamespaces,TargetCodePage\n// Use 'Compose XML with schema' action\n// ACTION REQUIRED:\n// 1. Upload XSD schema to Logic App artifacts\n// 2. Select schema in Compose XML action\n// 3. Map input data to schema structure (as JSON object)\n// 4. Configure envelope if needed\n// Stage: Assemble (All)"
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {}
+      }
+    },
+    "outputs": {}
+  }
+}

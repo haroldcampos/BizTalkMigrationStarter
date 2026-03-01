@@ -136,6 +136,7 @@
     <Compile Include="Unit\BTPtoLA\PipelineJSONGeneratorTests.cs" />
     <Compile Include="Unit\BTPtoLA\PipelineParserTests.cs" />
     <Compile Include="Unit\BTPtoLA\PipelineWorkflowMapperTests.cs" />
+    <Compile Include="Unit\ConnectorSchemaRegistryDataDrivenTests.cs" />
     <Compile Include="Unit\LogicAppsMapperTests.cs" />
     <Compile Include="Unit\ExpressionMapperTests.cs" />
     <Compile Include="Unit\ExceptionExtensionsTests.cs" />
