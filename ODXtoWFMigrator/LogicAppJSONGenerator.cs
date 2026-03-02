@@ -156,7 +156,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         private static JObject BuildTriggerFromRegistry(LogicAppTrigger t, ConnectorSchemaRegistry registry)
         {
             var connector = registry.GetConnector(t.Kind);
-            if (connector == null)
+            if (connector == null || string.IsNullOrEmpty(connector.ServiceProviderId))
             {
                 return BuildTriggerLegacy(t);
             }
@@ -1453,7 +1453,7 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         private static SendProviderMapping BuildSendProviderMappingFromRegistry(LogicAppAction act, ConnectorSchemaRegistry registry)
         {
             var connector = registry.GetConnector(act.ConnectorKind);
-            if (connector == null)
+            if (connector == null || string.IsNullOrEmpty(connector.ServiceProviderId))
             {
                 return BuildSendProviderMappingLegacy(act);
             }
