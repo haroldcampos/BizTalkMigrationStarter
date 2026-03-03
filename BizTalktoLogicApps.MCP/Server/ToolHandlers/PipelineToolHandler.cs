@@ -17,6 +17,8 @@ namespace BizTalktoLogicApps.MCP.Server.ToolHandlers
             RegisterConvertPipelineToWorkflow(registry);
             RegisterBatchConvertPipelines(registry);
             RegisterValidatePipeline(registry);
+            RegisterListPipelineConnectors(registry);
+            RegisterParsePipelineXmlContent(registry);
         }
 
         private void RegisterAnalyzePipeline(ToolRegistry registry)
@@ -517,6 +519,210 @@ namespace BizTalktoLogicApps.MCP.Server.ToolHandlers
                 catch (Exception ex)
                 {
                     return CreateErrorResult($"Pipeline validation failed: {ex.Message}");
+                }
+            });
+        }
+
+        private void RegisterListPipelineConnectors(ToolRegistry registry)
+        {
+            var tool = new Tool
+            {
+                Name = "list_pipeline_connectors",
+                Description = "Lists all BizTalk pipeline component mappings to Logic Apps actions from the pipeline connector registry, including EDIFACT and AS2 components",
+                InputSchema = ToolSchemas.CreateObjectSchema(
+                    new Dictionary<string, object>
+                    {
+                        ["filterByCategory"] = ToolSchemas.StringProperty("Optional category filter (e.g., Disassemble, Assemble, Encode, Decode, Validate)"),
+                        ["filterByComplexity"] = ToolSchemas.EnumProperty("Optional complexity filter", "Low", "Medium", "High", "Variable"),
+                        ["includeCustomCodeOnly"] = ToolSchemas.BoolProperty("Return only components that require custom code", false)
+                    },
+                    new string[] { }
+                )
+            };
+
+            registry.RegisterTool(tool, args =>
+            {
+                try
+                {
+                    var filterCategory = args["filterByCategory"]?.ToString();
+                    var filterComplexity = args["filterByComplexity"]?.ToString();
+                    var customCodeOnly = args["includeCustomCodeOnly"]?.ToObject<bool>() ?? false;
+
+                    var connectorRegistry = PipelineConnectorRegistry.Instance;
+                    var mappings = connectorRegistry.GetAllMappings();
+
+                    if (!string.IsNullOrEmpty(filterCategory))
+                    {
+                        mappings = mappings.Where(m =>
+                            string.Equals(m.Category, filterCategory, StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    if (!string.IsNullOrEmpty(filterComplexity))
+                    {
+                        mappings = mappings.Where(m =>
+                            string.Equals(m.Complexity, filterComplexity, StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    if (customCodeOnly)
+                    {
+                        mappings = mappings.Where(m => m.CustomCodeRequired);
+                    }
+
+                    var mappingList = mappings.ToList();
+
+                    var connectors = new JArray();
+                    foreach (var mapping in mappingList)
+                    {
+                        var entry = new JObject
+                        {
+                            ["componentName"] = mapping.ComponentName,
+                            ["displayName"] = mapping.DisplayName ?? mapping.ComponentName,
+                            ["category"] = mapping.Category ?? "Unknown",
+                            ["actionType"] = mapping.ActionType ?? "Compose",
+                            ["description"] = mapping.Description ?? "",
+                            ["complexity"] = mapping.Complexity ?? "Medium",
+                            ["customCodeRequired"] = mapping.CustomCodeRequired
+                        };
+
+                        if (mapping.MigrationNotes.Count > 0)
+                        {
+                            entry["migrationNotes"] = JArray.FromObject(mapping.MigrationNotes);
+                        }
+
+                        if (mapping.RequiredResources != null && mapping.RequiredResources.Count > 0)
+                        {
+                            entry["requiredResources"] = JArray.FromObject(mapping.RequiredResources);
+                        }
+
+                        connectors.Add(entry);
+                    }
+
+                    var result = new JObject
+                    {
+                        ["totalMappings"] = mappingList.Count,
+                        ["connectors"] = connectors
+                    };
+
+                    return new ToolCallResult
+                    {
+                        Content = new[]
+                        {
+                            new ToolContent
+                            {
+                                Type = "text",
+                                Text = result.ToString(Newtonsoft.Json.Formatting.Indented)
+                            }
+                        }
+                    };
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResult($"Failed to list pipeline connectors: {ex.Message}");
+                }
+            });
+        }
+
+        private void RegisterParsePipelineXmlContent(ToolRegistry registry)
+        {
+            var tool = new Tool
+            {
+                Name = "parse_pipeline_xml_content",
+                Description = "Parses BizTalk pipeline XML content (string) without requiring a file on disk, returning pipeline structure, stages, and components",
+                InputSchema = ToolSchemas.CreateObjectSchema(
+                    new Dictionary<string, object>
+                    {
+                        ["xmlContent"] = ToolSchemas.StringProperty("Raw BizTalk pipeline XML content (.btp file contents)"),
+                        ["detectPattern"] = ToolSchemas.BoolProperty("Detect if pipeline matches a known default pattern", true)
+                    },
+                    new[] { "xmlContent" }
+                )
+            };
+
+            registry.RegisterTool(tool, args =>
+            {
+                try
+                {
+                    var xmlContent = args["xmlContent"]?.ToString();
+                    var detectPattern = args["detectPattern"]?.ToObject<bool>() ?? true;
+
+                    if (string.IsNullOrEmpty(xmlContent))
+                    {
+                        return CreateErrorResult("xmlContent cannot be empty");
+                    }
+
+                    var parser = new PipelineParser();
+                    var pipeline = parser.ParsePipelineXml(xmlContent);
+
+                    var result = new JObject
+                    {
+                        ["pipelineType"] = pipeline.GetPipelineType(),
+                        ["policyFile"] = pipeline.PolicyFilePath,
+                        ["version"] = $"{pipeline.MajorVersion}.{pipeline.MinorVersion}",
+                        ["stageCount"] = pipeline.Stages.Count,
+                        ["totalComponents"] = pipeline.Stages.Sum(s => s.Components.Count)
+                    };
+
+                    if (!string.IsNullOrEmpty(pipeline.Description))
+                    {
+                        result["description"] = pipeline.Description;
+                    }
+
+                    if (detectPattern)
+                    {
+                        var patternInfo = DefaultPipelineInfo.DetectDefaultPipeline(pipeline);
+                        result["pattern"] = new JObject
+                        {
+                            ["name"] = patternInfo.Name,
+                            ["type"] = patternInfo.Type.ToString(),
+                            ["assembly"] = patternInfo.Assembly,
+                            ["description"] = patternInfo.Description
+                        };
+                    }
+
+                    var stages = new JArray();
+                    foreach (var stage in pipeline.Stages)
+                    {
+                        var metadata = stage.GetMetadata();
+                        var stageObj = new JObject
+                        {
+                            ["categoryId"] = stage.CategoryId,
+                            ["name"] = metadata.Name,
+                            ["componentCount"] = stage.Components.Count
+                        };
+
+                        var components = new JArray();
+                        foreach (var component in stage.Components)
+                        {
+                            components.Add(new JObject
+                            {
+                                ["name"] = component.ComponentName,
+                                ["type"] = component.Name,
+                                ["version"] = component.Version,
+                                ["propertyCount"] = component.Properties.Count
+                            });
+                        }
+
+                        stageObj["components"] = components;
+                        stages.Add(stageObj);
+                    }
+
+                    result["stages"] = stages;
+
+                    return new ToolCallResult
+                    {
+                        Content = new[]
+                        {
+                            new ToolContent
+                            {
+                                Type = "text",
+                                Text = result.ToString(Newtonsoft.Json.Formatting.Indented)
+                            }
+                        }
+                    };
+                }
+                catch (Exception ex)
+                {
+                    return CreateErrorResult($"Pipeline XML parsing failed: {ex.Message}");
                 }
             });
         }

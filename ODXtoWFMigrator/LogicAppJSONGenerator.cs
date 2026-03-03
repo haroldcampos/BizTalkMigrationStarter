@@ -638,6 +638,15 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                 return svcAction;
             }
 
+            if (registry != null)
+            {
+                var registryResult = BuildActionFromRegistry(act, registry);
+                if (registryResult != null)
+                {
+                    return registryResult;
+                }
+            }
+
             switch (act.Type)
             {
                 case "InitializeVariable":
@@ -1380,6 +1389,110 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                     unmapped["inputs"] = "// Unmapped: " + act.Type + " " + (act.Details ?? "");
                     return unmapped;
             }
+        }
+
+        /// <summary>
+        /// Attempts to build an action <see cref="JObject"/> using the connector registry's
+        /// <see cref="OperationSchema.InputsTemplate"/> for built-in (non-ServiceProvider) action types
+        /// such as <c>XmlParse</c>, <c>FlatFileDecoding</c>, <c>SwiftMTDecode</c>, <c>RuleExecute</c>, etc.
+        /// </summary>
+        /// <param name="act">The action model whose <see cref="LogicAppAction.Type"/> is matched against registered action types.</param>
+        /// <param name="registry">The connector schema registry to search.</param>
+        /// <returns>
+        /// A <see cref="JObject"/> with <c>type</c> set to <see cref="OperationSchema.ActionType"/> and
+        /// <c>inputs</c> set to the resolved template when a match is found; otherwise <c>null</c>,
+        /// signalling <see cref="BuildAction"/> to fall through to its hardcoded switch cases.
+        /// </returns>
+        private static JObject BuildActionFromRegistry(LogicAppAction act, ConnectorSchemaRegistry registry)
+        {
+            var op = registry.GetOperationByActionType(act.Type);
+            if (op == null)
+            {
+                return null;
+            }
+
+            var resolvedInputs = ResolveInputsPlaceholders((JObject)op.InputsTemplate.DeepClone(), act);
+
+            var result = new JObject();
+            result["type"] = op.ActionType;
+            result["inputs"] = resolvedInputs;
+
+            if (!string.IsNullOrEmpty(act.Details))
+            {
+                result["metadata"] = new JObject
+                {
+                    ["comment"] = act.Details
+                };
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Deep-clones a registry <see cref="OperationSchema.InputsTemplate"/> and resolves
+        /// runtime placeholder values from the action model.
+        /// </summary>
+        /// <remarks>
+        /// Placeholder rules applied to every string value in the cloned template:
+        /// <list type="bullet">
+        ///   <item>Key <c>"content"</c>, <c>"messageToDecode"</c>, <c>"messageToEncode"</c>, or
+        ///         <c>"batchMessage"</c> with empty value → <see cref="ResolveMessageBodyExpression"/>.</item>
+        ///   <item>Key <c>"ruleSet"</c> with empty value → <c>act.Details</c> or <c>"Ruleset"</c>.</item>
+        ///   <item>Key <c>"ruleStore"</c> with empty value → <c>"FileFolder"</c>.</item>
+        ///   <item>String value <c>"{{SCHEMA_NAME}}"</c> → <c>act.Details</c> when set, otherwise left as-is.</item>
+        ///   <item>String value <c>"{{FLAT_FILE_SCHEMA_NAME}}"</c> → <c>act.Details</c> when set, otherwise left as-is.</item>
+        ///   <item>String value <c>"{{XSLT_MAP_NAME}}"</c> → <see cref="ExtractMapShortName"/> of <c>act.Details</c>.</item>
+        ///   <item>Static values (e.g. <c>"Enable"</c> for <c>messageValidation</c>,
+        ///         <c>"ApplyXsltTemplates"</c> for <c>transformOptions</c>) are kept verbatim.</item>
+        ///   <item>Post-migration placeholder fields with no BizTalk source (e.g. <c>"as2From"</c>,
+        ///         <c>"senderIdentity"</c>, <c>"headerToEncode"</c>) are left as empty strings
+        ///         for the user to complete after migration.</item>
+        ///   <item>Nested <see cref="JObject"/> values are recursed into.</item>
+        /// </list>
+        /// </remarks>
+        private static JObject ResolveInputsPlaceholders(JObject template, LogicAppAction act)
+        {
+            var messageBody = ResolveMessageBodyExpression(act);
+
+            foreach (var prop in template.Properties().ToList())
+            {
+                if (prop.Value.Type == JTokenType.String)
+                {
+                    var key = prop.Name;
+                    var val = prop.Value.ToString();
+
+                    if ((key == "content" || key == "messageToDecode" || key == "messageToEncode" || key == "batchMessage") &&
+                        val == string.Empty)
+                    {
+                        template[key] = messageBody;
+                    }
+                    else if (key == "ruleSet" && val == string.Empty)
+                    {
+                        template[key] = act.Details ?? "Ruleset";
+                    }
+                    else if (key == "ruleStore" && val == string.Empty)
+                    {
+                        template[key] = "FileFolder";
+                    }
+                    else if (val == "{{SCHEMA_NAME}}" || val == "{{FLAT_FILE_SCHEMA_NAME}}")
+                    {
+                        if (!string.IsNullOrEmpty(act.Details))
+                        {
+                            template[key] = act.Details;
+                        }
+                    }
+                    else if (val == "{{XSLT_MAP_NAME}}")
+                    {
+                        template[key] = ExtractMapShortName(act.Details);
+                    }
+                }
+                else if (prop.Value.Type == JTokenType.Object)
+                {
+                    ResolveInputsPlaceholders((JObject)prop.Value, act);
+                }
+            }
+
+            return template;
         }
 
         /// <summary>

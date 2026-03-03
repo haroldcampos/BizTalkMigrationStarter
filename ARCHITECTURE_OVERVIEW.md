@@ -1,4 +1,4 @@
-# BizTalk Migration Starter - Architecture Overview
+﻿# BizTalk Migration Starter - Architecture Overview
 
 This document provides a comprehensive overview of all architecture diagrams for the BizTalk Migration Starter.
 
@@ -296,10 +296,10 @@ Parses BizTalk Pipeline (.btp) files and converts them to Azure Logic Apps workf
 
 | Category | Tools | Description |
 |----------|-------|-------------|
-| **Analysis** | analyze_biztalk_orchestration, analyze_odx_directory, generate_migration_report | Analyze artifacts for migration |
-| **Conversion** | convert_biztalk_to_logicapp, convert_biztalk_to_logicapp_refactored, batch_convert | Convert orchestrations |
+| **Analysis** | analyze_biztalk_orchestration, analyze_odx_directory, generate_migration_report, validate_biztalk_artifacts | Analyze artifacts for migration |
+| **Conversion** | convert_biztalk_to_logicapp, convert_biztalk_to_logicapp_refactored, generate_deployment_package, batch_convert_orchestrations, convert_bindings_only | Convert orchestrations |
 | **Refactored** | convert_biztalk_to_logicapp_refactored | Pattern-optimized conversion with deployment targets |
-| **Pipeline** | analyze_biztalk_pipeline, convert_pipeline_to_workflow, batch_convert_pipelines | Pipeline migration |
+| **Pipeline** | analyze_biztalk_pipeline, convert_pipeline_to_workflow, batch_convert_pipelines, validate_biztalk_pipeline, list_pipeline_connectors, parse_pipeline_xml_content | Pipeline migration |
 | **Map** | analyze_btm_file, convert_btm_to_lml, batch_convert_btm_to_lml | Map migration |
 | **Mapping** | map_biztalk_expression, resolve_connector_schema, parse_binding_file | Expression/connector mapping |
 | **Configuration** | load_connector_registry, list_available_connectors, validate_workflow | Configuration tools |
@@ -328,7 +328,7 @@ MCP server that exposes BizTalk to Logic Apps migration toolkit as AI-accessible
 - * Resource access (BizTalk & Logic Apps artifacts)
 - * Pre-defined migration prompts
 - * Refactored conversion with deployment targets (NEW)
-- * 25+ migration tools
+- * 25 migration tools
 
 ---
 
@@ -470,6 +470,11 @@ Final JSON-level optimizations:
 
 ## Changelog
 
+### v1.2.0 (February 2026)
+
+- **PipelineToolHandler**: Added `list_pipeline_connectors` tool — exposes all BizTalk pipeline component → Logic Apps action mappings from `PipelineConnectorRegistry` (including EDIFACT and AS2 sections) with optional filtering by category, complexity, and custom-code requirement
+- **PipelineToolHandler**: Added `parse_pipeline_xml_content` tool — parses BizTalk pipeline XML from a raw string (no file required), returning pipeline type, stage structure, components, and optional default pattern detection
+
 ### v1.1.0 (January 2026)
 
 - **LogicAppsMapper**: Replaced `ThreadLocal<string>` with `[ThreadStatic]` fields to eliminate `IDisposable` leak in long-running processes (MCP server)
@@ -482,6 +487,6 @@ Final JSON-level optimizations:
 
 ---
 
-**Version**: 1.1.0  
-**Last Updated**: January 2026  
+**Version**: 1.2.0  
+**Last Updated**: March 2026  
 **Author**: Harold Campos

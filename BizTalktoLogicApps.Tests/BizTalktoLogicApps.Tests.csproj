@@ -133,6 +133,7 @@
     <Compile Include="Unit\BizTalkOrchestrationParserTests.cs" />
     <Compile Include="Unit\BTMtoLMLMigrator\BtmParserTests.cs" />
     <Compile Include="Unit\BTMtoLMLMigrator\LmlGeneratorTests.cs" />
+    <Compile Include="Unit\BTPtoLA\PipelineConnectorRegistryTests.cs" />
     <Compile Include="Unit\BTPtoLA\PipelineJSONGeneratorTests.cs" />
     <Compile Include="Unit\BTPtoLA\PipelineParserTests.cs" />
     <Compile Include="Unit\BTPtoLA\PipelineWorkflowMapperTests.cs" />

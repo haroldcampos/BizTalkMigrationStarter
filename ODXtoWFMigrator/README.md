@@ -414,12 +414,14 @@ ODXtoWFMigrator/
 ??? ConnectorSchemaRegistry.cs       # Connector mapping (300 lines)
 ??? OdxAnalyzer.cs                   # Gap analysis (500 lines)
 ??? OrchestrationReportGenerator.cs  # Report generation (1300 lines)
-??? WorkflowValidator.cs             # Schema validation (200 lines)
-??? WorkflowValidation.cs            # Validation utilities (30 lines)
+??? WorkflowValidator.cs             # Schema validation (779 lines)
+??? ReceivePatternAnalysis.cs         # Receive pattern detection
 ??? ExceptionExtensions.cs           # Fatal exception handling
 ??? Program.cs                       # CLI entry point (1200+ lines)
 ??? ProgramHelpers.cs                # CLI helper methods
 ??? Properties/AssemblyInfo.cs       # Assembly metadata
+??? Diagnostics/
+?   ??? OrchestrationDiagnostics.cs  # Orchestration diagnostics
 ??? Refactoring/                     # Pattern-based optimization (NEW)
 ?   ??? RefactoredWorkflowGenerator.cs  # Refactoring orchestrator (200 lines)
 ?   ??? RefactoringOptions.cs           # Configuration options (150 lines)
@@ -449,9 +451,8 @@ var binding = BindingSnapshot.Parse(@"C:\BizTalk\bindings.xml");
 // Map to Logic Apps
 var map = LogicAppsMapper.MapToLogicApp(orchestration, binding);
 
-// Generate JSON
-var registry = ConnectorSchemaRegistry.CreateDefault();
-string workflowJson = LogicAppJSONGenerator.GenerateStandardWorkflow(map, "Stateful", "2020-05-01-preview", registry);
+// Generate JSON (registry loaded from connector-registry.json at runtime)
+string workflowJson = LogicAppJSONGenerator.GenerateStandardWorkflow(map, "Stateful", "2016-06-01");
 
 // Save
 File.WriteAllText(@"C:\Output\workflow.json", workflowJson);
@@ -535,11 +536,10 @@ var workflows = LogicAppsMapper.MapBindingsToWorkflows(bindings);
 Console.WriteLine($"Generated {workflows.Count} workflow(s)");
 
 // Generate JSON for each workflow
-var registry = ConnectorSchemaRegistry.CreateDefault();
 foreach (var workflow in workflows)
 {
     string json = LogicAppJSONGenerator.GenerateStandardWorkflow(
-        workflow, "Stateful", "2016-06-01", registry);
+        workflow, "Stateful", "2016-06-01");
     
     File.WriteAllText($@"C:\Output\{workflow.Name}\workflow.json", json);
 }
@@ -564,13 +564,11 @@ OdxAnalyzer.SaveReportToJson(report, @"C:\Output\analysis.json");
 ### Generate Migration Report
 
 ```csharp
-var reportHtml = OrchestrationReportGenerator.GenerateReport(
-    orchestration,
-    binding,
-    format: "html"
+OrchestrationReportGenerator.ExportDiagnosticReport(
+    @"C:\BizTalk\OrderProcessing.odx",
+    @"C:\Output\migration-report.html",
+    ReportFormat.Html
 );
-
-File.WriteAllText(@"C:\Output\migration-report.html", reportHtml);
 ```
 
 ### Expression Translation
@@ -981,7 +979,7 @@ Before converting orchestrations, verify:
 #### Use Gap Analysis Tool
 
 ```cmd
-ODXtoWFMigrator.exe --analyze C:\BizTalk\Orchestrations --output gap-report.json
+ODXtoWFMigrator.exe analyze-odx C:\BizTalk\Orchestrations --output gap-report.json
 ```
 
 **Check Report For**:
@@ -1053,17 +1051,17 @@ Warning: Using fallback HTTP connector for WCF-Custom
 #### Validate Generated Workflow
 ```csharp
 var validator = new WorkflowValidator();
-var errors = validator.Validate(@"C:\Output\workflow.json");
+var result = validator.Validate(@"C:\Output\workflow.json");
 
-if (errors.Count == 0)
+if (!result.HasErrors)
 {
     Console.WriteLine("Workflow is valid!");
 }
 else
 {
-    foreach (var error in errors)
+    foreach (var issue in result.Issues)
     {
-        Console.WriteLine($"ERROR: {error}");
+        Console.WriteLine($"{issue.Severity}: {issue.Code} - {issue.Message}");
     }
 }
 ```
@@ -1111,9 +1109,9 @@ string json = LogicAppJSONGenerator.GenerateStandardWorkflow(map, "Stateful");
 
 // Validate schema compliance
 var validator = new WorkflowValidator();
-var errors = validator.Validate(json);
+var result = validator.Validate(json);
 
-if (errors.Count > 0)
+if (result.HasErrors)
 {
     Console.WriteLine("Workflow has validation errors!");
     // Fix issues before deploying
@@ -1238,6 +1236,18 @@ See **BizTalkToLogicApps.MCP** project for MCP server usage.
 
 ## Changelog
 
+### v1.2.0 (February 2026)
+
+#### Documentation Fixes
+
+- Removed reference to non-existent `WorkflowValidation.cs` from Project Structure
+- Added missing `ReceivePatternAnalysis.cs` and `Diagnostics/OrchestrationDiagnostics.cs` to Project Structure
+- Fixed `WorkflowValidator.Validate()` usage examples to use `ValidationResult` (returns `.HasErrors` / `.Issues`) instead of `List<string>`
+- Removed references to non-existent `ConnectorSchemaRegistry.CreateDefault()` from all code examples; `LoadFromFile()` is the only supported loading method
+- Fixed schema version in Basic Conversion example from `"2020-05-01-preview"` to `"2016-06-01"` (actual default in `LogicAppJSONGenerator`)
+- Fixed Gap Analysis command example from `--analyze` to `analyze-odx` (correct CLI command)
+- Fixed `OrchestrationReportGenerator` code example to use actual API `ExportDiagnosticReport(odxPath, outputPath, format)` instead of non-existent `GenerateReport()`
+
 ### v1.1.0 (January 2026)
 
 #### Bug Fixes
@@ -1276,8 +1286,8 @@ For issues, questions, or feature requests:
 
 ---
 
-**Version**: 1.1.0  
-**Last Updated**: January 2026
+**Version**: 1.2.0  
+**Last Updated**: March 2026
 
 **Related Projects**:
 - **[BTMtoLMLMigrator](../BTMtoLMLMigrator/README.md)** - BizTalk map to LML (Logic Apps Mapping Language) conversion

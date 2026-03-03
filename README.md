@@ -83,7 +83,7 @@ This toolkit assists in the process of migrating BizTalk Server artifacts to Azu
 
 ### **BizTalkToLogicApps.MCP** — AI-Assisted Migration
 - **Model Context Protocol Server**: Exposes migration tools to AI assistants
-- **25+ AI Tools**: Analysis, conversion, validation, and configuration tools
+- **25 AI Tools**: Analysis, conversion, validation, and configuration tools
 - **Multi-Artifact Support**: Handles orchestrations, maps, and pipelines
 - **Claude/VS Code Integration**: Works with Claude Desktop and VS Code MCP extensions
 
@@ -272,7 +272,7 @@ BizTalkMigrationStarter/
 |   |       +-- AnalysisToolHandler.cs
 |   |       +-- ConversionToolHandler.cs  # Includes refactored conversion
 |   |       +-- MapConversionToolHandler.cs
-|   |       +-- PipelineToolHandler.cs
+|   |       +-- PipelineToolHandler.cs    # Includes list_pipeline_connectors, parse_pipeline_xml_content
 |   |       +-- MappingToolHandler.cs
 |   |       +-- ConfigurationToolHandler.cs
 |   +-- Models/
@@ -331,10 +331,10 @@ BizTalkMigrationStarter/
                     | BizTalkToLogicApps.MCP     |
                     | (AI-Assisted Migration)    |
                     +----------------------------+
-                    | - Analysis Tools           |
-                    | - Conversion Tools         |
-                    | - Validation Tools         |
-                    | - Configuration Tools      |
+                    | - 25 Analysis/Conversion   |
+                    |   Validation/Config Tools  |
+                    | - Pipeline connector tools |
+                    | - Inline XML parse tool    |
                     +----------------------------+
                               ^
                               |
@@ -903,7 +903,7 @@ See [BizTalkToLogicApps.Tests/README.md](https://github.com/haroldcampos/BizTalk
 | Deployment Packages | Complete | CI/CD integration |
 | Map Migration | Complete | BTM to Logic Apps Mapping Language conversion |
 | Pipeline Migration | Complete | BTP to workflow conversion |
-| MCP AI Tools | Complete | 25+ tools for AI assistants |
+| MCP AI Tools | Complete | 25 tools for AI assistants |
 
 ### Known Limitations
 
@@ -978,6 +978,6 @@ For issues, questions, or feature requests:
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: February 2026.  
+**Last Updated**: March 2026.  
 
 This is an independent project and is not affiliated with or endorsed by Microsoft Corporation.

@@ -1,4 +1,4 @@
-# BizTalk Pipeline to Logic Apps Converter (BTPtoLA)
+﻿# BizTalk Pipeline to Logic Apps Converter (BTPtoLA)
 
 A .NET Framework 4.7.2 console application that parses BizTalk Pipeline (.btp) files and converts them to Azure Logic Apps workflow definitions. It supports both Receive and Send pipelines (mid-low complexity), extracting stages, components, and properties, and generates Logic Apps Standard workflow JSON file.
 
@@ -47,11 +47,17 @@ BTPtoLA/
 *   *** PipelineStage          # Stage model (Decode, Disassemble, etc.)
 *   *** PipelineComponent      # Component model with metadata
 *   *** ComponentProperty      # Property model with type info
+*   *** ComponentMetadata      # Component metadata and behavior
+*   *** ComponentCategory      # Stage category GUID mapping
+*   *** StageExecutionMode     # Execution mode enum (All, FirstMatch)
+*   *** PipelineWorkflowModel  # Intermediate workflow model
+*   *** DefaultPipelineInfo    # Default pipeline detection
 *
 *** Services/
-*   *** PipelineParser         # XML -> Model parser
-*   *** PipelineWorkflowMapper # Model -> Workflow mapper
-*   *** PipelineJSONGenerator  # Workflow -> JSON generator
+*   *** PipelineParser            # XML -> Model parser
+*   *** PipelineWorkflowMapper    # Model -> Workflow mapper
+*   *** PipelineJSONGenerator     # Workflow -> JSON generator
+*   *** PipelineConnectorRegistry # BizTalk component -> Logic Apps action mappings
 *
 *** Program.cs                 # CLI entry point
 ```
@@ -265,19 +271,28 @@ BizTalk Server includes three types of pipeline components, which are all suppor
 ### Command Line
 
 ```bash
-# Parse and convert a BizTalk Pipeline file
-BTPtoLA.exe <path-to-pipeline.btp> [output-file.json]
+# Parse and analyze a BizTalk Pipeline file (no output directory)
+BTPtoLA.exe <path-to-pipeline.btp>
 
-# Example: Convert pipeline and save to file
-BTPtoLA.exe C:\BizTalkPipelines\ReceivePipeline.btp C:\Output\LogicApp.json
+# Convert pipeline and save workflow to output directory
+BTPtoLA.exe <path-to-pipeline.btp> <output-directory>
 
-# Example: Convert pipeline and display to console
-BTPtoLA.exe C:\BizTalkPipelines\ReceivePipeline.btp
+# Explicit workflow generation mode
+BTPtoLA.exe /workflow <path-to-pipeline.btp> [output-directory]
+
+# Non-interactive batch mode (no prompts, errors to stderr)
+BTPtoLA.exe /batch <path-to-pipeline.btp> <output-directory>
+
+# Examples
+BTPtoLA.exe C:\BizTalkPipelines\ReceivePipeline.btp               # Analyze only
+BTPtoLA.exe C:\BizTalkPipelines\ReceivePipeline.btp C:\Output     # Generate workflow
 ```
+
+> **Note**: The output filename is always `<PipelineName>_workflow.json` inside the output directory.
 
 ### Demo Mode
 
-Run without arguments to see demos of all four default pipelines plus custom pipelines:
+Run without arguments to see demos of all four default pipelines:
 
 ```bash
 BTPtoLA.exe
@@ -358,76 +373,68 @@ Component categories define which stages a component can be placed in. This is c
 
 ## Output Format
 
-The tool generates an Azure Logic Apps workflow definition in JSON format with enhanced metadata, including **default pipeline detection**:
+The tool generates an Azure Logic Apps workflow definition in JSON format. The output file is always wrapped in a `kind`/`definition` envelope:
 
 ```json
 {
-  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "pipelineType": {
-      "type": "string",
-      "defaultValue": "Receive"
-    },
-    "pipelinePattern": {
-      "type": "string",
-      "defaultValue": "XMLReceive"
-    },
-    "isDefaultPipeline": {
-      "type": "bool",
-      "defaultValue": true
-    }
-  },
-  "triggers": {
-    "manual": {
-      "type": "Request",
-      "kind": "Http",
-      "inputs": {
-        "schema": {}
+  "kind": "Stateful",
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_message_is_received": {
+        "type": "Request",
+        "kind": "Http"
       }
-    }
-  },
-  "actions": {
-    "Decode_MIME_SMIME_decoder_0": {
-      "type": "Compose",
-      "runAfter": {},
-      "inputs": {
-        "description": "MIME/SMIME decoder component.",
-        "componentType": "Microsoft.BizTalk.Component.MIME_SMIME_Decoder",
-        "componentName": "MIME/SMIME decoder",
-        "componentCategory": "General",
-        "componentBehavior": "Decodes and decrypts MIME/SMIME messages...",
-        "messageFlow": "1 message in -> 0-1 message out",
-        "supportsProbing": false,
-        "stage": "Decode",
-        "stageExecutionMode": "All",
-        "stageBehavior": "All components in this stage are run...",
-        "properties": {
-          "AllowNonMIMEMessage": false,
-          "ValidateCRL": false
-        }
+    },
+    "actions": {
+      "XML_disassembler": {
+        "type": "Foreach",
+        "foreach": "@triggerBody()?['items']",
+        "actions": {
+          "Parse_XML_with_Schema": {
+            "type": "XmlParse",
+            "inputs": {
+              "content": "@items('XML_disassembler')?['$content']",
+              "schema": {
+                "source": "LogicApp",
+                "name": "SCHEMA_NAME_HERE"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {}
+      },
+      "MIME_SMIME_decoder": {
+        "type": "InvokeFunction",
+        "inputs": {
+          "functionName": "DecodeMimeSmimeMessage",
+          "parameters": {
+            "messageContent": "@triggerBody()?['$content']",
+            "validateSignature": "true",
+            "decryptMessage": "true"
+          }
+        },
+        "runAfter": {}
       }
-    }
+    },
+    "outputs": {}
   }
 }
 ```
 
-### Enhanced Metadata in Actions
+### Action Types in Generated Workflows
 
-Each action now includes comprehensive component metadata:
-- **pipelineType**: Receive or Send (in parameters section)
-- **pipelinePattern**: Default pipeline name or "Custom Pipeline" (in parameters section)
-- **isDefaultPipeline**: Boolean indicating if this matches a default BizTalk pipeline (in parameters section)
-- **componentCategory**: Type of component (General, Assembling, Disassembling)
-- **componentBehavior**: Detailed explanation of what the component does
-- **messageFlow**: Input/output message cardinality (e.g., "1 message in -> 0-N messages out")
-- **supportsProbing**: Whether the component supports format probing
-- **stage**: The pipeline stage name (Decode, Disassemble, Validate, etc.)
-- **stageExecutionMode**: How components in the stage execute (All, FirstMatch)
-- **stageBehavior**: Detailed explanation of stage behavior and message flow
-- **componentType**: Full BizTalk component type name
-- **componentName**: User-friendly component name
-- **properties**: All component configuration properties with proper type conversion
+- **`Foreach`** — wraps Disassembling components (XML/Flat File Disassembler) because they produce 0-N messages
+- **`XmlParse`** — child of Foreach for XML Disassembler; requires schema uploaded to Logic App artifacts
+- **`FlatFileDecoding`** — child of Foreach for Flat File Disassembler; requires schema in artifacts
+- **`XmlCompose`** — for XML Assembler; requires schema in artifacts
+- **`FlatFileEncoding`** — for Flat File Assembler; requires schema in artifacts
+- **`XmlValidation`** — for XML Validator; requires schema in artifacts
+- **`InvokeFunction`** — for MIME Decoder/Encoder and Party Resolution; requires Local Function deployment
+- **`Xslt`** — for XSL Transform components; requires map uploaded to Logic App artifacts
+- **`Compose`** — fallback for other/custom components; contains migration notes as comments in `inputs`
 
 ## Project Structure
 
@@ -438,9 +445,16 @@ BTPtoLA/
 *   *** PipelineStage.cs         # Pipeline stage model
 *   *** PipelineComponent.cs     # Pipeline component model
 *   *** ComponentProperty.cs     # Component property model
+*   *** ComponentMetadata.cs     # Component metadata and behavior definitions
+*   *** ComponentCategory.cs     # Stage category GUID mapping
+*   *** StageExecutionMode.cs    # Execution mode enum (All, FirstMatch)
+*   *** PipelineWorkflowModel.cs # Intermediate workflow model for JSON generation
+*   *** DefaultPipelineInfo.cs   # Default pipeline detection logic
 *** Services/
-*   *** PipelineParser.cs        # XML parser for .btp files
-*   *** LogicAppsConverter.cs    # Converter to Logic Apps JSON
+*   *** PipelineParser.cs           # XML parser for .btp files
+*   *** PipelineWorkflowMapper.cs   # Maps pipeline model to workflow model
+*   *** PipelineJSONGenerator.cs    # Generates Logic Apps workflow JSON
+*   *** PipelineConnectorRegistry.cs # BizTalk component to Logic Apps action registry
 *** Program.cs                   # Main console application
 *** README.md                    # This file
 ```
@@ -453,14 +467,22 @@ BTPtoLA/
 
 ## Component Mapping
 
-The tool maps BizTalk components to Logic Apps actions:
+The tool maps BizTalk pipeline components to Logic Apps action types via `PipelineWorkflowMapper`:
 
-| BizTalk Component | Logic Apps Action Type |
-|-------------------|----------------------|
-| XML Disassembler | ParseJson |
-| All Others | Compose |
+| BizTalk Component | Logic Apps Action Type | Notes |
+|-------------------|----------------------|-------|
+| XML Disassembler | `Foreach` → `XmlParse` | Foreach wraps XmlParse; schema upload required |
+| Flat File Disassembler | `Foreach` → `FlatFileDecoding` | Foreach wraps FlatFileDecoding; schema upload required |
+| XML Assembler | `XmlCompose` | Schema upload required |
+| Flat File Assembler | `FlatFileEncoding` | Schema upload required |
+| XML Validator | `XmlValidation` | Schema upload required |
+| MIME/SMIME Decoder | `InvokeFunction` | Requires Local Function (e.g., `DecodeMimeSmimeMessage`) |
+| MIME/SMIME Encoder | `InvokeFunction` | Requires Local Function (e.g., `EncodeMimeSmimeMessage`) |
+| Party Resolution | `InvokeFunction` | Requires Local Function (e.g., `ResolvePartner`) |
+| XSL Transform | `Xslt` | Map upload required |
+| Other EDI / Custom | `Compose` | Placeholder — manual implementation required |
 
-> **Note**: This is a foundational mapping. You may need to customize the Logic Apps workflow based on your specific integration requirements.
+> **Note**: Disassembling components are wrapped in a `Foreach` action because they can produce 0-N output messages. Child action types (`XmlParse`, `FlatFileDecoding`) contain schema placeholder references that must be updated before deployment.
 
 ## Limitations
 
@@ -468,7 +490,7 @@ The tool maps BizTalk components to Logic Apps actions:
 
 **For MIME Decoder, MIME Encoder, Party Resolution, and other custom components that use `InvokeFunction` actions:**
 
-Your local Azure Function **must have a `function.json` file** located in the following folder structure:
+Your local Local Function **must have a `function.json` file** located in the following folder structure:
 
 ```
 /home/site/wwwroot/lib/custom/InvokeFunction
@@ -503,7 +525,7 @@ Your local Azure Function **must have a `function.json` file** located in the fo
 - The tool provides a **structural conversion** from BizTalk to Logic Apps
 - Custom pipeline components may require manual mapping
 - Logic Apps actions use generic types (Compose) for most components
-- Advanced BizTalk features may need custom Logic Apps connectors or Azure Functions
+- Advanced BizTalk features may need custom Logic Apps connectors or Local Functions
 
 ## Future Enhancements
 
@@ -519,6 +541,22 @@ Your local Azure Function **must have a `function.json` file** located in the fo
 - [Azure Logic Apps Workflow Definition](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-workflow-definition-language)
 
 ## Changelog
+
+### v1.2.0 (February 2026)
+
+#### New MCP Tools
+
+- **`list_pipeline_connectors`** (BizTalkToLogicApps.MCP) — exposes all BizTalk pipeline component → Logic Apps action mappings from `PipelineConnectorRegistry`, with optional filtering by category, complexity, and custom-code requirement
+- **`parse_pipeline_xml_content`** (BizTalkToLogicApps.MCP) — parses BizTalk pipeline XML from a raw string (no file required), returning pipeline type, stage structure, components, and optional default pattern detection
+
+#### Documentation Fixes
+
+- Fixed CLI syntax: second argument is an **output directory**, not an output file; output filename is always `<PipelineName>_workflow.json`
+- Fixed demo mode description: removed incorrect "plus custom pipelines" claim (exactly 4 demos run)
+- Fixed Component Architecture diagram: added missing `ComponentMetadata`, `ComponentCategory`, `StageExecutionMode`, `PipelineWorkflowModel`, `DefaultPipelineInfo` (Models) and `PipelineConnectorRegistry` (Services)
+- Fixed Project Structure: removed non-existent `LogicAppsConverter.cs`; added all missing model and service files
+- Fixed Component Mapping table: replaced stale 2-row table (XML Disassembler → ParseJson, All Others → Compose) with accurate full mapping covering `Foreach`/`XmlParse`, `FlatFileDecoding`, `XmlCompose`, `FlatFileEncoding`, `XmlValidation`, `InvokeFunction`, `Xslt`, and `Compose`
+- Fixed Output Format JSON example: replaced incorrect flat structure (with `parameters` block and structured `inputs` object) with actual `kind`/`definition` envelope output; added action type reference section
 
 ### v1.0.0 (January 2026)
 
@@ -541,8 +579,8 @@ For issues, questions, or feature requests:
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: January 2026
+**Version**: 1.2.0  
+**Last Updated**: March 2026
 
 **Related Projects**:
 - **[ODXtoWFMigrator](../ODXtoWFMigrator/README.md)** - BizTalk orchestration to Logic Apps workflow conversion

@@ -150,11 +150,19 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
                             foreach (var action in actions.Children<JProperty>())
                             {
                                 var actionDef = action.Value as JObject;
+                                var operationId = actionDef["OperationId"]?.ToString();
+                                var inputsTemplate = ParseInputsTemplate(
+                                    actionDef["Inputs"] ?? actionDef["inputs"]);
+                                var actionType = actionDef["ActionType"]?.ToString()
+                                    ?? (inputsTemplate != null ? operationId : null);
+
                                 schema.Actions[action.Name] = new OperationSchema
                                 {
-                                    OperationId = actionDef["OperationId"]?.ToString(),
+                                    OperationId = operationId,
                                     IsTrigger = false,
-                                    Parameters = ParseParameterSchemas(actionDef["Parameters"] as JArray)
+                                    Parameters = ParseParameterSchemas(actionDef["Parameters"] as JArray),
+                                    InputsTemplate = inputsTemplate,
+                                    ActionType = actionType
                                 };
                             }
                         }
@@ -187,6 +195,44 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
             }
 
             return registry;
+        }
+
+        /// <summary>
+        /// Parses the <c>"Inputs"</c> (or <c>"inputs"</c>) token from an action definition
+        /// into a <see cref="JObject"/> inputs template.
+        /// <list type="bullet">
+        ///   <item>JObject — returned as-is (already a structured template).</item>
+        ///   <item>JArray of strings — converted to a JObject whose keys are those strings
+        ///         and whose values are empty strings, ready for placeholder resolution.</item>
+        ///   <item>Anything else / null — returns null (ServiceProvider architecture).</item>
+        /// </list>
+        /// </summary>
+        private static JObject ParseInputsTemplate(JToken raw)
+        {
+            if (raw == null)
+            {
+                return null;
+            }
+
+            if (raw.Type == JTokenType.Object)
+            {
+                return (JObject)raw;
+            }
+
+            if (raw.Type == JTokenType.Array)
+            {
+                var result = new JObject();
+                foreach (var item in (JArray)raw)
+                {
+                    if (item.Type == JTokenType.String)
+                    {
+                        result[item.ToString()] = string.Empty;
+                    }
+                }
+                return result;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -288,6 +334,52 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         public bool HasConnector(string name)
         {
             return !string.IsNullOrEmpty(name) && this.connectors.ContainsKey(name);
+        }
+
+        /// <summary>
+        /// Finds an <see cref="OperationSchema"/> whose <see cref="OperationSchema.ActionType"/>
+        /// matches <paramref name="actionType"/>. Used by <c>BuildAction</c> to locate the
+        /// Inputs-architecture template for built-in action types such as
+        /// <c>"XmlParse"</c>, <c>"SwiftMTDecode"</c>, <c>"FlatFileDecoding"</c>, etc.
+        /// </summary>
+        /// <param name="actionType">The Logic Apps action type string (e.g., <c>"XmlParse"</c>).</param>
+        /// <returns>
+        /// The matching <see cref="OperationSchema"/> if found; otherwise <c>null</c>.
+        /// Only operations that have a non-null <see cref="OperationSchema.InputsTemplate"/> are
+        /// considered — ServiceProvider operations that happen to share a name are ignored.
+        /// </returns>
+        /// <remarks>
+        /// Scans every distinct connector (alias duplicates are skipped via a name-based
+        /// <see cref="HashSet{T}"/>) and returns the first matching operation.
+        /// Comparison is case-insensitive to tolerate minor casing differences.
+        /// </remarks>
+        public OperationSchema GetOperationByActionType(string actionType)
+        {
+            if (string.IsNullOrEmpty(actionType))
+            {
+                return null;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var schema in this.connectors.Values)
+            {
+                if (string.IsNullOrEmpty(schema.Name) || !seen.Add(schema.Name))
+                {
+                    continue;
+                }
+
+                foreach (var op in schema.Actions.Values)
+                {
+                    if (op.InputsTemplate != null &&
+                        string.Equals(op.ActionType, actionType, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return op;
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -588,6 +680,29 @@ namespace BizTalktoLogicApps.ODXtoWFMigrator
         /// both the legacy plain-string format and the new object format.
         /// </remarks>
         public List<ParameterSchema> Parameters { get; set; }
+
+        /// <summary>
+        /// Gets or sets the inputs template for built-in (non-ServiceProvider) actions.
+        /// When non-null, the operation uses the Inputs architecture: the template is deep-cloned
+        /// and resolved at generation time to produce the action's <c>inputs</c> object directly.
+        /// When null, the operation uses the Parameters/ServiceProvider architecture.
+        /// </summary>
+        /// <remarks>
+        /// Populated by <see cref="ConnectorSchemaRegistry.LoadFromFile"/> from the <c>"Inputs"</c>
+        /// (or <c>"inputs"</c>) key in the connector JSON.  A JArray of strings is automatically
+        /// converted to a JObject whose keys are those strings and whose values are empty strings,
+        /// ready for <c>ResolveInputsPlaceholders</c> to fill at generation time.
+        /// </remarks>
+        public JObject InputsTemplate { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Logic Apps action <c>type</c> string for built-in actions
+        /// (e.g., <c>"XmlParse"</c>, <c>"SwiftMTDecode"</c>, <c>"FlatFileDecoding"</c>).
+        /// When null, the action type is <c>"ServiceProvider"</c>.
+        /// Defaults to <see cref="OperationId"/> when <see cref="InputsTemplate"/> is non-null
+        /// and no explicit value is provided in the JSON.
+        /// </summary>
+        public string ActionType { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OperationSchema"/> class with an empty parameter list.

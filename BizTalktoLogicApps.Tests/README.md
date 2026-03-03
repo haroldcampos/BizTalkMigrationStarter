@@ -32,6 +32,8 @@ Ensures the reliability and correctness of BizTalk to Azure Logic Apps migration
 | **Pipeline Workflow Mapper** | `PipelineWorkflowMapperTests` | Component to action mapping, default pipeline detection |
 | **Pipeline JSON Generator** | `PipelineJSONGeneratorTests` | Pipeline workflow JSON structure |
 | **Refactoring Options** | `RefactoringOptionsTests` | Configuration validation, deployment target constraints |
+| **Connector Schema Registry (Data-Driven)** | `ConnectorSchemaRegistryDataDrivenTests` | Data-driven parameter resolution, `ParameterSchema` dual-format parsing, `ResolveValue` routing, `InputsTemplate`/`ActionType` wiring, registry immutability |
+| **Pipeline Connector Registry** | `PipelineConnectorRegistryTests` | Three-section loading (`components`, `edifactComponents`, `as2Components`), custom fallback, `GetAllMappings`, metadata helpers |
 
 ### Integration Tests
 
@@ -41,7 +43,7 @@ Ensures the reliability and correctness of BizTalk to Azure Logic Apps migration
 | **ODXtoWFMigratorTests** | Orchestration conversion scenarios |
 | **LogicAppJSONGeneratorTests** | Workflow JSON generation |
 | **EndToEndReportGenerationTests** | Diagnostic report generation, batch processing |
-| **OdxAnalyzerTests** | Gap analysis and pattern detection |
+| **OdxAnalyzerTests** | Gap analysis, pattern detection, ODX directory scanning |
 | **BTMtoLMLMigratorTests** | Map conversion scenarios |
 | **BTPtoLAMigratorTests** | Pipeline migration scenarios |
 | **RefactoredWorkflowGeneratorTests** | Pattern-based optimization |
@@ -77,12 +79,14 @@ BizTalktoLogicApps.Tests/
 │   ├── WorkflowValidatorTests.cs
 │   ├── ReceivePatternAnalysisTests.cs
 │   ├── ExceptionExtensionsTests.cs
+│   ├── ConnectorSchemaRegistryDataDrivenTests.cs
 │   ├── Refactoring/
 │   │   └── RefactoringOptionsTests.cs
 │   ├── BTPtoLA/
 │   │   ├── PipelineParserTests.cs
 │   │   ├── PipelineWorkflowMapperTests.cs
-│   │   └── PipelineJSONGeneratorTests.cs
+│   │   ├── PipelineJSONGeneratorTests.cs
+│   │   └── PipelineConnectorRegistryTests.cs
 │   └── BTMtoLMLMigrator/
 │       ├── BtmParserTests.cs
 │       └── LmlGeneratorTests.cs
@@ -155,8 +159,8 @@ catch (Exception ex) when (!ex.IsFatal())
 
 ## Test Metrics
 
-- **Total Test Classes**: 20+
-- **Total Test Methods**: 150+
+- **Total Test Classes**: 22
+- **Total Test Methods**: 200+
 - **Code Coverage Target**: 80%+
 
 ## Related Projects
@@ -167,6 +171,13 @@ catch (Exception ex) when (!ex.IsFatal())
 - **[BizTalkToLogicApps.MCP](https://github.com/haroldcampos/BizTalkMigrationStarter/blob/main/BizTalktoLogicApps.MCP/README.md)** - MCP server wrapper
 
 ## Changelog
+
+### v1.2.0 (March 2026)
+
+#### Tests Added
+
+- `ConnectorSchemaRegistryDataDrivenTests` — 47 tests covering the fully data-driven parameter resolution introduced for `ConnectorSchemaRegistry`: `ParameterSchema` dual-format parsing (plain strings and objects), `ResolveValue` routing for every `ValueSource` token (`TargetAddress`, `MessageBody`, `QueueName`, `EventHubName`, `Literal`), `InputsTemplate`/`ActionType` wiring for built-in action types (`XmlParse`, `FlatFileDecoding`, `Xslt`, `RuleExecute`, `SwiftMTDecode`, `HL7Decode`, `AS2Encode`, `X12Encode`), `ResolveInputsPlaceholders` deep-clone immutability, and trigger parameter resolution
+- `PipelineConnectorRegistryTests` — 13 tests verifying `PipelineConnectorRegistry` loads all three JSON sections (`components`, `edifactComponents`, `as2Components`), resolves custom-component fallback, returns distinct entries from `GetAllMappings()`, and exposes metadata helpers (`GetComplexityDescription`, `GetServiceDescription`)
 
 ### v1.1.0 (January 2026)
 
@@ -192,5 +203,5 @@ MIT License - See LICENSE file in repository root.
 
 ---
 
-**Version**: 1.1.0  
-**Last Updated**: January 2026
+**Version**: 1.2.0  
+**Last Updated**: March 2026

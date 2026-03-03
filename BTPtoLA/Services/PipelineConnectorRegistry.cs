@@ -45,6 +45,31 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
         {
             LoadRegistry();
         }
+
+        /// <summary>
+        /// Creates a new <see cref="PipelineConnectorRegistry"/> loaded from the specified JSON file.
+        /// Use this factory method in tests to avoid the global singleton and control the file path.
+        /// </summary>
+        /// <param name="filePath">Full path to the pipeline-connector-registry JSON file.</param>
+        /// <returns>A fully populated <see cref="PipelineConnectorRegistry"/> instance.</returns>
+        /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="filePath"/> is null or empty.</exception>
+        /// <exception cref="System.IO.FileNotFoundException">Thrown when the file does not exist.</exception>
+        public static PipelineConnectorRegistry LoadFromFile(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentNullException(nameof(filePath));
+
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException("Connector registry file not found: " + filePath, filePath);
+
+            var instance = new PipelineConnectorRegistry(filePath);
+            return instance;
+        }
+
+        private PipelineConnectorRegistry(string filePath)
+        {
+            LoadRegistry(filePath);
+        }
         
         /// <summary>
         /// Loads the connector registry from the embedded JSON file.
@@ -59,9 +84,9 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                     "Schemas",
                     "Connectors",
                     "pipeline-connector-registry.json");
-                
+
                 string jsonContent;
-                
+
                 if (File.Exists(registryPath))
                 {
                     jsonContent = File.ReadAllText(registryPath);
@@ -80,14 +105,8 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                         jsonContent = "{ \"components\": {}, \"metadata\": {} }";
                     }
                 }
-                
-                _registry = JObject.Parse(jsonContent);
-                _componentMappings = new Dictionary<string, ComponentMapping>(StringComparer.OrdinalIgnoreCase);
-                
-                // Parse component mappings
-                ParseComponentMappings();
-                
-                Trace.TraceInformation("[REGISTRY] Loaded {0} component mappings", _componentMappings.Count);
+
+                InitializeFromJson(jsonContent);
             }
             catch (Exception ex)
             {
@@ -96,16 +115,60 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                 _componentMappings = new Dictionary<string, ComponentMapping>();
             }
         }
+
+        /// <summary>
+        /// Loads the connector registry from a specific file path (used by <see cref="LoadFromFile"/>).
+        /// </summary>
+        private void LoadRegistry(string filePath)
+        {
+            try
+            {
+                var jsonContent = File.ReadAllText(filePath);
+                InitializeFromJson(jsonContent);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("[REGISTRY] Error loading connector registry from {0}: {1}", filePath, ex.Message);
+                _registry = new JObject();
+                _componentMappings = new Dictionary<string, ComponentMapping>();
+            }
+        }
+
+        /// <summary>
+        /// Parses the JSON content into the registry and component mappings.
+        /// </summary>
+        private void InitializeFromJson(string jsonContent)
+        {
+            _registry = JObject.Parse(jsonContent);
+            _componentMappings = new Dictionary<string, ComponentMapping>(StringComparer.OrdinalIgnoreCase);
+
+            ParseComponentMappings();
+
+            Trace.TraceInformation("[REGISTRY] Loaded {0} component mappings", _componentMappings.Count);
+        }
         
         /// <summary>
-        /// Parses component mappings from the registry JSON.
+        /// Parses component mappings from all registry sections:
+        /// "components", "edifactComponents", and "as2Components".
         /// </summary>
         private void ParseComponentMappings()
         {
-            var components = _registry["components"] as JObject;
-            if (components == null) return;
-            
-            foreach (var component in components.Properties())
+            ParseSectionInto("components");
+            ParseSectionInto("edifactComponents");
+            ParseSectionInto("as2Components");
+        }
+
+        /// <summary>
+        /// Parses a single named section from the registry JSON into <see cref="_componentMappings"/>.
+        /// Sections that are absent or not a JSON object are silently skipped.
+        /// </summary>
+        /// <param name="sectionKey">Top-level JSON key to read (e.g., "components", "edifactComponents").</param>
+        private void ParseSectionInto(string sectionKey)
+        {
+            var section = _registry[sectionKey] as JObject;
+            if (section == null) return;
+
+            foreach (var component in section.Properties())
             {
                 try
                 {
@@ -122,7 +185,7 @@ namespace BizTalktoLogicApps.BTPtoLA.Services
                         CustomCodeRequired = component.Value["customCodeRequired"]?.ToObject<bool>() ?? false,
                         ActionTemplate = component.Value["logicAppsAction"] as JObject
                     };
-                    
+
                     _componentMappings[component.Name] = mapping;
                 }
                 catch (Exception ex)
